@@ -2,8 +2,6 @@ extern int yyparse();
 
 struct nodelist *program;
 
-char *buffer;
-
 enum {
     TYPE_IF,
     TYPE_WHILE,

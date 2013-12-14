@@ -178,13 +178,10 @@ int main(int argc, const char **argv) {
         fprintf(stderr, "Could not open file.");
     }
 
-    buffer = malloc(1000 * sizeof(char));
-
     yyin = f;
     yyparse();
 
     freelist(program);
-    free(buffer);
 
     return 0;
 }

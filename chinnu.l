@@ -7,15 +7,12 @@
 
 extern int yyerror(const char *);
 
-extern char *buffer;
+static void clearbuffer();
+static char *clonebuffer();
+static void appendtobuffer(const char *);
 
 static int token_for(const char *);
 static int is_punctuator(const char);
-
-// TODO - size?
-
-void clearbuffer();
-void appendtobuffer(const char *);
 %}
 
 %option noyywrap
@@ -46,7 +43,7 @@ identifier          ([a-zA-Z_][a-zA-Z0-9_]*)
 <string>"\\\""              { appendtobuffer("\""); }
 <string>"\\\\"              { appendtobuffer("\\"); }
 <string>"\\".               { yyerror("Illegal escape sequence.\n"); }
-<string>\"                  { BEGIN 0; yylval.s = strdup(buffer); return STRING_LITERAL; }
+<string>\"                  { BEGIN 0; yylval.s = clonebuffer(); return STRING_LITERAL; }
 
 <INITIAL>"=="               { return EQEQ; }
 <INITIAL>"!="               { return NEQ; }
@@ -58,14 +55,60 @@ identifier          ([a-zA-Z_][a-zA-Z0-9_]*)
 
 %%
 
-void clearbuffer() {
-    buffer[0] = '\0';
+static struct strbuffer {
+    char *s;
+    size_t size;
+    size_t capacity;
+} strbuffer;
+
+static struct strbuffer buffer = {0, 0, 0};
+
+static void clearbuffer() {
+    // TODO - free buffer after lexing
+
+    if (!buffer.s) {
+        buffer.s = malloc(16);
+        buffer.capacity = 16;
+    }
+
+    buffer.size = 0;
 }
 
-void appendtobuffer(const char *str) {
-    // TODO - check bounds, remalloc if necessary
+static char *clonebuffer() {
+    char *str = malloc(buffer.size + 1);
 
-    strcat(buffer, str);
+    if (!str) {
+        yyerror("Could not allocate memory for string literal.");
+    }
+
+    memcpy(str, buffer.s, buffer.size);
+    str[buffer.size] = 0;
+
+    return str;
+}
+
+static void appendtobuffer(const char *str) {
+    size_t len = strlen(str);
+    size_t min = buffer.size + len;
+
+    if (buffer.capacity < min) {
+        size_t newcapacity = buffer.capacity * 2;
+
+        if (newcapacity < min) {
+            newcapacity = min;
+        }
+
+        buffer.s = realloc(buffer.s, newcapacity);
+        buffer.capacity = newcapacity;
+
+        if (!buffer.s) {
+            yyerror("String literal too large.");
+            exit(1);
+        }
+    }
+
+    sprintf(buffer.s + buffer.size, "%s", str);
+    buffer.size += len;
 }
 
 static struct name_value {
