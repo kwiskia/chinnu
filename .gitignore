@@ -1,13 +1,9 @@
 # Compiled Object files
-*.slo
-*.lo
 *.o
 
-# Compiled Dynamic libraries
-*.so
-*.dylib
+# Binaries
+chinnu
 
-# Compiled Static libraries
-*.lai
-*.la
-*.a
+# Flex and Bison generated files
+chinnu.lex.c
+chinnu.tab.*
