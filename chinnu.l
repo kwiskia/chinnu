@@ -18,6 +18,7 @@ static int is_punctuator(const char);
 %option noyywrap
 %option yylineno
 %option stack
+%option nounput
 
 whitespace          ([ \t\r\n])
 line_comment        ("#".*)
