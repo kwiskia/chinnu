@@ -3,14 +3,14 @@
 
 extern int yylex(void);
 extern int yyerror(const char *);
-extern struct nodelist *program;
+extern Nodelist *program;
 %}
 
 %error-verbose
 
 %union{
-    struct node *node;
-    struct nodelist *nodelist;
+    Node *node;
+    Nodelist *nodelist;
     int i;
     double d;
     char *s;
