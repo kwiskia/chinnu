@@ -3,7 +3,7 @@
 
 extern int yylex(void);
 extern int yyerror(const char *);
-extern struct node *nodelist;
+extern struct nodelist *program;
 %}
 
 %error-verbose
