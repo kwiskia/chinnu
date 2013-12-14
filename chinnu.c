@@ -6,8 +6,8 @@
 extern FILE *yyin;
 extern int yyerror(const char *);
 
-struct node *allocnode() {
-    struct node *node = malloc(sizeof(struct node));
+Node *allocnode() {
+    Node *node = malloc(sizeof(Node ));
 
     if (!node) {
         yyerror("Out of memory.");
@@ -19,13 +19,13 @@ struct node *allocnode() {
     node->cond = N;
     node->body = NL;
     node->orelse = NL;
-    node->value = (struct val *)0;
+    node->value = (Val *)0;
 
     return node;
 }
 
-struct nodelist *alloclist() {
-    struct nodelist *list = malloc(sizeof(struct nodelist));
+Nodelist *alloclist() {
+    Nodelist *list = malloc(sizeof(Nodelist));
 
     if (!list) {
         yyerror("Out of memory.");
@@ -35,8 +35,8 @@ struct nodelist *alloclist() {
     return list;
 }
 
-struct val *allocval() {
-    struct val *val = malloc(sizeof(struct val));
+Val *allocval() {
+    Val *val = malloc(sizeof(Val));
 
     if (!val) {
         yyerror("Out of memory.");
@@ -46,7 +46,7 @@ struct val *allocval() {
     return val;
 }
 
-void freenode(struct node *node) {
+void freenode(Node *node) {
     if (node) {
         freenode(node->left);
         freenode(node->right);
@@ -66,7 +66,7 @@ void freenode(struct node *node) {
     }
 }
 
-void freelist(struct nodelist *list) {
+void freelist(Nodelist *list) {
     if (list) {
         freenode(list->node);
         freelist(list->next);
@@ -74,17 +74,17 @@ void freelist(struct nodelist *list) {
     }
 }
 
-struct nodelist *makelist(struct node *node)  {
-    struct nodelist *list = alloclist();
+Nodelist *makelist(Node *node)  {
+    Nodelist *list = alloclist();
 
     list->node = node;
     list->next = NL;
     return list;
 }
 
-struct nodelist *append(struct nodelist *list, struct node *node) {
-    struct nodelist *head = list;
-    struct nodelist *rear = makelist(node);
+Nodelist *append(Nodelist *list, Node *node) {
+    Nodelist *head = list;
+    Nodelist *rear = makelist(node);
 
     while (head->next) {
         head = head->next;
@@ -94,8 +94,8 @@ struct nodelist *append(struct nodelist *list, struct node *node) {
     return list;
 }
 
-struct node *makeif(struct node *cond, struct nodelist *body, struct nodelist *orelse) {
-    struct node *node = allocnode();
+Node *makeif(Node *cond, Nodelist *body, Nodelist *orelse) {
+    Node *node = allocnode();
 
     node->type = TYPE_IF;
     node->cond = cond;
@@ -104,8 +104,8 @@ struct node *makeif(struct node *cond, struct nodelist *body, struct nodelist *o
     return node;
 }
 
-struct node *makewhile(struct node *cond, struct nodelist *body) {
-    struct node *node = allocnode();
+Node *makewhile(Node *cond, Nodelist *body) {
+    Node *node = allocnode();
 
     node->type = TYPE_WHILE;
     node->cond = cond;
@@ -113,8 +113,8 @@ struct node *makewhile(struct node *cond, struct nodelist *body) {
     return node;
 }
 
-struct node *makebinop(int type, struct node *left, struct node *right) {
-    struct node *node = allocnode();
+Node *makebinop(int type, Node *left, Node *right) {
+    Node *node = allocnode();
 
     node->type = type;
     node->left = left;
@@ -122,16 +122,16 @@ struct node *makebinop(int type, struct node *left, struct node *right) {
     return node;
 }
 
-struct node *makeuop(int type, struct node *left) {
-    struct node *node = allocnode();
+Node *makeuop(int type, Node *left) {
+    Node *node = allocnode();
 
     node->type = type;
     node->left = left;
     return node;
 }
 
-struct node *makeassignment(struct node *left, struct node *right) {
-    struct node *node = allocnode();
+Node *makeassignment(Node *left, Node *right) {
+    Node *node = allocnode();
 
     node->type = TYPE_ASSIGN;
     node->left = left;
@@ -139,9 +139,9 @@ struct node *makeassignment(struct node *left, struct node *right) {
     return node;
 }
 
-struct node *makevarref(char *name) {
-    struct node *node = allocnode();
-    struct val *val = allocval();
+Node *makevarref(char *name) {
+    Node *node = allocnode();
+    Val *val = allocval();
 
     // TODO - intern?
 
@@ -151,9 +151,9 @@ struct node *makevarref(char *name) {
     return node;
 }
 
-struct node *makenum(double d) {
-    struct node *node = allocnode();
-    struct val *val = allocval();
+Node *makenum(double d) {
+    Node *node = allocnode();
+    Val *val = allocval();
 
     val->d = d;
     node->type = TYPE_NUMBER;
@@ -161,9 +161,9 @@ struct node *makenum(double d) {
     return node;
 }
 
-struct node *makestr(char *str) {
-    struct node *node = allocnode();
-    struct val *val = allocval();
+Node *makestr(char *str) {
+    Node *node = allocnode();
+    Val *val = allocval();
 
     node->type = TYPE_STRING;
     node->value = val;

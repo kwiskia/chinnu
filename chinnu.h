@@ -1,7 +1,5 @@
 extern int yyparse();
 
-struct nodelist *program;
-
 enum {
     TYPE_IF,
     TYPE_WHILE,
@@ -25,14 +23,14 @@ enum {
     TYPE_STRING
 };
 
-struct val {
+typedef struct val {
     union {
         double d;
         char *s;
     };
-};
+} Val;
 
-struct node {
+typedef struct node {
     unsigned char type;
 
     // TODO - restructure
@@ -46,27 +44,29 @@ struct node {
     // TODO - restructure
 
     struct val *value;
-};
+} Node;
 
-#define N ((struct node *)0)
+#define N ((Node *)0)
 
-struct nodelist {
+typedef struct nodelist {
     struct node *node;
     struct nodelist *next;
-};
+} Nodelist;
 
-#define NL ((struct nodelist *)0)
+#define NL ((Nodelist *)0)
 
-void freenode(struct node *node);
-void freelist(struct nodelist *list);
+Nodelist *program;
 
-struct nodelist *makelist(struct node *node);
-struct nodelist *append(struct nodelist *list, struct node *node);
-struct node *makeif(struct node *cond, struct nodelist *body, struct nodelist *orelse);
-struct node *makewhile(struct node *cond, struct nodelist *body);
-struct node *makebinop(int type, struct node *left, struct node *right);
-struct node *makeuop(int type, struct node *left);
-struct node *makeassignment(struct node *varref, struct node *value);
-struct node *makevarref(char *name);
-struct node *makenum(double d);
-struct node *makestr(char *str);
+void freenode(Node *node);
+void freelist(Nodelist *list);
+
+Nodelist *makelist(Node *node);
+Nodelist *append(Nodelist *list, Node *node);
+Node *makeif(Node *cond, Nodelist *body, Nodelist *orelse);
+Node *makewhile(Node *cond, Nodelist *body);
+Node *makebinop(int type, Node *left, Node *right);
+Node *makeuop(int type, Node *left);
+Node *makeassignment(Node *varref, Node *value);
+Node *makevarref(char *name);
+Node *makenum(double d);
+Node *makestr(char *str);
