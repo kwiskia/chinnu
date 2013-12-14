@@ -1,6 +1,8 @@
 extern int yyparse();
 
 enum {
+    TYPE_EMPTY,
+    TYPE_SEQUENCE,
     TYPE_IF,
     TYPE_WHILE,
     TYPE_ADD,
@@ -33,37 +35,26 @@ typedef struct val {
 typedef struct node {
     unsigned char type;
 
-    // TODO - restructure
-
-    struct node *left;
-    struct node *right;
-    struct node *cond;
-    struct nodelist *body;
-    struct nodelist *orelse;
-
-    // TODO - restructure
+    int nchildren;
+    struct nodelist *children;
 
     struct val *value;
 } Node;
-
-#define N ((Node *)0)
 
 typedef struct nodelist {
     struct node *node;
     struct nodelist *next;
 } Nodelist;
 
-#define NL ((Nodelist *)0)
-
-Nodelist *program;
+Node *program;
 
 void freenode(Node *node);
 void freelist(Nodelist *list);
 
-Nodelist *makelist(Node *node);
-Nodelist *append(Nodelist *list, Node *node);
-Node *makeif(Node *cond, Nodelist *body, Nodelist *orelse);
-Node *makewhile(Node *cond, Nodelist *body);
+Node *makeempty();
+Node *makeseq(Node *parent, Node *child);
+Node *makeif(Node *cond, Node *body, Node *orelse);
+Node *makewhile(Node *cond, Node *body);
 Node *makebinop(int type, Node *left, Node *right);
 Node *makeuop(int type, Node *left);
 Node *makeassignment(Node *varref, Node *value);

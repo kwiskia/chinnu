@@ -7,19 +7,16 @@ extern FILE *yyin;
 extern int yyerror(const char *);
 
 Node *allocnode() {
-    Node *node = malloc(sizeof(Node ));
+    Node *node = malloc(sizeof(Node));
 
     if (!node) {
         yyerror("Out of memory.");
         exit(1);
     }
 
-    node->left = N;
-    node->right = N;
-    node->cond = N;
-    node->body = NL;
-    node->orelse = NL;
-    node->value = (Val *)0;
+    node->nchildren = 0;
+    node->children = (Nodelist *) 0;
+    node->value = (Val *) 0;
 
     return node;
 }
@@ -48,11 +45,9 @@ Val *allocval() {
 
 void freenode(Node *node) {
     if (node) {
-        freenode(node->left);
-        freenode(node->right);
-        freenode(node->cond);
-        freelist(node->body);
-        freelist(node->orelse);
+        if (node->nchildren) {
+            freelist(node->children);
+        }
 
         if (node->value) {
             if (node->type == TYPE_VARREF || node->type == TYPE_STRING) {
@@ -78,7 +73,7 @@ Nodelist *makelist(Node *node)  {
     Nodelist *list = alloclist();
 
     list->node = node;
-    list->next = NL;
+    list->next = (Nodelist *) 0;
     return list;
 }
 
@@ -94,22 +89,53 @@ Nodelist *append(Nodelist *list, Node *node) {
     return list;
 }
 
-Node *makeif(Node *cond, Nodelist *body, Nodelist *orelse) {
+void addchild(Node *node, Node *child) {
+    if (!node->nchildren) {
+        node->children = makelist(child);
+    } else {
+        append(node->children, child);
+    }
+
+    node->nchildren++;
+}
+
+Node *makeempty() {
     Node *node = allocnode();
 
-    node->type = TYPE_IF;
-    node->cond = cond;
-    node->body = body;
-    node->orelse = orelse;
+    node->type = TYPE_EMPTY;
     return node;
 }
 
-Node *makewhile(Node *cond, Nodelist *body) {
+Node *makeseq(Node *child1, Node *child2) {
+    if (child1->type == TYPE_SEQUENCE) {
+        addchild(child1, child2);
+        return child1;
+    } else {
+        Node *node = allocnode();
+
+        node->type = TYPE_SEQUENCE;
+        addchild(node, child1);
+        addchild(node, child2);
+        return node;
+    }
+}
+
+Node *makeif(Node *cond, Node *body, Node *orelse) {
+    Node *node = allocnode();
+
+    node->type = TYPE_IF;
+    addchild(node, cond);
+    addchild(node, body);
+    addchild(node, orelse);
+    return node;
+}
+
+Node *makewhile(Node *cond, Node *body) {
     Node *node = allocnode();
 
     node->type = TYPE_WHILE;
-    node->cond = cond;
-    node->body = body;
+    addchild(node, cond);
+    addchild(node, body);
     return node;
 }
 
@@ -117,8 +143,8 @@ Node *makebinop(int type, Node *left, Node *right) {
     Node *node = allocnode();
 
     node->type = type;
-    node->left = left;
-    node->right = right;
+    addchild(node, left);
+    addchild(node, right);
     return node;
 }
 
@@ -126,7 +152,7 @@ Node *makeuop(int type, Node *left) {
     Node *node = allocnode();
 
     node->type = type;
-    node->left = left;
+    addchild(node, left);
     return node;
 }
 
@@ -134,8 +160,8 @@ Node *makeassignment(Node *left, Node *right) {
     Node *node = allocnode();
 
     node->type = TYPE_ASSIGN;
-    node->left = left;
-    node->right = right;
+    addchild(node, left);
+    addchild(node, right);
     return node;
 }
 
@@ -181,7 +207,7 @@ int main(int argc, const char **argv) {
     yyin = f;
     yyparse();
 
-    freelist(program);
+    freenode(program);
 
     return 0;
 }

@@ -3,14 +3,13 @@
 
 extern int yylex(void);
 extern int yyerror(const char *);
-extern Nodelist *program;
+extern Node *program;
 %}
 
 %error-verbose
 
 %union{
     Node *node;
-    Nodelist *nodelist;
     int i;
     double d;
     char *s;
@@ -30,8 +29,7 @@ extern Nodelist *program;
 %left '*' '/'
 %left NOT UNARY
 
-%type <nodelist> program expr_list else_block
-%type <node> expr
+%type <node> program expr_list expr else_block
 
 %start program
 
@@ -40,9 +38,9 @@ extern Nodelist *program;
 program : expr_list                          { program = $1; }
         ;
 
-expr_list : expr_list ';' expr               { $$ = append($1, $3); }
-          | expr                             { $$ = makelist($1); }
-          |                                  { $$ = NL; }
+expr_list : expr_list ';' expr               { $$ = makeseq($1, $3); }
+          | expr                             { $$ = $1; }
+          |                                  { $$ = makeempty(); }
           ;
 
 expr : IF expr THEN expr_list else_block END { $$ = makeif($2, $4, $5); }
@@ -70,7 +68,7 @@ expr : IF expr THEN expr_list else_block END { $$ = makeif($2, $4, $5); }
      ;
 
 else_block : ELSE expr_list                  { $$ = $2; }
-           |                                 { $$ = NL; }
+           |                                 { $$ = makeempty(); }
            ;
 
 %%
