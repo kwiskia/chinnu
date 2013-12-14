@@ -25,7 +25,7 @@ integer_literal     ([0-9]+)
 real_literal        ([0-9]+"."[0-9]+)
 identifier          ([a-zA-Z_][a-zA-Z0-9_]*)
 
-%state string
+%state s1 s2
 
 %%
 
@@ -35,15 +35,23 @@ identifier          ([a-zA-Z_][a-zA-Z0-9_]*)
 <INITIAL>{integer_literal}  { yylval.i = atoi(yytext); return INTEGER_LITERAL; }
 <INITIAL>{real_literal}     { yylval.d = atof(yytext); return REAL_LITERAL; }
 
-<INITIAL>\"                 { BEGIN string; clearbuffer(); }
-<string>[^\"\\\n]+          { appendtobuffer(yytext); }
-<string>"\\t"               { appendtobuffer("\t"); }
-<string>"\\r"               { appendtobuffer("\r"); }
-<string>"\\n"               { appendtobuffer("\n"); }
-<string>"\\\""              { appendtobuffer("\""); }
-<string>"\\\\"              { appendtobuffer("\\"); }
-<string>"\\".               { yyerror("Illegal escape sequence.\n"); }
-<string>\"                  { BEGIN 0; yylval.s = clonebuffer(); return STRING_LITERAL; }
+<INITIAL>\"                 { BEGIN s1; clearbuffer(); }
+<s1>\"                      { BEGIN INITIAL; yylval.s = clonebuffer(); return STRING_LITERAL; }
+<s1>[^\"\\\n]+              { appendtobuffer(yytext); }
+
+<INITIAL>'                  { BEGIN s2; clearbuffer(); }
+<s2>'                       { BEGIN INITIAL; yylval.s = clonebuffer(); return STRING_LITERAL; }
+<s2>[^'\\\n]+               { appendtobuffer(yytext); }
+
+<s1,s2>"\\t"                { appendtobuffer("\t"); }
+<s1,s2>"\\r"                { appendtobuffer("\r"); }
+<s1,s2>"\\n"                { appendtobuffer("\n"); }
+<s1,s2>"\\\""               { appendtobuffer("\""); }
+<s1,s2>"\\'"                { appendtobuffer("'"); }
+<s1,s2>"\\\\"               { appendtobuffer("\\"); }
+<s1,s2>"\\".                { yyerror("Illegal escape sequence.\n"); }
+<s1,s2>\n                   { yyerror("Newlines in string literals are not allowed."); }
+<s1,s2><<EOF>>              { BEGIN INITIAL; yyerror("Unterminated string literal."); }
 
 <INITIAL>"=="               { return EQEQ; }
 <INITIAL>"!="               { return NEQ; }
