@@ -25,7 +25,7 @@ integer_literal     ([0-9]+)
 real_literal        ([0-9]+"."[0-9]+)
 identifier          ([a-zA-Z_][a-zA-Z0-9_]*)
 
-%state s1 s2
+%state s1 s2 s3 s4
 
 %%
 
@@ -43,15 +43,25 @@ identifier          ([a-zA-Z_][a-zA-Z0-9_]*)
 <s2>'                       { BEGIN INITIAL; yylval.s = clonebuffer(); return STRING_LITERAL; }
 <s2>[^'\\\n]+               { appendtobuffer(yytext); }
 
-<s1,s2>"\\t"                { appendtobuffer("\t"); }
-<s1,s2>"\\r"                { appendtobuffer("\r"); }
-<s1,s2>"\\n"                { appendtobuffer("\n"); }
-<s1,s2>"\\\""               { appendtobuffer("\""); }
-<s1,s2>"\\'"                { appendtobuffer("'"); }
-<s1,s2>"\\\\"               { appendtobuffer("\\"); }
-<s1,s2>"\\".                { yyerror("Illegal escape sequence.\n"); }
+<INITIAL>\"\"\"             { BEGIN s3; clearbuffer(); }
+<s3>\"\"\"                  { BEGIN INITIAL; yylval.s = clonebuffer(); return STRING_LITERAL; }
+<s3>\"                      { appendtobuffer("\""); }
+<s3>[^\\\"]+                { appendtobuffer(yytext); }
+
+<INITIAL>'''                { BEGIN s4; clearbuffer(); }
+<s4>'''                     { BEGIN INITIAL; yylval.s = clonebuffer(); return STRING_LITERAL; }
+<s4>'                       { appendtobuffer("'"); }
+<s4>[^\\\']+                { appendtobuffer(yytext); }
+
+<s1,s2,s3,s4>"\\t"          { appendtobuffer("\t"); }
+<s1,s2,s3,s4>"\\r"          { appendtobuffer("\r"); }
+<s1,s2,s3,s4>"\\n"          { appendtobuffer("\n"); }
+<s1,s2,s3,s4>"\\\""         { appendtobuffer("\""); }
+<s1,s2,s3,s4>"\\'"          { appendtobuffer("'"); }
+<s1,s2,s3,s4>"\\\\"         { appendtobuffer("\\"); }
+<s1,s2,s3,s4>"\\".          { yyerror("Illegal escape sequence.\n"); }
+<s1,s2,s3,s4><<EOF>>        { BEGIN INITIAL; yyerror("Unterminated string literal."); }
 <s1,s2>\n                   { yyerror("Newlines in string literals are not allowed."); }
-<s1,s2><<EOF>>              { BEGIN INITIAL; yyerror("Unterminated string literal."); }
 
 <INITIAL>"=="               { return EQEQ; }
 <INITIAL>"!="               { return NEQ; }
