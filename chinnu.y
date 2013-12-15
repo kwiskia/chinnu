@@ -62,8 +62,8 @@ expr : IF expr THEN expr_list else_block END { $$ = makeif($2, $4, $5); }
      | expr AND expr                         { $$ = makebinop(TYPE_AND, $1, $3); }
      | expr OR expr                          { $$ = makebinop(TYPE_OR, $1, $3); }
      | IDENTIFIER                            { $$ = makevarref($1); }
-     | INTEGER_LITERAL                       { $$ = makenum($1); }
-     | REAL_LITERAL                          { $$ = makenum($1); }
+     | INTEGER_LITERAL                       { $$ = makeint($1); }
+     | REAL_LITERAL                          { $$ = makereal($1); }
      | STRING_LITERAL                        { $$ = makestr($1); }
      ;
 

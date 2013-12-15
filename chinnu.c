@@ -177,7 +177,17 @@ Node *makevarref(char *name) {
     return node;
 }
 
-Node *makenum(double d) {
+Node *makeint(int i) {
+    Node *node = allocnode();
+    Val *val = allocval();
+
+    val->i = i;
+    node->type = TYPE_NUMBER;
+    node->value = val;
+    return node;
+}
+
+Node *makereal(double d) {
     Node *node = allocnode();
     Val *val = allocval();
 

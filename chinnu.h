@@ -27,6 +27,7 @@ enum {
 
 typedef struct val {
     union {
+        int i;
         double d;
         char *s;
     };
@@ -59,5 +60,6 @@ Node *makebinop(int type, Node *left, Node *right);
 Node *makeuop(int type, Node *left);
 Node *makeassignment(Node *varref, Node *value);
 Node *makevarref(char *name);
-Node *makenum(double d);
+Node *makeint(int i);
+Node *makereal(double d);
 Node *makestr(char *str);
