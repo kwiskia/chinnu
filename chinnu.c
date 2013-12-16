@@ -207,6 +207,35 @@ Node *makestr(char *str) {
     return node;
 }
 
+/* for debugging */
+
+void printnode(Node *node, int indent) {
+    if (node) {
+        for (int i = 0; i < indent; i++) {
+            printf("\t");
+        }
+
+        if (node->value) {
+            if (node->type == TYPE_STRING || node->type == TYPE_VARREF) {
+                printf("[%d]: %s\n", node->type, node->value->s);
+            } else {
+                printf("[%d]: %.02f\n", node->type, node->value->d);
+            }
+        } else {
+            printf("[%d]\n", node->type);
+        }
+
+        if (node->nchildren) {
+            Nodelist *head = node->children;
+
+            while (head) {
+                printnode(head->node, indent + 1);
+                head = head->next;
+            }
+        }
+    }
+}
+
 int main(int argc, const char **argv) {
     FILE *f = fopen("test.ch", "r");
 
@@ -217,6 +246,7 @@ int main(int argc, const char **argv) {
     yyin = f;
     yyparse();
 
+    printnode(program, 0);
     freenode(program);
 
     return 0;
