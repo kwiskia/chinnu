@@ -22,9 +22,16 @@ static int is_punctuator(const char);
 
 whitespace          ([ \t\r\n])
 line_comment        ("#".*)
-integer_literal     ([0-9]+)
-real_literal        ([0-9]+"."[0-9]+)
 identifier          ([a-zA-Z_][a-zA-Z0-9_]*)
+
+dec_literal         (0|[1-9][0-9]*)
+hex_literal         (0[xX][0-9A-fa-f]+)
+bin_literal         (0[bB][01]+)
+oct_literal         (0[0-7]+)
+
+exponent_part       ([eE][+-]?[0-9]+)
+real_literal1       ([0-9]+{exponent_part})
+real_literal2       ([0-9]+"."[0-9]+{exponent_part}?)
 
 %state s1 s2 s3 s4
 
@@ -33,8 +40,13 @@ identifier          ([a-zA-Z_][a-zA-Z0-9_]*)
 <INITIAL>{whitespace}       { ; /* ignore */ }
 <INITIAL>{line_comment}     { ; /* ignore */ }
 
-<INITIAL>{integer_literal}  { yylval.i = atoi(yytext); return INTEGER_LITERAL; }
-<INITIAL>{real_literal}     { yylval.d = atof(yytext); return REAL_LITERAL; }
+<INITIAL>{dec_literal}      { yylval.i = atoi(yytext); return INTEGER_LITERAL; }
+<INITIAL>{hex_literal}      { yyerror("Hex literal not yet supported."); }
+<INITIAL>{bin_literal}      { yyerror("Bin literal not yet supported."); }
+<INITIAL>{oct_literal}      { yyerror("Oct literal not yet supported."); }
+
+<INITIAL>{real_literal1}    { yylval.d = atof(yytext); return REAL_LITERAL; }
+<INITIAL>{real_literal2}    { yylval.d = atof(yytext); return REAL_LITERAL; }
 
 <INITIAL>\"                 { BEGIN s1; clearbuffer(); }
 <s1>\"                      { BEGIN INITIAL; yylval.s = clonebuffer(); return STRING_LITERAL; }
