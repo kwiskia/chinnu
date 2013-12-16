@@ -33,6 +33,9 @@ exponent_part       ([eE][+-]?[0-9]+)
 real_literal1       ([0-9]+{exponent_part})
 real_literal2       ([0-9]+"."[0-9]+{exponent_part}?)
 
+oct_escape          ("\\"[0-3][0-7]{2})
+hex_escape          ("\\"[0-9A-Fa-f]{2})
+
 %state s1 s2 s3 s4
 
 %%
@@ -74,6 +77,8 @@ real_literal2       ([0-9]+"."[0-9]+{exponent_part}?)
 <s1,s2,s3,s4>"\\\""         { appendtobuffer("\""); }
 <s1,s2,s3,s4>"\\'"          { appendtobuffer("'"); }
 <s1,s2,s3,s4>"\\\\"         { appendtobuffer("\\"); }
+<s1,s2,s3,s4>{oct_escape}   { yyerror("Oct escape sequence not yet supported."); }
+<s1,s2,s3,s4>{hex_escape}   { yyerror("Oct escape sequence not yet supported."); }
 <s1,s2,s3,s4>"\\".          { yyerror("Illegal escape sequence.\n"); }
 <s1,s2,s3,s4><<EOF>>        { BEGIN INITIAL; yyerror("Unterminated string literal."); }
 <s1,s2>\n                   { yyerror("Newlines in string literals are not allowed."); }
