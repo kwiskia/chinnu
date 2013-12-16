@@ -54,9 +54,11 @@ identifier          ([a-zA-Z_][a-zA-Z0-9_]*)
 <s4>'                       { appendtobuffer("'"); }
 <s4>[^\\\']+                { appendtobuffer(yytext); }
 
+<s1,s2,s3,s4>"\\b"          { appendtobuffer("\b"); }
 <s1,s2,s3,s4>"\\t"          { appendtobuffer("\t"); }
-<s1,s2,s3,s4>"\\r"          { appendtobuffer("\r"); }
 <s1,s2,s3,s4>"\\n"          { appendtobuffer("\n"); }
+<s1,s2,s3,s4>"\\f"          { appendtobuffer("\f"); }
+<s1,s2,s3,s4>"\\r"          { appendtobuffer("\r"); }
 <s1,s2,s3,s4>"\\\""         { appendtobuffer("\""); }
 <s1,s2,s3,s4>"\\'"          { appendtobuffer("'"); }
 <s1,s2,s3,s4>"\\\\"         { appendtobuffer("\\"); }
