@@ -185,7 +185,7 @@ static int token_for(const char *lexeme) {
     }
 
     yylval.s = strdup(yytext);
-    return IDENTIFIER;
+    return IDENT;
 }
 
 static int is_punctuator(const char c) {

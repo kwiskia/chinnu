@@ -15,7 +15,7 @@ extern Node *program;
     char *s;
 }
 
-%token <s> IDENTIFIER
+%token <s> IDENT
 %token <i> INTEGER_LITERAL
 %token <d> REAL_LITERAL
 %token <s> STRING_LITERAL
@@ -67,7 +67,7 @@ expr : IF expr THEN expr_list else_block END { $$ = makeif($2, $4, $5); }
      | STRING_LITERAL                        { $$ = makestr($1); }
      ;
 
-lhs : IDENTIFIER { $$ = makevarref($1); }
+lhs : IDENT                                  { $$ = makevarref($1); }
     ;
 
 else_block : ELSE expr_list                  { $$ = $2; }
