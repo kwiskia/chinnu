@@ -1,9 +1,18 @@
 %{
+#include <stdio.h>
+#include <stdarg.h>
+#include <stdlib.h>
+#include <string.h>
+
 #include "chinnu.h"
 
+extern int yylineno;
 extern int yylex(void);
-extern int yyerror(const char *);
+extern void yyerror(char *fmt, ...);
 extern NodeList *program;
+
+char *filename = "<unknown>";
+int numerrors = 0;
 %}
 
 %error-verbose
@@ -99,3 +108,18 @@ else_block : ELSE expr_list                      { $$ = $2; }
            ;
 
 %%
+
+void yyerror(char *fmt, ...) {
+    va_list args;
+    va_start(args, fmt);
+
+    fprintf(stderr, "%s:%d: ", filename, yylineno);
+    vfprintf(stderr, fmt, args);
+    fprintf(stderr, "\n");
+
+    numerrors++;
+    if (numerrors >= 10) {
+        fprintf(stderr, "Too many errors, aborting.\n");
+        exit(1);
+    }
+}

@@ -1,8 +1,4 @@
 %{
-#include <stdlib.h>
-#include <string.h>
-#include <stdarg.h>
-
 #include "chinnu.h"
 #include "chinnu.tab.h"
 
@@ -200,13 +196,4 @@ static int is_punctuator(const char c) {
     }
 
     return 0;
-}
-
-void yyerror(char *fmt, ...) {
-    va_list args;
-    va_start(args, fmt);
-
-    fprintf(stderr, "%d: ", yylineno);
-    vfprintf(stderr, fmt, args);
-    fprintf(stderr, "\n");
 }
