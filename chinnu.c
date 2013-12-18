@@ -15,21 +15,10 @@ Node *allocnode() {
     }
 
     node->nchildren = 0;
-    node->children = (Nodelist *) 0;
+    node->children = (NodeList *) 0;
     node->value = (Val *) 0;
 
     return node;
-}
-
-Nodelist *alloclist() {
-    Nodelist *list = malloc(sizeof(Nodelist));
-
-    if (!list) {
-        yyerror("Out of memory.");
-        exit(1);
-    }
-
-    return list;
 }
 
 Val *allocval() {
@@ -61,41 +50,60 @@ void freenode(Node *node) {
     }
 }
 
-void freelist(Nodelist *list) {
+void freeitem(ListItem *item) {
+    if (item) {
+        freenode(item->node);
+        freeitem(item->next);
+        free(item);
+    }
+}
+
+void freelist(NodeList *list) {
     if (list) {
-        freenode(list->node);
-        freelist(list->next);
+        freeitem(list->head);
         free(list);
     }
 }
 
-Nodelist *makelist(Node *node)  {
-    Nodelist *list = alloclist();
+NodeList *makelist()  {
+    NodeList *list = malloc(sizeof(NodeList));
 
-    list->node = node;
-    list->next = (Nodelist *) 0;
+    if (!list) {
+        yyerror("Out of memory.");
+        exit(1);
+    }
+
+    list->head = (ListItem *) 0;
+    list->tail = (ListItem *) 0;
     return list;
 }
 
-Nodelist *append(Nodelist *list, Node *node) {
-    Nodelist *head = list;
-    Nodelist *rear = makelist(node);
+void append(NodeList *list, Node *node) {
+    ListItem *item = malloc(sizeof(ListItem));
 
-    while (head->next) {
-        head = head->next;
+    if (!item) {
+        yyerror("Out of memory.");
+        exit(1);
     }
 
-    head->next = rear;
-    return list;
+    item->node = node;
+    item->next = (ListItem *) 0;
+
+    if (!list->tail) {
+        list->head = item;
+        list->tail = item;
+    } else {
+        list->tail->next = item;
+        list->tail = item;
+    }
 }
 
 void addchild(Node *node, Node *child) {
     if (!node->nchildren) {
-        node->children = makelist(child);
-    } else {
-        append(node->children, child);
+        node->children = makelist();
     }
 
+    append(node->children, child);
     node->nchildren++;
 }
 
@@ -225,8 +233,8 @@ void printnode(Node *node, int indent) {
             printf("[%d]\n", node->type);
         }
 
-        if (node->nchildren) {
-            Nodelist *head = node->children;
+        if (node->children) {
+            ListItem *head = node->children->head;
 
             while (head) {
                 printnode(head->node, indent + 1);

@@ -25,7 +25,7 @@ enum {
     TYPE_STRING
 };
 
-typedef struct val {
+typedef struct Val {
     union {
         int i;
         double d;
@@ -33,24 +33,32 @@ typedef struct val {
     };
 } Val;
 
-typedef struct node {
+typedef struct Node {
     unsigned char type;
 
     int nchildren;
-    struct nodelist *children;
+    struct NodeList *children;
 
-    struct val *value;
+    struct Val *value;
 } Node;
 
-typedef struct nodelist {
-    struct node *node;
-    struct nodelist *next;
-} Nodelist;
+typedef struct ListItem {
+    struct Node *node;
+    struct ListItem *next;
+} ListItem;
+
+typedef struct NodeList {
+    struct ListItem *head;
+    struct ListItem *tail;
+} NodeList;
 
 Node *program;
 
 void freenode(Node *node);
-void freelist(Nodelist *list);
+void freelist(NodeList *list);
+
+NodeList *makelist();
+void append(NodeList *list, Node *node);
 
 Node *makeempty();
 Node *makeseq(Node *parent, Node *child);
