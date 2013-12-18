@@ -1,7 +1,6 @@
 extern int yyparse();
 
 enum {
-    TYPE_SEQUENCE,
     TYPE_IF,
     TYPE_WHILE,
     TYPE_ADD,
