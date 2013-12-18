@@ -1,7 +1,6 @@
 extern int yyparse();
 
 enum {
-    TYPE_EMPTY,
     TYPE_SEQUENCE,
     TYPE_IF,
     TYPE_WHILE,
@@ -66,7 +65,6 @@ NodeList *makelist();
 NodeList *list1(Node *node);
 NodeList *append(NodeList *list, Node *node);
 
-Node *makeempty();
 Node *makeif(Node *cond, NodeList *body, NodeList *orelse);
 Node *makewhile(Node *cond, NodeList *body);
 Node *makebinop(int type, Node *left, Node *right);

@@ -111,13 +111,6 @@ NodeList *append(NodeList *list, Node *node) {
     return list;
 }
 
-Node *makeempty() {
-    Node *node = allocnode();
-
-    node->type = TYPE_EMPTY;
-    return node;
-}
-
 Node *makeif(Node *cond, NodeList *body, NodeList *orelse) {
     Node *node = allocnode();
 
