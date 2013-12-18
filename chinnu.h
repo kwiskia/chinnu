@@ -22,7 +22,9 @@ enum {
     TYPE_OR,
     TYPE_VARREF,
     TYPE_NUMBER,
-    TYPE_STRING
+    TYPE_STRING,
+    TYPE_CALL,
+    TYPE_FUNC
 };
 
 typedef struct Val {
@@ -74,3 +76,5 @@ Node *makevarref(char *name);
 Node *makeint(int i);
 Node *makereal(double d);
 Node *makestr(char *str);
+Node *makecall(Node *target, NodeList *arguments);
+Node *makefunc(NodeList *parameters, NodeList *body);

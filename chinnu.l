@@ -164,12 +164,13 @@ static struct name_value keywords[] = {
     {"and", AND},
     {"or", OR},
     {"not", NOT},
+    {"function", FUN}
 };
 
 static char punctuators[] = {
     '+', '-', '*', '/',
-    '(', ')', '=', ';',
-    '<', '>'
+    '(', ')', '<', '>',
+    '=', ',', ';',
 };
 
 static int num_keywords = sizeof(keywords) / sizeof(name_value);

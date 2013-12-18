@@ -205,6 +205,24 @@ Node *makestr(char *str) {
     return node;
 }
 
+Node *makecall(Node *target, NodeList *arguments) {
+    Node *node = allocnode();
+
+    node->type = TYPE_CALL;
+    node->lnode = target;
+    node->rlist = arguments;
+    return node;
+}
+
+Node *makefunc(NodeList *parameters, NodeList *body) {
+    Node *node = allocnode();
+
+    node->type = TYPE_FUNC;
+    node->llist = parameters;
+    node->rlist = body;
+    return node;
+}
+
 /* for debugging */
 
 /* forward */

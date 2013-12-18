@@ -21,8 +21,9 @@ extern NodeList *program;
 %token <d> REAL_LITERAL
 %token <s> STRING_LITERAL
 
-%token IF THEN ELIF ELSE WHILE DO END
+%token IF THEN ELIF ELSE WHILE DO END FUN
 
+%left '('
 %right '='
 %left AND OR
 %nonassoc EQEQ NEQ '<' LEQ '>' GEQ
@@ -31,7 +32,7 @@ extern NodeList *program;
 %left NOT UNARY
 
 %type <node> expr lhs
-%type <list> program expr_list else_block
+%type <list> program expr_list else_block arg_list arg_list2 param_list param_list2
 
 %start program
 
@@ -40,7 +41,7 @@ extern NodeList *program;
 program : expr_list                          { program = $1; }
         ;
 
-expr_list : expr_list ';' expr               { $$ = append($$, $3); }
+expr_list : expr_list ';' expr               { $$ = append($1, $3); }
           | expr                             { $$ = list1($1); }
           |                                  { $$ = makelist(); }
           ;
@@ -67,7 +68,25 @@ expr : IF expr THEN expr_list else_block END { $$ = makeif($2, $4, $5); }
      | INTEGER_LITERAL                       { $$ = makeint($1); }
      | REAL_LITERAL                          { $$ = makereal($1); }
      | STRING_LITERAL                        { $$ = makestr($1); }
+     | expr arg_list                         { $$ = makecall($1, $2); }
+     | FUN param_list expr_list END          { $$ = makefunc($2, $3); }
      ;
+
+arg_list : '(' arg_list2 ')'                 { $$ = $2; }
+         | '(' ')'                           { $$ = makelist(); }
+         ;
+
+arg_list2 : arg_list2 ',' expr               { $$ = append($1, $3); }
+          | expr                             { $$ = list1($1); }
+          ;
+
+param_list : '(' param_list2 ')'             { $$ = $2; }
+           | '(' ')'                         { $$ = makelist(); }
+           ;
+
+param_list2 : param_list2 ',' IDENT          { $$ = append($1, makevarref($3)); }
+            | IDENT                          { $$ = list1(makevarref($1)); }
+            ;
 
 lhs : IDENT                                  { $$ = makevarref($1); }
     ;
