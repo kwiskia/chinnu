@@ -1,11 +1,12 @@
 %{
 #include <stdlib.h>
 #include <string.h>
+#include <stdarg.h>
 
 #include "chinnu.h"
 #include "chinnu.tab.h"
 
-extern int yyerror(const char *);
+extern void yyerror(char *fmt, ...);
 
 static void clearbuffer();
 static char *clonebuffer();
@@ -200,7 +201,11 @@ static int is_punctuator(const char c) {
     return 0;
 }
 
-int yyerror(const char *msg) {
-    fprintf(stderr, "%d: lexical error (%s) [%s]\n", yylineno, msg, yytext);
-    return 0;
+void yyerror(char *fmt, ...) {
+    va_list args;
+    va_start(args, fmt);
+
+    fprintf(stderr, "%d: ", yylineno);
+    vfprintf(stderr, fmt, args);
+    fprintf(stderr, "\n");
 }
