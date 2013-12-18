@@ -246,11 +246,13 @@ void dispnode(Node *node, int indent) {
 }
 
 void displist(NodeList *list, int indent) {
-    ListItem *item = list->head;
+    if (list) {
+        ListItem *item = list->head;
 
-    while (item) {
-        dispnode(item->node, indent);
-        item = item->next;
+        while (item) {
+            dispnode(item->node, indent);
+            item = item->next;
+        }
     }
 }
 
