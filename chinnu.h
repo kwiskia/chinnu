@@ -36,8 +36,11 @@ typedef struct Val {
 typedef struct Node {
     unsigned char type;
 
-    int nchildren;
-    struct NodeList *children;
+    struct Node *cond;
+    struct Node *lnode;
+    struct Node *rnode;
+    struct NodeList *llist;
+    struct NodeList *rlist;
 
     struct Val *value;
 } Node;
@@ -52,18 +55,18 @@ typedef struct NodeList {
     struct ListItem *tail;
 } NodeList;
 
-Node *program;
+NodeList *program;
 
 void freenode(Node *node);
 void freelist(NodeList *list);
 
 NodeList *makelist();
-void append(NodeList *list, Node *node);
+NodeList *list1(Node *node);
+NodeList *append(NodeList *list, Node *node);
 
 Node *makeempty();
-Node *makeseq(Node *parent, Node *child);
-Node *makeif(Node *cond, Node *body, Node *orelse);
-Node *makewhile(Node *cond, Node *body);
+Node *makeif(Node *cond, NodeList *body, NodeList *orelse);
+Node *makewhile(Node *cond, NodeList *body);
 Node *makebinop(int type, Node *left, Node *right);
 Node *makeuop(int type, Node *left);
 Node *makeassignment(Node *varref, Node *value);
