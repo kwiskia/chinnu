@@ -71,6 +71,7 @@ expr : IF expr THEN expr_list else_block END { $$ = makeif($2, $4, $5); }
      | STRING_LITERAL                        { $$ = makestr($1); }
      | expr arg_list                         { $$ = makecall($1, $2); }
      | FUN param_list expr_list END          { $$ = makefunc($2, $3); }
+     | error END                             { $$ = 0; yyclearin; yyerrok; }
      ;
 
 arg_list : '(' arg_list2 ')'                 { $$ = $2; }
