@@ -158,6 +158,7 @@ static struct name_value {
 static struct name_value keywords[] = {
     {"if", IF},
     {"then", THEN},
+    {"elif", ELIF},
     {"else", ELSE},
     {"while", WHILE},
     {"do", DO},

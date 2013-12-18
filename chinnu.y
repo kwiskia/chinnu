@@ -92,8 +92,9 @@ param_list2 : param_list2 ',' IDENT          { $$ = append($1, makevarref($3)); 
 lhs : IDENT                                  { $$ = makevarref($1); }
     ;
 
-else_block : ELSE expr_list                  { $$ = $2; }
-           |                                 { $$ = makelist(); }
+else_block : ELSE expr_list                      { $$ = $2; }
+           | ELIF expr THEN expr_list else_block { $$ = list1(makeif($2, $4, $5)); }
+           |                                     { $$ = makelist(); }
            ;
 
 %%
