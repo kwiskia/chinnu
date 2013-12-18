@@ -44,6 +44,7 @@ program : expr_list                          { program = $1; }
 expr_list : expr_list ';' expr               { $$ = append($1, $3); }
           | expr                             { $$ = list1($1); }
           |                                  { $$ = makelist(); }
+          | error ';'                        { $$ = 0; yyclearin; yyerrok; }
           ;
 
 expr : IF expr THEN expr_list else_block END { $$ = makeif($2, $4, $5); }
