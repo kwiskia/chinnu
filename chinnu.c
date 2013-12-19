@@ -223,7 +223,8 @@ void displist(NodeList *list, int indent);
 
 void dispnode(Node *node, int indent) {
     if (node) {
-        for (int i = 0; i < indent; i++) {
+        int i;
+        for (i = 0; i < indent; i++) {
             printf("\t");
         }
 
