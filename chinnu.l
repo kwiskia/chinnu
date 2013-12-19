@@ -12,7 +12,7 @@ static void appendtobuffer(const char *fmt, ...);
 static int token_for(const char *);
 static int is_punctuator(const char);
 
-const int MAX_LITERAL = 4096;
+#define MAX_LITERAL 4096
 
 static int length = 0;
 static char buffer[MAX_LITERAL];
