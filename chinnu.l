@@ -9,6 +9,11 @@ static void appendtobuffer(const char *);
 
 static int token_for(const char *);
 static int is_punctuator(const char);
+
+const int MAX_LITERAL = 4096;
+
+static int length = 0;
+static char buffer[MAX_LITERAL];
 %}
 
 %option noyywrap
@@ -88,11 +93,6 @@ hex_escape          ("\\"[0-9A-Fa-f]{2})
 <INITIAL>.                  { if (is_punctuator(yytext[0])) return yytext[0]; yyerror("Unknown character.\n"); }
 
 %%
-
-const int MAX_LITERAL = 4096;
-
-static int length = 0;
-static char buffer[MAX_LITERAL];
 
 static void clearbuffer() {
     length = 0;
