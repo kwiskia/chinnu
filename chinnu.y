@@ -8,7 +8,7 @@
 
 extern int yylineno;
 extern int yylex(void);
-extern void yyerror(char *fmt, ...);
+extern void yyerror(const char *fmt, ...);
 extern NodeList *program;
 
 char *filename = "<unknown>";
@@ -109,7 +109,7 @@ else_block : ELSE expr_list                      { $$ = $2; }
 
 %%
 
-void yyerror(char *fmt, ...) {
+void yyerror(const char *fmt, ...) {
     va_list args;
     va_start(args, fmt);
 
