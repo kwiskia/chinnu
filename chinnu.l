@@ -39,7 +39,7 @@ real_literal2       ([0-9]+"."[0-9]+{exponent_part}?)
 oct_escape          ("\\"[0-3][0-7]{2})
 hex_escape          ("\\"x[0-9A-Fa-f]{2})
 
-%state s1 s2 s3 s4
+%state s1 s2 s3 s4 s5 s6 s7 s8
 
 %%
 
@@ -58,19 +58,37 @@ hex_escape          ("\\"x[0-9A-Fa-f]{2})
 <s1>\"                      { BEGIN INITIAL; yylval.s = strdup(buffer); return STRING_LITERAL; }
 <s1>[^\"\\\n]+              { appendtobuffer("%s", yytext); }
 
+<INITIAL>r\"                { BEGIN s5; clearbuffer(); }
+<s5>\"                      { BEGIN INITIAL; yylval.s = strdup(buffer); return STRING_LITERAL; }
+<s5>[^\"\n]+                { appendtobuffer("%s", yytext); }
+
 <INITIAL>'                  { BEGIN s2; clearbuffer(); }
 <s2>'                       { BEGIN INITIAL; yylval.s = strdup(buffer); return STRING_LITERAL; }
 <s2>[^'\\\n]+               { appendtobuffer("%s", yytext); }
+
+<INITIAL>r'                 { BEGIN s6; clearbuffer(); }
+<s6>'                       { BEGIN INITIAL; yylval.s = strdup(buffer); return STRING_LITERAL; }
+<s6>[^'\n]+                 { appendtobuffer("%s", yytext); }
 
 <INITIAL>\"\"\"             { BEGIN s3; clearbuffer(); }
 <s3>\"\"\"                  { BEGIN INITIAL; yylval.s = strdup(buffer); return STRING_LITERAL; }
 <s3>\"                      { appendtobuffer("\""); }
 <s3>[^\\\"]+                { appendtobuffer("%s", yytext); }
 
+<INITIAL>r\"\"\"            { BEGIN s7; clearbuffer(); }
+<s7>\"\"\"                  { BEGIN INITIAL; yylval.s = strdup(buffer); return STRING_LITERAL; }
+<s7>\"                      { appendtobuffer("\""); }
+<s7>[^\"]+                  { appendtobuffer("%s", yytext); }
+
 <INITIAL>'''                { BEGIN s4; clearbuffer(); }
 <s4>'''                     { BEGIN INITIAL; yylval.s = strdup(buffer); return STRING_LITERAL; }
 <s4>'                       { appendtobuffer("'"); }
 <s4>[^\\\']+                { appendtobuffer("%s", yytext); }
+
+<INITIAL>r'''               { BEGIN s8; clearbuffer(); }
+<s8>'''                     { BEGIN INITIAL; yylval.s = strdup(buffer); return STRING_LITERAL; }
+<s8>'                       { appendtobuffer("'"); }
+<s8>[^\']+                  { appendtobuffer("%s", yytext); }
 
 <s1,s2,s3,s4>"\\b"          { appendtobuffer("\b"); }
 <s1,s2,s3,s4>"\\t"          { appendtobuffer("\t"); }
@@ -84,6 +102,7 @@ hex_escape          ("\\"x[0-9A-Fa-f]{2})
 <s1,s2,s3,s4>{hex_escape}   { appendtobuffer("%c", strtol(yytext + 2, 0, 16)); }
 <s1,s2,s3,s4>"\\".          { yyerror("Illegal escape sequence.\n"); }
 <s1,s2,s3,s4><<EOF>>        { BEGIN INITIAL; yyerror("Unterminated string literal."); }
+<s5,s6,s7,s8><<EOF>>        { BEGIN INITIAL; yyerror("Unterminated string literal."); }
 <s1,s2>\n                   { yyerror("Newlines in string literals are not allowed."); }
 
 <INITIAL>"=="               { return EQEQ; }
