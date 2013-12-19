@@ -40,9 +40,9 @@ hex_escape          ("\\"[0-9A-Fa-f]{2})
 <INITIAL>{line_comment}     { ; /* ignore */ }
 
 <INITIAL>{dec_literal}      { yylval.i = atoi(yytext); return INTEGER_LITERAL; }
-<INITIAL>{hex_literal}      { yyerror("Hex literal not yet supported."); }
-<INITIAL>{bin_literal}      { yyerror("Bin literal not yet supported."); }
-<INITIAL>{oct_literal}      { yyerror("Oct literal not yet supported."); }
+<INITIAL>{hex_literal}      { yylval.i = strtol(yytext + 2, 0, 16); return INTEGER_LITERAL; }
+<INITIAL>{bin_literal}      { yylval.i = strtol(yytext + 2, 0, 2); return INTEGER_LITERAL; }
+<INITIAL>{oct_literal}      { yylval.i = strtol(yytext + 1, 0, 8); return INTEGER_LITERAL; }
 
 <INITIAL>{real_literal1}    { yylval.d = atof(yytext); return REAL_LITERAL; }
 <INITIAL>{real_literal2}    { yylval.d = atof(yytext); return REAL_LITERAL; }
