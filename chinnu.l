@@ -1,11 +1,13 @@
 %{
+#include <stdarg.h>
+
 #include "chinnu.h"
 #include "chinnu.tab.h"
 
 extern void yyerror(char *fmt, ...);
 
 static void clearbuffer();
-static void appendtobuffer(const char *);
+static void appendtobuffer(const char *fmt, ...);
 
 static int token_for(const char *);
 static int is_punctuator(const char);
@@ -54,21 +56,21 @@ hex_escape          ("\\"[0-9A-Fa-f]{2})
 
 <INITIAL>\"                 { BEGIN s1; clearbuffer(); }
 <s1>\"                      { BEGIN INITIAL; yylval.s = strdup(buffer); return STRING_LITERAL; }
-<s1>[^\"\\\n]+              { appendtobuffer(yytext); }
+<s1>[^\"\\\n]+              { appendtobuffer("%s", yytext); }
 
 <INITIAL>'                  { BEGIN s2; clearbuffer(); }
 <s2>'                       { BEGIN INITIAL; yylval.s = strdup(buffer); return STRING_LITERAL; }
-<s2>[^'\\\n]+               { appendtobuffer(yytext); }
+<s2>[^'\\\n]+               { appendtobuffer("%s", yytext); }
 
 <INITIAL>\"\"\"             { BEGIN s3; clearbuffer(); }
 <s3>\"\"\"                  { BEGIN INITIAL; yylval.s = strdup(buffer); return STRING_LITERAL; }
 <s3>\"                      { appendtobuffer("\""); }
-<s3>[^\\\"]+                { appendtobuffer(yytext); }
+<s3>[^\\\"]+                { appendtobuffer("%s", yytext); }
 
 <INITIAL>'''                { BEGIN s4; clearbuffer(); }
 <s4>'''                     { BEGIN INITIAL; yylval.s = strdup(buffer); return STRING_LITERAL; }
 <s4>'                       { appendtobuffer("'"); }
-<s4>[^\\\']+                { appendtobuffer(yytext); }
+<s4>[^\\\']+                { appendtobuffer("%s", yytext); }
 
 <s1,s2,s3,s4>"\\b"          { appendtobuffer("\b"); }
 <s1,s2,s3,s4>"\\t"          { appendtobuffer("\t"); }
@@ -78,8 +80,8 @@ hex_escape          ("\\"[0-9A-Fa-f]{2})
 <s1,s2,s3,s4>"\\\""         { appendtobuffer("\""); }
 <s1,s2,s3,s4>"\\'"          { appendtobuffer("'"); }
 <s1,s2,s3,s4>"\\\\"         { appendtobuffer("\\"); }
-<s1,s2,s3,s4>{oct_escape}   { yyerror("Oct escape sequence not yet supported."); }
-<s1,s2,s3,s4>{hex_escape}   { yyerror("Oct escape sequence not yet supported."); }
+<s1,s2,s3,s4>{oct_escape}   { appendtobuffer("%c", strtol(yytext + 1, 0, 8)); }
+<s1,s2,s3,s4>{hex_escape}   { appendtobuffer("%c", strtol(yytext + 1, 0, 16)); }
 <s1,s2,s3,s4>"\\".          { yyerror("Illegal escape sequence.\n"); }
 <s1,s2,s3,s4><<EOF>>        { BEGIN INITIAL; yyerror("Unterminated string literal."); }
 <s1,s2>\n                   { yyerror("Newlines in string literals are not allowed."); }
@@ -99,12 +101,14 @@ static void clearbuffer() {
     buffer[0] = '\0';
 }
 
-static void appendtobuffer(const char *str) {
-    int n = snprintf(buffer + length, MAX_LITERAL - length, "%s", str);
+static void appendtobuffer(const char *fmt, ...) {
+    va_list args;
+    va_start(args, fmt);
+
+    int n = vsnprintf(buffer + length, MAX_LITERAL - length, fmt, args);
 
     if (n < 0 || n >= MAX_LITERAL) {
         yyerror("String literal too large, truncated.");
-        exit(1);
     }
 
     length += n;
