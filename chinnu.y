@@ -8,7 +8,7 @@
 
 extern int yylineno;
 extern int yylex(void);
-extern void yyerror(const char *fmt, ...);
+void yyerror(const char *fmt, ...);
 extern NodeList *program;
 
 char *filename = "<unknown>";

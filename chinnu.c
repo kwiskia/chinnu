@@ -4,13 +4,12 @@
 #include "chinnu.h"
 
 extern FILE *yyin;
-extern int yyerror(const char *);
 
 Node *allocnode() {
     Node *node = malloc(sizeof(Node));
 
     if (!node) {
-        yyerror("Out of memory.");
+        fprintf(stderr, "Out of memory.");
         exit(1);
     }
 
@@ -28,7 +27,7 @@ Val *allocval() {
     Val *val = malloc(sizeof(Val));
 
     if (!val) {
-        yyerror("Out of memory.");
+        fprintf(stderr, "Out of memory.");
         exit(1);
     }
 
@@ -74,7 +73,7 @@ NodeList *makelist() {
     NodeList *list = malloc(sizeof(NodeList));
 
     if (!list) {
-        yyerror("Out of memory.");
+        fprintf(stderr, "Out of memory.");
         exit(1);
     }
 
@@ -93,7 +92,7 @@ NodeList *append(NodeList *list, Node *node) {
     ListItem *item = malloc(sizeof(ListItem));
 
     if (!item) {
-        yyerror("Out of memory.");
+        fprintf(stderr, "Out of memory.");
         exit(1);
     }
 
