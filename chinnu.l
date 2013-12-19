@@ -5,7 +5,6 @@
 extern void yyerror(char *fmt, ...);
 
 static void clearbuffer();
-static char *clonebuffer();
 static void appendtobuffer(const char *);
 
 static int token_for(const char *);
@@ -49,20 +48,20 @@ hex_escape          ("\\"[0-9A-Fa-f]{2})
 <INITIAL>{real_literal2}    { yylval.d = atof(yytext); return REAL_LITERAL; }
 
 <INITIAL>\"                 { BEGIN s1; clearbuffer(); }
-<s1>\"                      { BEGIN INITIAL; yylval.s = clonebuffer(); return STRING_LITERAL; }
+<s1>\"                      { BEGIN INITIAL; yylval.s = strdup(buffer); return STRING_LITERAL; }
 <s1>[^\"\\\n]+              { appendtobuffer(yytext); }
 
 <INITIAL>'                  { BEGIN s2; clearbuffer(); }
-<s2>'                       { BEGIN INITIAL; yylval.s = clonebuffer(); return STRING_LITERAL; }
+<s2>'                       { BEGIN INITIAL; yylval.s = strdup(buffer); return STRING_LITERAL; }
 <s2>[^'\\\n]+               { appendtobuffer(yytext); }
 
 <INITIAL>\"\"\"             { BEGIN s3; clearbuffer(); }
-<s3>\"\"\"                  { BEGIN INITIAL; yylval.s = clonebuffer(); return STRING_LITERAL; }
+<s3>\"\"\"                  { BEGIN INITIAL; yylval.s = strdup(buffer); return STRING_LITERAL; }
 <s3>\"                      { appendtobuffer("\""); }
 <s3>[^\\\"]+                { appendtobuffer(yytext); }
 
 <INITIAL>'''                { BEGIN s4; clearbuffer(); }
-<s4>'''                     { BEGIN INITIAL; yylval.s = clonebuffer(); return STRING_LITERAL; }
+<s4>'''                     { BEGIN INITIAL; yylval.s = strdup(buffer); return STRING_LITERAL; }
 <s4>'                       { appendtobuffer("'"); }
 <s4>[^\\\']+                { appendtobuffer(yytext); }
 
@@ -90,60 +89,25 @@ hex_escape          ("\\"[0-9A-Fa-f]{2})
 
 %%
 
-static struct strbuffer {
-    char *s;
-    size_t size;
-    size_t capacity;
-} strbuffer;
+const int MAX_LITERAL = 4096;
 
-static struct strbuffer buffer = {0, 0, 0};
+static int length = 0;
+static char buffer[MAX_LITERAL];
 
 static void clearbuffer() {
-    // TODO - free buffer after lexing
-
-    if (!buffer.s) {
-        buffer.s = malloc(16);
-        buffer.capacity = 16;
-    }
-
-    buffer.size = 0;
-}
-
-static char *clonebuffer() {
-    char *str = malloc(buffer.size + 1);
-
-    if (!str) {
-        yyerror("Could not allocate memory for string literal.");
-    }
-
-    memcpy(str, buffer.s, buffer.size);
-    str[buffer.size] = 0;
-
-    return str;
+    length = 0;
+    buffer[0] = '\0';
 }
 
 static void appendtobuffer(const char *str) {
-    size_t len = strlen(str);
-    size_t min = buffer.size + len;
+    int n = snprintf(buffer + length, MAX_LITERAL - length, "%s", str);
 
-    if (buffer.capacity < min) {
-        size_t newcapacity = buffer.capacity * 2;
-
-        if (newcapacity < min) {
-            newcapacity = min;
-        }
-
-        buffer.s = realloc(buffer.s, newcapacity);
-        buffer.capacity = newcapacity;
-
-        if (!buffer.s) {
-            yyerror("String literal too large.");
-            exit(1);
-        }
+    if (n < 0 || n >= MAX_LITERAL) {
+        yyerror("String literal too large, truncated.");
+        exit(1);
     }
 
-    sprintf(buffer.s + buffer.size, "%s", str);
-    buffer.size += len;
+    length += n;
 }
 
 static struct name_value {
