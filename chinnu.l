@@ -100,7 +100,7 @@ hex_escape          ("\\"x[0-9A-Fa-f]{2})
 <s1,s2,s3,s4>"\\\\"         { appendtobuffer("\\"); }
 <s1,s2,s3,s4>{oct_escape}   { appendtobuffer("%c", strtol(yytext + 1, 0, 8)); }
 <s1,s2,s3,s4>{hex_escape}   { appendtobuffer("%c", strtol(yytext + 2, 0, 16)); }
-<s1,s2,s3,s4>"\\".          { yyerror("Illegal escape sequence.\n"); }
+<s1,s2,s3,s4>"\\".          { yyerror("Illegal escape sequence."); }
 <s1,s2,s3,s4><<EOF>>        { BEGIN INITIAL; yyerror("Unterminated string literal."); }
 <s5,s6,s7,s8><<EOF>>        { BEGIN INITIAL; yyerror("Unterminated string literal."); }
 <s1,s2>\n                   { yyerror("Newlines in string literals are not allowed."); }
@@ -111,7 +111,7 @@ hex_escape          ("\\"x[0-9A-Fa-f]{2})
 <INITIAL>">="               { return GEQ; }
 
 <INITIAL>{identifier}       { return token_for(yytext); }
-<INITIAL>.                  { if (is_punctuator(yytext[0])) return yytext[0]; yyerror("Unknown character.\n"); }
+<INITIAL>.                  { if (is_punctuator(yytext[0])) return yytext[0]; yyerror("Unknown character."); }
 
 %%
 
