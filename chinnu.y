@@ -53,7 +53,6 @@ program : expr_list                          { program = $1; }
 expr_list : expr_list ';' expr               { $$ = append($1, $3); }
           | expr                             { $$ = list1($1); }
           |                                  { $$ = makelist(); }
-          | error ';'                        { $$ = 0; yyclearin; yyerrok; }
           ;
 
 expr : IF expr THEN expr_list else_block END { $$ = makeif($2, $4, $5); }
@@ -80,7 +79,6 @@ expr : IF expr THEN expr_list else_block END { $$ = makeif($2, $4, $5); }
      | STRING_LITERAL                        { $$ = makestr($1); }
      | expr arg_list                         { $$ = makecall($1, $2); }
      | FUN param_list expr_list END          { $$ = makefunc($2, $3); }
-     | error END                             { $$ = 0; yyclearin; yyerrok; }
      ;
 
 arg_list : '(' arg_list2 ')'                 { $$ = $2; }
