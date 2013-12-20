@@ -30,7 +30,7 @@ int numerrors = 0;
 %token <d> REAL_LITERAL
 %token <s> STRING_LITERAL
 
-%token IF THEN ELIF ELSE WHILE DO END FUN
+%token IF THEN ELIF ELSE WHILE DO END FUN VAR
 
 %left '('
 %right '='
@@ -64,6 +64,7 @@ expr : IF expr THEN expr_list else_block END { $$ = makeif($2, $4, $5); }
      | '-' expr %prec UNARY                  { $$ = makeuop(TYPE_NEG, $2); }
      | NOT expr                              { $$ = makeuop(TYPE_NOT, $2); }
      | '(' expr ')'                          { $$ = $2; }
+     | VAR IDENT '=' expr                    { $$ = makedeclaration(makevarref($2), $4); }
      | lhs '=' expr                          { $$ = makeassignment($1, $3); }
      | expr EQEQ expr                        { $$ = makebinop(TYPE_EQEQ, $1, $3); }
      | expr NEQ expr                         { $$ = makebinop(TYPE_NEQ, $1, $3); }

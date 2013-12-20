@@ -22,7 +22,8 @@ enum {
     TYPE_NUMBER,
     TYPE_STRING,
     TYPE_CALL,
-    TYPE_FUNC
+    TYPE_FUNC,
+    TYPE_DECLARATION
 };
 
 typedef struct Val {
@@ -68,6 +69,7 @@ Node *makeif(Node *cond, NodeList *body, NodeList *orelse);
 Node *makewhile(Node *cond, NodeList *body);
 Node *makebinop(int type, Node *left, Node *right);
 Node *makeuop(int type, Node *left);
+Node *makedeclaration(Node *varref, Node *value);
 Node *makeassignment(Node *varref, Node *value);
 Node *makevarref(char *name);
 Node *makeint(int i);

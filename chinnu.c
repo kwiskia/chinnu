@@ -146,6 +146,15 @@ Node *makeuop(int type, Node *left) {
     return node;
 }
 
+Node *makedeclaration(Node *left, Node *right) {
+    Node *node = allocnode();
+
+    node->type = TYPE_DECLARATION;
+    node->lnode = left;
+    node->rnode = right;
+    return node;
+}
+
 Node *makeassignment(Node *left, Node *right) {
     Node *node = allocnode();
 
