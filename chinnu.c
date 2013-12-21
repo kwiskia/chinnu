@@ -22,6 +22,7 @@ Node *allocnode() {
     node->rlist = (NodeList *) 0;
     node->value = (Val *) 0;
     node->symbol = (Symbol *) 0;
+    node->immutable = 0;
 
     return node;
 }
@@ -154,7 +155,7 @@ Node *makeuop(int type, Node *left) {
     return node;
 }
 
-Node *makedeclaration(char *name) {
+Node *makedeclaration(char *name, int immutable) {
     Node *node = allocnode();
     Val *val = allocval();
 
@@ -163,6 +164,7 @@ Node *makedeclaration(char *name) {
     node->type = TYPE_DECLARATION;
     node->value = val;
     val->s = name;
+    node->immutable = immutable;
     return node;
 }
 
@@ -405,6 +407,11 @@ void resolveNode(SymbolTable *table, Node *node) {
 
         /* binary cases */
         case TYPE_ASSIGN:
+            if (node->lnode->immutable == 1) {
+                fprintf(stderr, "Assignment to a VAL.\n");
+                exit(1);
+            }
+
         case TYPE_ADD:
         case TYPE_SUB:
         case TYPE_MUL:

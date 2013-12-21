@@ -150,7 +150,8 @@ static struct name_value keywords[] = {
     {"or", OR},
     {"not", NOT},
     {"function", FUN},
-    {"var", VAR}
+    {"var", VAR},
+    {"val", VAL}
 };
 
 static char punctuators[] = {

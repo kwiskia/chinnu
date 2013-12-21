@@ -30,7 +30,7 @@ int numerrors = 0;
 %token <d> REAL_LITERAL
 %token <s> STRING_LITERAL
 
-%token IF THEN ELIF ELSE WHILE DO END FUN VAR
+%token IF THEN ELIF ELSE WHILE DO END FUN VAR VAL
 
 %left '('
 %right '='
@@ -64,7 +64,8 @@ expr : IF expr THEN expr_list else_block END { $$ = makeif($2, $4, $5); }
      | '-' expr %prec UNARY                  { $$ = makeuop(TYPE_NEG, $2); }
      | NOT expr                              { $$ = makeuop(TYPE_NOT, $2); }
      | '(' expr ')'                          { $$ = $2; }
-     | VAR IDENT '=' expr                    { $$ = makeassignment(makedeclaration($2), $4); }
+     | VAR IDENT '=' expr                    { $$ = makeassignment(makedeclaration($2, 0), $4); }
+     | VAL IDENT '=' expr                    { $$ = makeassignment(makedeclaration($2, 1), $4); }
      | lhs '=' expr                          { $$ = makeassignment($1, $3); }
      | expr EQEQ expr                        { $$ = makebinop(TYPE_EQEQ, $1, $3); }
      | expr NEQ expr                         { $$ = makebinop(TYPE_NEQ, $1, $3); }
@@ -94,8 +95,8 @@ param_list : '(' param_list2 ')'             { $$ = $2; }
            | '(' ')'                         { $$ = makelist(); }
            ;
 
-param_list2 : param_list2 ',' IDENT          { $$ = append($1, makedeclaration($3)); }
-            | IDENT                          { $$ = list1(makedeclaration($1)); }
+param_list2 : param_list2 ',' IDENT          { $$ = append($1, makedeclaration($3, 0)); }
+            | IDENT                          { $$ = list1(makedeclaration($1, 0)); }
             ;
 
 lhs : IDENT                                  { $$ = makevarref($1); }

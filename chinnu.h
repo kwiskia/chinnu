@@ -64,6 +64,7 @@ typedef struct Node {
 
     struct Val *value;
     struct Symbol *symbol;
+    int immutable;
 } Node;
 
 typedef struct ListItem {
@@ -89,7 +90,7 @@ Node *makeif(Node *cond, NodeList *body, NodeList *orelse);
 Node *makewhile(Node *cond, NodeList *body);
 Node *makebinop(int type, Node *left, Node *right);
 Node *makeuop(int type, Node *left);
-Node *makedeclaration(char *name);
+Node *makedeclaration(char *name, int immutable);
 Node *makeassignment(Node *varref, Node *value);
 Node *makevarref(char *name);
 Node *makeint(int i);
