@@ -1,9 +1,11 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "chinnu.h"
 
 extern FILE *yyin;
+extern void yylex_destroy();
 
 Node *allocnode() {
     Node *node = malloc(sizeof(Node));
@@ -19,6 +21,7 @@ Node *allocnode() {
     node->llist = (NodeList *) 0;
     node->rlist = (NodeList *) 0;
     node->value = (Val *) 0;
+    node->symbol = (Symbol *) 0;
 
     return node;
 }
@@ -43,11 +46,16 @@ void freenode(Node *node) {
         if (node->rlist) freelist(node->rlist);
 
         if (node->value) {
-            if (node->type == TYPE_VARREF || node->type == TYPE_STRING) {
+            if (node->type == TYPE_VARREF || node->type == TYPE_DECLARATION || node->type == TYPE_STRING) {
                 free(node->value->s);
             }
 
             free(node->value);
+        }
+
+        if (node->type == TYPE_DECLARATION) {
+            free(node->symbol->name);
+            free(node->symbol);
         }
 
         free(node);
@@ -146,12 +154,15 @@ Node *makeuop(int type, Node *left) {
     return node;
 }
 
-Node *makedeclaration(Node *left, Node *right) {
+Node *makedeclaration(char *name) {
     Node *node = allocnode();
+    Val *val = allocval();
+
+    // TODO - intern?
 
     node->type = TYPE_DECLARATION;
-    node->lnode = left;
-    node->rnode = right;
+    node->value = val;
+    val->s = name;
     return node;
 }
 
@@ -224,6 +235,220 @@ Node *makefunc(NodeList *parameters, NodeList *body) {
     return node;
 }
 
+/* for semantic analysis */
+
+Symbol *makesymbol(char *name) {
+    static int id = 0;
+
+    Symbol *symbol = malloc(sizeof(Symbol));
+
+    if (!symbol) {
+        fprintf(stderr, "Out of memory.");
+        exit(1);
+    }
+
+    symbol->name = strdup(name);
+    symbol->id = id++;
+    return symbol;
+}
+
+void insert(SymbolTable *table, Symbol *symbol) {
+    if (!table->top) {
+        fprintf(stderr, "Empty scope. Aborting.");
+        exit(1);
+    }
+
+    ScopeItem *item = malloc(sizeof(ScopeItem));
+
+    if (!item) {
+        fprintf(stderr, "Out of memory.");
+        exit(1);
+    }
+
+    item->symbol = symbol;
+    item->next = table->top->scope;
+
+    table->top->scope = item;
+}
+
+Symbol *search(SymbolTable *table, char *name) {
+    if (!table->top) {
+        fprintf(stderr, "Empty scope. Aborting.");
+        exit(1);
+    }
+
+    SymbolItem *head1 = table->top;
+
+    while (head1) {
+        ScopeItem *head2 = head1->scope;
+
+        while (head2) {
+            if (strcmp(head2->symbol->name, name) == 0) {
+                return head2->symbol;
+            }
+
+            head2 = head2->next;
+        }
+
+        head1 = head1->next;
+    }
+
+    return 0;
+}
+
+void enter_scope(SymbolTable *table) {
+    SymbolItem *scope = malloc(sizeof(SymbolItem));
+
+    if (!scope) {
+        fprintf(stderr, "Out of memory.");
+        exit(1);
+    }
+
+    scope->scope = (ScopeItem *) 0;
+    scope->next = table->top;
+    table->top = scope;
+}
+
+void free_scope(SymbolItem *top) {
+    ScopeItem *head = top->scope;
+
+    while (head) {
+        ScopeItem *temp = head;
+        head = head->next;
+        free(temp);
+    }
+
+    free(top);
+}
+
+void exit_scope(SymbolTable *table) {
+    if (!table->top) {
+        fprintf(stderr, "Empty scope. Aborting.");
+        exit(1);
+    }
+
+    SymbolItem *next = table->top->next;
+    free_scope(table->top);
+    table->top = next;
+}
+
+/* forward */
+void resolveList(SymbolTable *table, NodeList *list);
+
+void resolveNode(SymbolTable *table, Node *node) {
+    switch (node->type) {
+        case TYPE_DECLARATION:;
+            Symbol *s1 = search(table, node->value->s);
+
+            if (!s1) {
+                s1 = makesymbol(node->value->s);
+                node->symbol = s1;
+                insert(table, s1);
+            } else {
+                fprintf(stderr, "Duplicate declaration of %s\n", node->value->s);
+                exit(1);
+            }
+
+            break;
+
+        case TYPE_VARREF:;
+            Symbol *s2 = search(table, node->value->s);
+
+            if (!s2) {
+                fprintf(stderr, "Use of undeclared variable %s!\n", node->value->s);
+                exit(1);
+            } else {
+                node->symbol = s2;
+            }
+
+            break;
+
+        /* control flow */
+        case TYPE_IF:
+            resolveNode(table, node->cond);
+
+            enter_scope(table);
+            resolveList(table, node->llist);
+            exit_scope(table);
+
+            enter_scope(table);
+            resolveList(table, node->rlist);
+            exit_scope(table);
+            break;
+
+        case TYPE_WHILE:
+            resolveNode(table, node->cond);
+
+            enter_scope(table);
+            resolveList(table, node->llist);
+            exit_scope(table);
+            break;
+
+        case TYPE_CALL:
+            resolveNode(table, node->lnode);
+
+            enter_scope(table);
+            resolveList(table, node->rlist);
+            exit_scope(table);
+            break;
+
+        case TYPE_FUNC:
+            enter_scope(table);
+            resolveList(table, node->llist);
+
+            enter_scope(table);
+            resolveList(table, node->rlist);
+
+            exit_scope(table);
+            exit_scope(table);
+            break;
+
+        /* binary cases */
+        case TYPE_ASSIGN:
+        case TYPE_ADD:
+        case TYPE_SUB:
+        case TYPE_MUL:
+        case TYPE_DIV:
+        case TYPE_EQEQ:
+        case TYPE_NEQ:
+        case TYPE_LT:
+        case TYPE_LEQ:
+        case TYPE_GT:
+        case TYPE_GEQ:
+        case TYPE_AND:
+        case TYPE_OR:
+            resolveNode(table, node->lnode);
+            resolveNode(table, node->rnode);
+            break;
+
+        /* unary cases */
+        case TYPE_NEG:
+        case TYPE_NOT:
+            resolveNode(table, node->lnode);
+            break;
+
+        /* constants */
+        case TYPE_NUMBER:
+        case TYPE_STRING:
+            /* ignore */
+            break;
+    }
+}
+
+void resolveList(SymbolTable *table, NodeList *list) {
+    if (!list) {
+        fprintf(stderr, "Did not expect empty list. Aborting.");
+        exit(1);
+    }
+
+    ListItem *item = list->head;
+
+    while (item) {
+        resolveNode(table, item->node);
+        item = item->next;
+    }
+}
+
 /* for debugging */
 
 /* forward */
@@ -236,14 +461,25 @@ void dispnode(Node *node, int indent) {
             printf("\t");
         }
 
-        if (node->value) {
-            if (node->type == TYPE_STRING || node->type == TYPE_VARREF) {
-                printf("[%d]: %s\n", node->type, node->value->s);
-            } else {
-                printf("[%d]: %.02f\n", node->type, node->value->d);
-            }
-        } else {
-            printf("[%d]\n", node->type);
+        switch (node->type) {
+            case TYPE_VARREF:
+                printf("[ref %d]\n", node->symbol->id);
+                break;
+
+            case TYPE_DECLARATION:
+                printf("[decl %d]\n", node->symbol->id);
+                break;
+
+            case TYPE_NUMBER:
+                printf("[%.2f or %d]\n", node->value->d, node->value->i);
+                break;
+
+            case TYPE_STRING:
+                printf("[\"%s\"]\n", node->value->s);
+                break;
+
+            default:
+                printf("[type %d]\n", node->type);
         }
 
         if (node->cond) dispnode(node->cond, indent + 1);
@@ -274,9 +510,24 @@ int main(int argc, const char **argv) {
 
     yyin = f;
     yyparse();
+    yylex_destroy();
+
+    SymbolTable *table = malloc(sizeof(SymbolTable));
+
+    if (!table) {
+        fprintf(stderr, "Out of memory.");
+        exit(1);
+    }
+
+    table->top = (SymbolItem *) 0;
+    enter_scope(table);
+    resolveList(table, program);
+    exit_scope(table);
+    free(table);
 
     displist(program, 0);
     freelist(program);
+    fclose(f);
 
     return 0;
 }

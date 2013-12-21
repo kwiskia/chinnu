@@ -26,6 +26,25 @@ enum {
     TYPE_DECLARATION
 };
 
+typedef struct Symbol {
+    int id;
+    char *name;
+} Symbol;
+
+typedef struct ScopeItem {
+    struct Symbol *symbol;
+    struct ScopeItem *next;
+} ScopeItem;
+
+typedef struct SymbolItem {
+    struct ScopeItem *scope;
+    struct SymbolItem *next;
+} SymbolItem;
+
+typedef struct SymbolTable {
+    struct SymbolItem *top;
+} SymbolTable;
+
 typedef struct Val {
     union {
         int i;
@@ -44,6 +63,7 @@ typedef struct Node {
     struct NodeList *rlist;
 
     struct Val *value;
+    struct Symbol *symbol;
 } Node;
 
 typedef struct ListItem {
@@ -69,7 +89,7 @@ Node *makeif(Node *cond, NodeList *body, NodeList *orelse);
 Node *makewhile(Node *cond, NodeList *body);
 Node *makebinop(int type, Node *left, Node *right);
 Node *makeuop(int type, Node *left);
-Node *makedeclaration(Node *varref, Node *value);
+Node *makedeclaration(char *name);
 Node *makeassignment(Node *varref, Node *value);
 Node *makevarref(char *name);
 Node *makeint(int i);
