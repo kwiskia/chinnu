@@ -119,7 +119,7 @@ void exit_scope(SymbolTable *table) {
     table->top = next;
 }
 
-void resolve(NodeList *list) {
+void resolve(NodeList *program) {
     SymbolTable *table = malloc(sizeof(SymbolTable));
 
     if (!table) {

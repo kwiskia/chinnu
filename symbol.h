@@ -2,7 +2,7 @@
 #define __SYMBOL_H
 
 #include "common.h"
-#include "chinnu.h"
+#include "ast.h"
 
 struct Symbol {
     int id;

@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "ast.h"
 #include "chinnu.h"
 
 extern int yylineno;
