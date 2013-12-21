@@ -1,0 +1,3 @@
+ast.o: ast.c ast.h common.h symbol.h
+chinnu.o: chinnu.c chinnu.h common.h symbol.h ast.h
+symbol.o: symbol.c symbol.h common.h ast.h
