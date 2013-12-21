@@ -274,29 +274,47 @@ void insert(SymbolTable *table, Symbol *symbol) {
     table->top->scope = item;
 }
 
+Symbol *search_in_scope(ScopeItem *scope, char *name) {
+    ScopeItem *head = scope;
+
+    while (head) {
+        if (strcmp(head->symbol->name, name) == 0) {
+            return head->symbol;
+        }
+
+        head = head->next;
+    }
+
+    return 0;
+}
 Symbol *search(SymbolTable *table, char *name) {
     if (!table->top) {
         fprintf(stderr, "Empty scope. Aborting.");
         exit(1);
     }
 
-    SymbolItem *head1 = table->top;
+    SymbolItem *head = table->top;
 
-    while (head1) {
-        ScopeItem *head2 = head1->scope;
+    while (head) {
+        Symbol *s = search_in_scope(head->scope, name);
 
-        while (head2) {
-            if (strcmp(head2->symbol->name, name) == 0) {
-                return head2->symbol;
-            }
-
-            head2 = head2->next;
+        if (s) {
+            return s;
         }
 
-        head1 = head1->next;
+        head = head->next;
     }
 
     return 0;
+}
+
+Symbol *search_in_current_scope(SymbolTable *table, char *name) {
+    if (!table->top) {
+        fprintf(stderr, "Empty scope. Aborting.");
+        exit(1);
+    }
+
+    return search_in_scope(table->top->scope, name);
 }
 
 void enter_scope(SymbolTable *table) {
@@ -341,7 +359,7 @@ void resolve_list(SymbolTable *table, NodeList *list);
 void resolve_node(SymbolTable *table, Node *node) {
     switch (node->type) {
         case TYPE_DECLARATION:;
-            Symbol *s1 = search(table, node->value->s);
+            Symbol *s1 = search_in_current_scope(table, node->value->s);
 
             if (!s1) {
                 s1 = make_symbol(node->value->s, node);
