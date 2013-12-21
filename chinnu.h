@@ -1,3 +1,9 @@
+#ifndef __CHINNU_H
+#define __CHINNU_H
+
+#include "common.h"
+#include "symbol.h"
+
 extern int yyparse();
 
 enum {
@@ -26,57 +32,37 @@ enum {
     TYPE_DECLARATION
 };
 
-typedef struct Symbol {
-    int id;
-    char *name;
-    struct Node *declaration;
-} Symbol;
-
-typedef struct ScopeItem {
-    struct Symbol *symbol;
-    struct ScopeItem *next;
-} ScopeItem;
-
-typedef struct SymbolItem {
-    struct ScopeItem *scope;
-    struct SymbolItem *next;
-} SymbolItem;
-
-typedef struct SymbolTable {
-    struct SymbolItem *top;
-} SymbolTable;
-
-typedef struct Val {
+struct Val {
     union {
         int i;
         double d;
         char *s;
     };
-} Val;
+};
 
-typedef struct Node {
+struct Node {
     unsigned char type;
 
-    struct Node *cond;
-    struct Node *lnode;
-    struct Node *rnode;
-    struct NodeList *llist;
-    struct NodeList *rlist;
+    Node *cond;
+    Node *lnode;
+    Node *rnode;
+    NodeList *llist;
+    NodeList *rlist;
 
-    struct Val *value;
-    struct Symbol *symbol;
+    Val *value;
+    Symbol *symbol;
     int immutable;
-} Node;
+};
 
-typedef struct ListItem {
-    struct Node *node;
-    struct ListItem *next;
-} ListItem;
+struct ListItem {
+    Node *node;
+    ListItem *next;
+};
 
-typedef struct NodeList {
-    struct ListItem *head;
-    struct ListItem *tail;
-} NodeList;
+struct NodeList {
+    ListItem *head;
+    ListItem *tail;
+};
 
 NodeList *program;
 
@@ -99,3 +85,5 @@ Node *make_real(double d);
 Node *make_str(char *str);
 Node *make_call(Node *target, NodeList *arguments);
 Node *make_func(NodeList *parameters, NodeList *body);
+
+#endif /* __CHINNU_H */
