@@ -79,22 +79,22 @@ typedef struct NodeList {
 
 NodeList *program;
 
-void freenode(Node *node);
-void freelist(NodeList *list);
+void free_node(Node *node);
+void free_list(NodeList *list);
 
-NodeList *makelist();
+NodeList *make_list();
 NodeList *list1(Node *node);
 NodeList *append(NodeList *list, Node *node);
 
-Node *makeif(Node *cond, NodeList *body, NodeList *orelse);
-Node *makewhile(Node *cond, NodeList *body);
-Node *makebinop(int type, Node *left, Node *right);
-Node *makeuop(int type, Node *left);
-Node *makedeclaration(char *name, int immutable);
-Node *makeassignment(Node *varref, Node *value);
-Node *makevarref(char *name);
-Node *makeint(int i);
-Node *makereal(double d);
-Node *makestr(char *str);
-Node *makecall(Node *target, NodeList *arguments);
-Node *makefunc(NodeList *parameters, NodeList *body);
+Node *make_if(Node *cond, NodeList *body, NodeList *orelse);
+Node *make_while(Node *cond, NodeList *body);
+Node *make_binop(int type, Node *left, Node *right);
+Node *make_uop(int type, Node *left);
+Node *make_declaration(char *name, int immutable);
+Node *make_assignment(Node *varref, Node *value);
+Node *make_varref(char *name);
+Node *make_int(int i);
+Node *make_real(double d);
+Node *make_str(char *str);
+Node *make_call(Node *target, NodeList *arguments);
+Node *make_func(NodeList *parameters, NodeList *body);

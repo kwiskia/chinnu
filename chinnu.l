@@ -6,8 +6,8 @@
 
 extern void yyerror(char *fmt, ...);
 
-static void clearbuffer();
-static void appendtobuffer(const char *fmt, ...);
+static void clear_buffer();
+static void append_to_buffer(const char *fmt, ...);
 
 static int token_for(const char *);
 static int is_punctuator(const char);
@@ -54,52 +54,52 @@ hex_escape          ("\\"x[0-9A-Fa-f]{2})
 <INITIAL>{real_literal1}    { yylval.d = atof(yytext); return REAL_LITERAL; }
 <INITIAL>{real_literal2}    { yylval.d = atof(yytext); return REAL_LITERAL; }
 
-<INITIAL>\"                 { BEGIN s1; clearbuffer(); }
+<INITIAL>\"                 { BEGIN s1; clear_buffer(); }
 <s1>\"                      { BEGIN INITIAL; yylval.s = strdup(buffer); return STRING_LITERAL; }
-<s1>[^\"\\\n]+              { appendtobuffer("%s", yytext); }
+<s1>[^\"\\\n]+              { append_to_buffer("%s", yytext); }
 
-<INITIAL>r\"                { BEGIN s5; clearbuffer(); }
+<INITIAL>r\"                { BEGIN s5; clear_buffer(); }
 <s5>\"                      { BEGIN INITIAL; yylval.s = strdup(buffer); return STRING_LITERAL; }
-<s5>[^\"\n]+                { appendtobuffer("%s", yytext); }
+<s5>[^\"\n]+                { append_to_buffer("%s", yytext); }
 
-<INITIAL>'                  { BEGIN s2; clearbuffer(); }
+<INITIAL>'                  { BEGIN s2; clear_buffer(); }
 <s2>'                       { BEGIN INITIAL; yylval.s = strdup(buffer); return STRING_LITERAL; }
-<s2>[^'\\\n]+               { appendtobuffer("%s", yytext); }
+<s2>[^'\\\n]+               { append_to_buffer("%s", yytext); }
 
-<INITIAL>r'                 { BEGIN s6; clearbuffer(); }
+<INITIAL>r'                 { BEGIN s6; clear_buffer(); }
 <s6>'                       { BEGIN INITIAL; yylval.s = strdup(buffer); return STRING_LITERAL; }
-<s6>[^'\n]+                 { appendtobuffer("%s", yytext); }
+<s6>[^'\n]+                 { append_to_buffer("%s", yytext); }
 
-<INITIAL>\"\"\"             { BEGIN s3; clearbuffer(); }
+<INITIAL>\"\"\"             { BEGIN s3; clear_buffer(); }
 <s3>\"\"\"                  { BEGIN INITIAL; yylval.s = strdup(buffer); return STRING_LITERAL; }
-<s3>\"                      { appendtobuffer("\""); }
-<s3>[^\\\"]+                { appendtobuffer("%s", yytext); }
+<s3>\"                      { append_to_buffer("\""); }
+<s3>[^\\\"]+                { append_to_buffer("%s", yytext); }
 
-<INITIAL>r\"\"\"            { BEGIN s7; clearbuffer(); }
+<INITIAL>r\"\"\"            { BEGIN s7; clear_buffer(); }
 <s7>\"\"\"                  { BEGIN INITIAL; yylval.s = strdup(buffer); return STRING_LITERAL; }
-<s7>\"                      { appendtobuffer("\""); }
-<s7>[^\"]+                  { appendtobuffer("%s", yytext); }
+<s7>\"                      { append_to_buffer("\""); }
+<s7>[^\"]+                  { append_to_buffer("%s", yytext); }
 
-<INITIAL>'''                { BEGIN s4; clearbuffer(); }
+<INITIAL>'''                { BEGIN s4; clear_buffer(); }
 <s4>'''                     { BEGIN INITIAL; yylval.s = strdup(buffer); return STRING_LITERAL; }
-<s4>'                       { appendtobuffer("'"); }
-<s4>[^\\\']+                { appendtobuffer("%s", yytext); }
+<s4>'                       { append_to_buffer("'"); }
+<s4>[^\\\']+                { append_to_buffer("%s", yytext); }
 
-<INITIAL>r'''               { BEGIN s8; clearbuffer(); }
+<INITIAL>r'''               { BEGIN s8; clear_buffer(); }
 <s8>'''                     { BEGIN INITIAL; yylval.s = strdup(buffer); return STRING_LITERAL; }
-<s8>'                       { appendtobuffer("'"); }
-<s8>[^\']+                  { appendtobuffer("%s", yytext); }
+<s8>'                       { append_to_buffer("'"); }
+<s8>[^\']+                  { append_to_buffer("%s", yytext); }
 
-<s1,s2,s3,s4>"\\b"          { appendtobuffer("\b"); }
-<s1,s2,s3,s4>"\\t"          { appendtobuffer("\t"); }
-<s1,s2,s3,s4>"\\n"          { appendtobuffer("\n"); }
-<s1,s2,s3,s4>"\\f"          { appendtobuffer("\f"); }
-<s1,s2,s3,s4>"\\r"          { appendtobuffer("\r"); }
-<s1,s2,s3,s4>"\\\""         { appendtobuffer("\""); }
-<s1,s2,s3,s4>"\\'"          { appendtobuffer("'"); }
-<s1,s2,s3,s4>"\\\\"         { appendtobuffer("\\"); }
-<s1,s2,s3,s4>{oct_escape}   { appendtobuffer("%c", strtol(yytext + 1, 0, 8)); }
-<s1,s2,s3,s4>{hex_escape}   { appendtobuffer("%c", strtol(yytext + 2, 0, 16)); }
+<s1,s2,s3,s4>"\\b"          { append_to_buffer("\b"); }
+<s1,s2,s3,s4>"\\t"          { append_to_buffer("\t"); }
+<s1,s2,s3,s4>"\\n"          { append_to_buffer("\n"); }
+<s1,s2,s3,s4>"\\f"          { append_to_buffer("\f"); }
+<s1,s2,s3,s4>"\\r"          { append_to_buffer("\r"); }
+<s1,s2,s3,s4>"\\\""         { append_to_buffer("\""); }
+<s1,s2,s3,s4>"\\'"          { append_to_buffer("'"); }
+<s1,s2,s3,s4>"\\\\"         { append_to_buffer("\\"); }
+<s1,s2,s3,s4>{oct_escape}   { append_to_buffer("%c", strtol(yytext + 1, 0, 8)); }
+<s1,s2,s3,s4>{hex_escape}   { append_to_buffer("%c", strtol(yytext + 2, 0, 16)); }
 <s1,s2,s3,s4>"\\".          { yyerror("Illegal escape sequence."); }
 <s1,s2,s3,s4><<EOF>>        { BEGIN INITIAL; yyerror("Unterminated string literal."); }
 <s5,s6,s7,s8><<EOF>>        { BEGIN INITIAL; yyerror("Unterminated string literal."); }
@@ -115,12 +115,12 @@ hex_escape          ("\\"x[0-9A-Fa-f]{2})
 
 %%
 
-static void clearbuffer() {
+static void clear_buffer() {
     length = 0;
     buffer[0] = '\0';
 }
 
-static void appendtobuffer(const char *fmt, ...) {
+static void append_to_buffer(const char *fmt, ...) {
     va_list args;
     va_start(args, fmt);
 

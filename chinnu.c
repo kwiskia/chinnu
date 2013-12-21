@@ -38,13 +38,13 @@ Val *allocval() {
     return val;
 }
 
-void freenode(Node *node) {
+void free_node(Node *node) {
     if (node) {
-        if (node->cond)  freenode(node->cond);
-        if (node->lnode) freenode(node->lnode);
-        if (node->rnode) freenode(node->rnode);
-        if (node->llist) freelist(node->llist);
-        if (node->rlist) freelist(node->rlist);
+        if (node->cond)  free_node(node->cond);
+        if (node->lnode) free_node(node->lnode);
+        if (node->rnode) free_node(node->rnode);
+        if (node->llist) free_list(node->llist);
+        if (node->rlist) free_list(node->rlist);
 
         if (node->value) {
             if (node->type == TYPE_VARREF || node->type == TYPE_DECLARATION || node->type == TYPE_STRING) {
@@ -63,22 +63,22 @@ void freenode(Node *node) {
     }
 }
 
-void freeitem(ListItem *item) {
+void free_item(ListItem *item) {
     if (item) {
-        freenode(item->node);
-        freeitem(item->next);
+        free_node(item->node);
+        free_item(item->next);
         free(item);
     }
 }
 
-void freelist(NodeList *list) {
+void free_list(NodeList *list) {
     if (list) {
-        freeitem(list->head);
+        free_item(list->head);
         free(list);
     }
 }
 
-NodeList *makelist() {
+NodeList *make_list() {
     NodeList *list = malloc(sizeof(NodeList));
 
     if (!list) {
@@ -92,7 +92,7 @@ NodeList *makelist() {
 }
 
 NodeList *list1(Node *node) {
-    NodeList *list = makelist();
+    NodeList *list = make_list();
     append(list, node);
     return list;
 }
@@ -119,7 +119,7 @@ NodeList *append(NodeList *list, Node *node) {
     return list;
 }
 
-Node *makeif(Node *cond, NodeList *body, NodeList *orelse) {
+Node *make_if(Node *cond, NodeList *body, NodeList *orelse) {
     Node *node = allocnode();
 
     node->type = TYPE_IF;
@@ -129,7 +129,7 @@ Node *makeif(Node *cond, NodeList *body, NodeList *orelse) {
     return node;
 }
 
-Node *makewhile(Node *cond, NodeList *body) {
+Node *make_while(Node *cond, NodeList *body) {
     Node *node = allocnode();
 
     node->type = TYPE_WHILE;
@@ -138,7 +138,7 @@ Node *makewhile(Node *cond, NodeList *body) {
     return node;
 }
 
-Node *makebinop(int type, Node *left, Node *right) {
+Node *make_binop(int type, Node *left, Node *right) {
     Node *node = allocnode();
 
     node->type = type;
@@ -147,7 +147,7 @@ Node *makebinop(int type, Node *left, Node *right) {
     return node;
 }
 
-Node *makeuop(int type, Node *left) {
+Node *make_uop(int type, Node *left) {
     Node *node = allocnode();
 
     node->type = type;
@@ -155,7 +155,7 @@ Node *makeuop(int type, Node *left) {
     return node;
 }
 
-Node *makedeclaration(char *name, int immutable) {
+Node *make_declaration(char *name, int immutable) {
     Node *node = allocnode();
     Val *val = allocval();
 
@@ -168,7 +168,7 @@ Node *makedeclaration(char *name, int immutable) {
     return node;
 }
 
-Node *makeassignment(Node *left, Node *right) {
+Node *make_assignment(Node *left, Node *right) {
     Node *node = allocnode();
 
     node->type = TYPE_ASSIGN;
@@ -177,7 +177,7 @@ Node *makeassignment(Node *left, Node *right) {
     return node;
 }
 
-Node *makevarref(char *name) {
+Node *make_varref(char *name) {
     Node *node = allocnode();
     Val *val = allocval();
 
@@ -189,7 +189,7 @@ Node *makevarref(char *name) {
     return node;
 }
 
-Node *makeint(int i) {
+Node *make_int(int i) {
     Node *node = allocnode();
     Val *val = allocval();
 
@@ -199,7 +199,7 @@ Node *makeint(int i) {
     return node;
 }
 
-Node *makereal(double d) {
+Node *make_real(double d) {
     Node *node = allocnode();
     Val *val = allocval();
 
@@ -209,7 +209,7 @@ Node *makereal(double d) {
     return node;
 }
 
-Node *makestr(char *str) {
+Node *make_str(char *str) {
     Node *node = allocnode();
     Val *val = allocval();
 
@@ -219,7 +219,7 @@ Node *makestr(char *str) {
     return node;
 }
 
-Node *makecall(Node *target, NodeList *arguments) {
+Node *make_call(Node *target, NodeList *arguments) {
     Node *node = allocnode();
 
     node->type = TYPE_CALL;
@@ -228,7 +228,7 @@ Node *makecall(Node *target, NodeList *arguments) {
     return node;
 }
 
-Node *makefunc(NodeList *parameters, NodeList *body) {
+Node *make_func(NodeList *parameters, NodeList *body) {
     Node *node = allocnode();
 
     node->type = TYPE_FUNC;
@@ -239,7 +239,7 @@ Node *makefunc(NodeList *parameters, NodeList *body) {
 
 /* for semantic analysis */
 
-Symbol *makesymbol(char *name) {
+Symbol *make_symbol(char *name) {
     static int id = 0;
 
     Symbol *symbol = malloc(sizeof(Symbol));
@@ -335,15 +335,15 @@ void exit_scope(SymbolTable *table) {
 }
 
 /* forward */
-void resolveList(SymbolTable *table, NodeList *list);
+void resolve_list(SymbolTable *table, NodeList *list);
 
-void resolveNode(SymbolTable *table, Node *node) {
+void resolve_node(SymbolTable *table, Node *node) {
     switch (node->type) {
         case TYPE_DECLARATION:;
             Symbol *s1 = search(table, node->value->s);
 
             if (!s1) {
-                s1 = makesymbol(node->value->s);
+                s1 = make_symbol(node->value->s);
                 node->symbol = s1;
                 insert(table, s1);
             } else {
@@ -367,39 +367,39 @@ void resolveNode(SymbolTable *table, Node *node) {
 
         /* control flow */
         case TYPE_IF:
-            resolveNode(table, node->cond);
+            resolve_node(table, node->cond);
 
             enter_scope(table);
-            resolveList(table, node->llist);
+            resolve_list(table, node->llist);
             exit_scope(table);
 
             enter_scope(table);
-            resolveList(table, node->rlist);
+            resolve_list(table, node->rlist);
             exit_scope(table);
             break;
 
         case TYPE_WHILE:
-            resolveNode(table, node->cond);
+            resolve_node(table, node->cond);
 
             enter_scope(table);
-            resolveList(table, node->llist);
+            resolve_list(table, node->llist);
             exit_scope(table);
             break;
 
         case TYPE_CALL:
-            resolveNode(table, node->lnode);
+            resolve_node(table, node->lnode);
 
             enter_scope(table);
-            resolveList(table, node->rlist);
+            resolve_list(table, node->rlist);
             exit_scope(table);
             break;
 
         case TYPE_FUNC:
             enter_scope(table);
-            resolveList(table, node->llist);
+            resolve_list(table, node->llist);
 
             enter_scope(table);
-            resolveList(table, node->rlist);
+            resolve_list(table, node->rlist);
 
             exit_scope(table);
             exit_scope(table);
@@ -424,14 +424,14 @@ void resolveNode(SymbolTable *table, Node *node) {
         case TYPE_GEQ:
         case TYPE_AND:
         case TYPE_OR:
-            resolveNode(table, node->lnode);
-            resolveNode(table, node->rnode);
+            resolve_node(table, node->lnode);
+            resolve_node(table, node->rnode);
             break;
 
         /* unary cases */
         case TYPE_NEG:
         case TYPE_NOT:
-            resolveNode(table, node->lnode);
+            resolve_node(table, node->lnode);
             break;
 
         /* constants */
@@ -442,7 +442,7 @@ void resolveNode(SymbolTable *table, Node *node) {
     }
 }
 
-void resolveList(SymbolTable *table, NodeList *list) {
+void resolve_list(SymbolTable *table, NodeList *list) {
     if (!list) {
         fprintf(stderr, "Did not expect empty list. Aborting.");
         exit(1);
@@ -451,7 +451,7 @@ void resolveList(SymbolTable *table, NodeList *list) {
     ListItem *item = list->head;
 
     while (item) {
-        resolveNode(table, item->node);
+        resolve_node(table, item->node);
         item = item->next;
     }
 }
@@ -459,9 +459,9 @@ void resolveList(SymbolTable *table, NodeList *list) {
 /* for debugging */
 
 /* forward */
-void displist(NodeList *list, int indent);
+void print_list(NodeList *list, int indent);
 
-void dispnode(Node *node, int indent) {
+void print_node(Node *node, int indent) {
     if (node) {
         int i;
         for (i = 0; i < indent; i++) {
@@ -489,20 +489,20 @@ void dispnode(Node *node, int indent) {
                 printf("[type %d]\n", node->type);
         }
 
-        if (node->cond) dispnode(node->cond, indent + 1);
-        if (node->lnode) dispnode(node->lnode, indent + 1);
-        if (node->rnode) dispnode(node->rnode, indent + 1);
-        if (node->llist) displist(node->llist, indent + 1);
-        if (node->rlist) displist(node->rlist, indent + 1);
+        if (node->cond) print_node(node->cond, indent + 1);
+        if (node->lnode) print_node(node->lnode, indent + 1);
+        if (node->rnode) print_node(node->rnode, indent + 1);
+        if (node->llist) print_list(node->llist, indent + 1);
+        if (node->rlist) print_list(node->rlist, indent + 1);
     }
 }
 
-void displist(NodeList *list, int indent) {
+void print_list(NodeList *list, int indent) {
     if (list) {
         ListItem *item = list->head;
 
         while (item) {
-            dispnode(item->node, indent);
+            print_node(item->node, indent);
             item = item->next;
         }
     }
@@ -528,12 +528,12 @@ int main(int argc, const char **argv) {
 
     table->top = (SymbolItem *) 0;
     enter_scope(table);
-    resolveList(table, program);
+    resolve_list(table, program);
     exit_scope(table);
     free(table);
 
-    displist(program, 0);
-    freelist(program);
+    print_list(program, 0);
+    free_list(program);
     fclose(f);
 
     return 0;
