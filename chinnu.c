@@ -239,7 +239,7 @@ Node *make_func(NodeList *parameters, NodeList *body) {
 
 /* for semantic analysis */
 
-Symbol *make_symbol(char *name) {
+Symbol *make_symbol(char *name, Node *declaration) {
     static int id = 0;
 
     Symbol *symbol = malloc(sizeof(Symbol));
@@ -251,6 +251,7 @@ Symbol *make_symbol(char *name) {
 
     symbol->name = strdup(name);
     symbol->id = id++;
+    symbol->declaration = declaration;
     return symbol;
 }
 
@@ -343,7 +344,7 @@ void resolve_node(SymbolTable *table, Node *node) {
             Symbol *s1 = search(table, node->value->s);
 
             if (!s1) {
-                s1 = make_symbol(node->value->s);
+                s1 = make_symbol(node->value->s, node);
                 node->symbol = s1;
                 insert(table, s1);
             } else {

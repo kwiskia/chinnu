@@ -29,6 +29,7 @@ enum {
 typedef struct Symbol {
     int id;
     char *name;
+    struct Node *declaration;
 } Symbol;
 
 typedef struct ScopeItem {
