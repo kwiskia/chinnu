@@ -64,8 +64,8 @@ expr : IF expr THEN expr_list else_block END { $$ = make_if($2, $4, $5); }
      | '-' expr %prec UNARY                  { $$ = make_uop(TYPE_NEG, $2); }
      | NOT expr                              { $$ = make_uop(TYPE_NOT, $2); }
      | '(' expr ')'                          { $$ = $2; }
-     | VAR IDENT '=' expr                    { $$ = make_assignment(make_declaration($2, 0), $4); }
-     | VAL IDENT '=' expr                    { $$ = make_assignment(make_declaration($2, 1), $4); }
+     | VAR IDENT '=' expr                    { $$ = make_declaration($2, $4, 0); }
+     | VAL IDENT '=' expr                    { $$ = make_declaration($2, $4, 1); }
      | lhs '=' expr                          { $$ = make_assignment($1, $3); }
      | expr EQEQ expr                        { $$ = make_binop(TYPE_EQEQ, $1, $3); }
      | expr NEQ expr                         { $$ = make_binop(TYPE_NEQ, $1, $3); }
@@ -95,8 +95,8 @@ param_list : '(' param_list2 ')'             { $$ = $2; }
            | '(' ')'                         { $$ = make_list(); }
            ;
 
-param_list2 : param_list2 ',' IDENT          { $$ = append($1, make_declaration($3, 1)); }
-            | IDENT                          { $$ = list1(make_declaration($1, 1)); }
+param_list2 : param_list2 ',' IDENT          { $$ = append($1, make_declaration($3, 0, 1)); }
+            | IDENT                          { $$ = list1(make_declaration($1, 0, 1)); }
             ;
 
 lhs : IDENT                                  { $$ = make_varref($1); }

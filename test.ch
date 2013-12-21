@@ -1,3 +1,9 @@
-f = "testing string literals.";
-g = "testing string literals with \t escape \" sequences \nin it";
-h = "huge string huge string huge string huge string huge string huge string huge string huge string huge string huge string huge string huge string huge string huge string huge string huge string huge string huge string huge string huge string huge string huge string huge string huge string huge string huge string huge string huge string huge string huge string huge string huge string huge string huge string huge string huge string huge string huge string huge string huge string huge string huge string huge string huge string huge string huge string huge string huge string huge string huge string huge string huge string huge string huge string huge string huge string huge string huge string huge string huge string huge string huge string huge string huge string huge string huge string huge string huge string huge string huge string huge string huge string huge string huge string huge string huge string huge string huge string huge string huge string huge string huge string huge string huge string huge string huge string huge string huge string huge string huge string huge string huge string huge string huge string huge string huge string huge string huge string huge string huge string huge string huge string huge string huge string huge string huge string huge string huge string huge string huge string huge string huge string huge string huge string huge string huge string huge string"
+var a = 3.0;
+val b = 4.0;
+
+function (a, b, c)
+    var b = 3;
+    a + b + c
+end;
+
+a = 5.0

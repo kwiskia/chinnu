@@ -91,7 +91,7 @@ Node *make_if(Node *cond, NodeList *body, NodeList *orelse);
 Node *make_while(Node *cond, NodeList *body);
 Node *make_binop(int type, Node *left, Node *right);
 Node *make_uop(int type, Node *left);
-Node *make_declaration(char *name, int immutable);
+Node *make_declaration(char *name, Node *value, int immutable);
 Node *make_assignment(Node *varref, Node *value);
 Node *make_varref(char *name);
 Node *make_int(int i);
