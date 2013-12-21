@@ -95,8 +95,8 @@ param_list : '(' param_list2 ')'             { $$ = $2; }
            | '(' ')'                         { $$ = makelist(); }
            ;
 
-param_list2 : param_list2 ',' IDENT          { $$ = append($1, makedeclaration($3, 0)); }
-            | IDENT                          { $$ = list1(makedeclaration($1, 0)); }
+param_list2 : param_list2 ',' IDENT          { $$ = append($1, makedeclaration($3, 1)); }
+            | IDENT                          { $$ = list1(makedeclaration($1, 1)); }
             ;
 
 lhs : IDENT                                  { $$ = makevarref($1); }
