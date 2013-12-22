@@ -38,7 +38,8 @@ struct Val {
 };
 
 struct Expression {
-    unsigned char type;
+    unsigned int type      : 5;
+    unsigned int immutable : 1;
 
     Expression *cond;
     Expression *lexpr;
@@ -48,7 +49,6 @@ struct Expression {
 
     Val *value;
     Symbol *symbol;
-    int immutable;
 };
 
 struct ExpressionNode {
