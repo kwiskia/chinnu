@@ -6,6 +6,7 @@
 #include "symbol.h"
 
 extern FILE *yyin;
+extern int yyparse();
 extern void yylex_destroy();
 
 /* for debugging */
