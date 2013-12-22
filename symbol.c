@@ -114,7 +114,7 @@ void symbol_table_enter_scope(SymbolTable *table) {
     table->top = scope;
 }
 
-void scope_node_free(ScopeNode *scope) {
+void free_scope_node(ScopeNode *scope) {
     SymbolNode *head = scope->first;
 
     while (head) {
@@ -134,7 +134,7 @@ void symbol_table_exit_scope(SymbolTable *table) {
 
     ScopeNode *temp = table->top;
     table->top = table->top->next;
-    scope_node_free(temp);
+    free_scope_node(temp);
 }
 
 /* forward */

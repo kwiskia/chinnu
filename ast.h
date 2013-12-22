@@ -61,8 +61,8 @@ struct ExpressionList {
     ExpressionNode *tail;
 };
 
-void expression_free(Expression *expr);
-void expression_list_free(ExpressionList *list);
+void free_expression(Expression *expr);
+void free_expression_list(ExpressionList *list);
 
 ExpressionList *make_list();
 ExpressionList *list1(Expression *expr);

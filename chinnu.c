@@ -75,7 +75,7 @@ int main(int argc, const char **argv) {
     resolve(program);
 
     expression_list_print(program, 0);
-    expression_list_free(program);
+    free_expression_list(program);
     fclose(f);
 
     return 0;
