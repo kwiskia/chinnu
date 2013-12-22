@@ -176,7 +176,8 @@ int main(int argc, char **argv) {
         FILE *fp = fopen(argv[optind], "r");
 
         if (!fp) {
-            fatal("Could not open file.");
+            printf("Could not open input file '%s'.\n", argv[optind]);
+            return EXIT_FAILURE;
         }
 
         yyin = fp;
