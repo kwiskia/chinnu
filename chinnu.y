@@ -98,32 +98,32 @@ expr_list : expr_list ';' expr               { $$ = expression_list_append($1, $
           |                                  { $$ = make_list(); }
           ;
 
-expr : IF expr THEN expr_list else_block END { $$ = make_if($2, $4, $5); }
-     | WHILE expr DO expr_list END           { $$ = make_while($2, $4); }
-     | expr '+' expr                         { $$ = make_binop(TYPE_ADD, $1, $3); }
-     | expr '-' expr                         { $$ = make_binop(TYPE_SUB, $1, $3); }
-     | expr '*' expr                         { $$ = make_binop(TYPE_MUL, $1, $3); }
-     | expr '/' expr                         { $$ = make_binop(TYPE_DIV, $1, $3); }
-     | '-' expr %prec UNARY                  { $$ = make_uop(TYPE_NEG, $2); }
-     | NOT expr                              { $$ = make_uop(TYPE_NOT, $2); }
+expr : IF expr THEN expr_list else_block END { $$ = make_if(@$, $2, $4, $5); }
+     | WHILE expr DO expr_list END           { $$ = make_while(@$, $2, $4); }
+     | expr '+' expr                         { $$ = make_binop(@$, TYPE_ADD, $1, $3); }
+     | expr '-' expr                         { $$ = make_binop(@$, TYPE_SUB, $1, $3); }
+     | expr '*' expr                         { $$ = make_binop(@$, TYPE_MUL, $1, $3); }
+     | expr '/' expr                         { $$ = make_binop(@$, TYPE_DIV, $1, $3); }
+     | '-' expr %prec UNARY                  { $$ = make_uop(@$, TYPE_NEG, $2); }
+     | NOT expr                              { $$ = make_uop(@$, TYPE_NOT, $2); }
      | '(' expr ')'                          { $$ = $2; }
-     | VAR IDENT '=' expr                    { $$ = make_declaration($2, $4, 0); }
-     | VAL IDENT '=' expr                    { $$ = make_declaration($2, $4, 1); }
-     | lhs '=' expr                          { $$ = make_assignment($1, $3); }
-     | expr EQEQ expr                        { $$ = make_binop(TYPE_EQEQ, $1, $3); }
-     | expr NEQ expr                         { $$ = make_binop(TYPE_NEQ, $1, $3); }
-     | expr '<' expr                         { $$ = make_binop(TYPE_LT, $1, $3); }
-     | expr LEQ expr                         { $$ = make_binop(TYPE_LEQ, $1, $3); }
-     | expr '>' expr                         { $$ = make_binop(TYPE_GT, $1, $3); }
-     | expr GEQ expr                         { $$ = make_binop(TYPE_GEQ, $1, $3); }
-     | expr AND expr                         { $$ = make_binop(TYPE_AND, $1, $3); }
-     | expr OR expr                          { $$ = make_binop(TYPE_OR, $1, $3); }
+     | VAR IDENT '=' expr                    { $$ = make_declaration(@$, $2, $4, 0); }
+     | VAL IDENT '=' expr                    { $$ = make_declaration(@$, $2, $4, 1); }
+     | lhs '=' expr                          { $$ = make_assignment(@$, $1, $3); }
+     | expr EQEQ expr                        { $$ = make_binop(@$, TYPE_EQEQ, $1, $3); }
+     | expr NEQ expr                         { $$ = make_binop(@$, TYPE_NEQ, $1, $3); }
+     | expr '<' expr                         { $$ = make_binop(@$, TYPE_LT, $1, $3); }
+     | expr LEQ expr                         { $$ = make_binop(@$, TYPE_LEQ, $1, $3); }
+     | expr '>' expr                         { $$ = make_binop(@$, TYPE_GT, $1, $3); }
+     | expr GEQ expr                         { $$ = make_binop(@$, TYPE_GEQ, $1, $3); }
+     | expr AND expr                         { $$ = make_binop(@$, TYPE_AND, $1, $3); }
+     | expr OR expr                          { $$ = make_binop(@$, TYPE_OR, $1, $3); }
      | lhs                                   { $$ = $1; }
-     | INTEGER_LITERAL                       { $$ = make_int($1); }
-     | REAL_LITERAL                          { $$ = make_real($1); }
-     | STRING_LITERAL                        { $$ = make_str($1); }
-     | expr arg_list                         { $$ = make_call($1, $2); }
-     | FUN param_list expr_list END          { $$ = make_func($2, $3); }
+     | INTEGER_LITERAL                       { $$ = make_int(@$, $1); }
+     | REAL_LITERAL                          { $$ = make_real(@$, $1); }
+     | STRING_LITERAL                        { $$ = make_str(@$, $1); }
+     | expr arg_list                         { $$ = make_call(@$, $1, $2); }
+     | FUN param_list expr_list END          { $$ = make_func(@$, $2, $3); }
      ;
 
 arg_list : '(' arg_list2 ')'                 { $$ = $2; }
@@ -138,15 +138,15 @@ param_list : '(' param_list2 ')'             { $$ = $2; }
            | '(' ')'                         { $$ = make_list(); }
            ;
 
-param_list2 : param_list2 ',' IDENT          { $$ = expression_list_append($1, make_declaration($3, 0, 1)); }
-            | IDENT                          { $$ = list1(make_declaration($1, 0, 1)); }
+param_list2 : param_list2 ',' IDENT          { $$ = expression_list_append($1, make_declaration(@3, $3, 0, 1)); }
+            | IDENT                          { $$ = list1(make_declaration(@1, $1, 0, 1)); }
             ;
 
-lhs : IDENT                                  { $$ = make_varref($1); }
+lhs : IDENT                                  { $$ = make_varref(@$, $1); }
     ;
 
 else_block : ELSE expr_list                      { $$ = $2; }
-           | ELIF expr THEN expr_list else_block { $$ = list1(make_if($2, $4, $5)); }
+           | ELIF expr THEN expr_list else_block { $$ = list1(make_if(@$, $2, $4, $5)); }
            |                                     { $$ = make_list(); }
            ;
 

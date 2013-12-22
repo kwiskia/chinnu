@@ -42,6 +42,11 @@ void expression_print(Expression *expr, int indent) {
             printf("\t");
         }
 
+        printf("%s:%d.%d-%d.%d: ",
+            expr->pos.filename,
+            expr->pos.first_line, expr->pos.first_column,
+            expr->pos.last_line, expr->pos.last_column);
+
         switch (expr->type) {
             case TYPE_VARREF:
                 printf("[ref %d]\n", expr->symbol->id);

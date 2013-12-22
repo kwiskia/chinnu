@@ -134,49 +134,54 @@ ExpressionList *expression_list_append(ExpressionList *list, Expression *expr) {
     return list;
 }
 
-Expression *make_if(Expression *cond, ExpressionList *body, ExpressionList *orelse) {
+Expression *make_if(SourcePos pos, Expression *cond, ExpressionList *body, ExpressionList *orelse) {
     Expression *expr = allocexpr();
 
     expr->type = TYPE_IF;
+    expr->pos = pos;
     expr->cond = cond;
     expr->llist = body;
     expr->rlist = orelse;
     return expr;
 }
 
-Expression *make_while(Expression *cond, ExpressionList *body) {
+Expression *make_while(SourcePos pos, Expression *cond, ExpressionList *body) {
     Expression *expr = allocexpr();
 
     expr->type = TYPE_WHILE;
+    expr->pos = pos;
     expr->cond = cond;
     expr->llist = body;
     return expr;
 }
 
-Expression *make_binop(int type, Expression *left, Expression *right) {
+Expression *make_binop(SourcePos pos, int type, Expression *left, Expression *right) {
     Expression *expr = allocexpr();
 
     expr->type = type;
+    expr->pos = pos;
     expr->lexpr = left;
     expr->rexpr = right;
     return expr;
 }
 
-Expression *make_uop(int type, Expression *left) {
+Expression *make_uop(SourcePos pos, int type, Expression *left) {
     Expression *expr = allocexpr();
 
     expr->type = type;
+    expr->pos = pos;
     expr->lexpr = left;
     return expr;
 }
 
-Expression *make_declaration(char *name, Expression *value, int immutable) {
+Expression *make_declaration(SourcePos pos, char *name, Expression *value, int immutable) {
     Expression *expr = allocexpr();
     Val *val = allocval();
 
     // TODO - intern?
 
     expr->type = TYPE_DECLARATION;
+    expr->pos = pos;
     expr->rexpr = value;
     expr->value = val;
     val->s = name;
@@ -184,70 +189,77 @@ Expression *make_declaration(char *name, Expression *value, int immutable) {
     return expr;
 }
 
-Expression *make_assignment(Expression *left, Expression *right) {
+Expression *make_assignment(SourcePos pos, Expression *left, Expression *right) {
     Expression *expr = allocexpr();
 
     expr->type = TYPE_ASSIGN;
+    expr->pos = pos;
     expr->lexpr = left;
     expr->rexpr = right;
     return expr;
 }
 
-Expression *make_varref(char *name) {
+Expression *make_varref(SourcePos pos, char *name) {
     Expression *expr = allocexpr();
     Val *val = allocval();
 
     // TODO - intern?
 
     expr->type = TYPE_VARREF;
+    expr->pos = pos;
     expr->value = val;
     val->s = name;
     return expr;
 }
 
-Expression *make_int(int i) {
+Expression *make_int(SourcePos pos, int i) {
     Expression *expr = allocexpr();
     Val *val = allocval();
 
+    expr->type = TYPE_NUMBER;
+    expr->pos = pos;
+    expr->value = val;
     val->i = i;
-    expr->type = TYPE_NUMBER;
-    expr->value = val;
     return expr;
 }
 
-Expression *make_real(double d) {
+Expression *make_real(SourcePos pos, double d) {
     Expression *expr = allocexpr();
     Val *val = allocval();
 
-    val->d = d;
     expr->type = TYPE_NUMBER;
+    expr->pos = pos;
     expr->value = val;
+    val->d = d;
     return expr;
 }
 
-Expression *make_str(char *str) {
+Expression *make_str(SourcePos pos, char *str) {
     Expression *expr = allocexpr();
     Val *val = allocval();
 
     expr->type = TYPE_STRING;
+    expr->pos = pos;
     expr->value = val;
     val->s = str;
     return expr;
 }
 
-Expression *make_call(Expression *target, ExpressionList *arguments) {
+Expression *make_call(SourcePos pos, Expression *target, ExpressionList *arguments) {
     Expression *expr = allocexpr();
 
     expr->type = TYPE_CALL;
+    expr->pos = pos;
     expr->lexpr = target;
     expr->rlist = arguments;
     return expr;
 }
 
-Expression *make_func(ExpressionList *parameters, ExpressionList *body) {
+Expression *make_func(SourcePos pos, ExpressionList *parameters, ExpressionList *body) {
     Expression *expr = allocexpr();
 
     expr->type = TYPE_FUNC;
+    expr->pos = pos;
     expr->llist = parameters;
     expr->rlist = body;
     return expr;

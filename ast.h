@@ -48,6 +48,16 @@ enum {
     TYPE_DECLARATION // rexpr, value (s)
 };
 
+typedef struct SourcePos SourcePos;
+
+struct SourcePos {
+    int first_line;
+    int first_column;
+    int last_line;
+    int last_column;
+    char *filename;
+};
+
 struct Val {
     union {
         int i;
@@ -68,6 +78,7 @@ struct Expression {
 
     Val *value;
     Symbol *symbol;
+    SourcePos pos;
 };
 
 struct ExpressionNode {
@@ -88,15 +99,15 @@ ExpressionList *make_list();
 ExpressionList *list1(Expression *expr);
 ExpressionList *expression_list_append(ExpressionList *list, Expression *expr);
 
-Expression *make_if(Expression *cond, ExpressionList *body, ExpressionList *orelse);
-Expression *make_while(Expression *cond, ExpressionList *body);
-Expression *make_binop(int type, Expression *left, Expression *right);
-Expression *make_uop(int type, Expression *left);
-Expression *make_declaration(char *name, Expression *value, int immutable);
-Expression *make_assignment(Expression *varref, Expression *value);
-Expression *make_varref(char *name);
-Expression *make_int(int i);
-Expression *make_real(double d);
-Expression *make_str(char *str);
-Expression *make_call(Expression *target, ExpressionList *arguments);
-Expression *make_func(ExpressionList *parameters, ExpressionList *body);
+Expression *make_if(SourcePos pos, Expression *cond, ExpressionList *body, ExpressionList *orelse);
+Expression *make_while(SourcePos pos, Expression *cond, ExpressionList *body);
+Expression *make_binop(SourcePos pos, int type, Expression *left, Expression *right);
+Expression *make_uop(SourcePos pos, int type, Expression *left);
+Expression *make_declaration(SourcePos pos, char *name, Expression *value, int immutable);
+Expression *make_assignment(SourcePos pos, Expression *varref, Expression *value);
+Expression *make_varref(SourcePos pos, char *name);
+Expression *make_int(SourcePos pos, int i);
+Expression *make_real(SourcePos pos, double d);
+Expression *make_str(SourcePos pos, char *str);
+Expression *make_call(SourcePos pos, Expression *target, ExpressionList *arguments);
+Expression *make_func(SourcePos pos, ExpressionList *parameters, ExpressionList *body);

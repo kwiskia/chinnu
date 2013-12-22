@@ -24,16 +24,6 @@
 
 #define CHINNU_VERSION "0.0.1"
 
-typedef struct SourcePos SourcePos;
-
-struct SourcePos {
-    int first_line;
-    int first_column;
-    int last_line;
-    int last_column;
-    char *filename;
-};
-
 ExpressionList *program;
 char *filename;
 
