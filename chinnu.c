@@ -21,6 +21,7 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include <string.h>
+#include <getopt.h>
 
 #include "chinnu.h"
 #include "symbol.h"
@@ -103,26 +104,89 @@ void error(const char *fmt, ...) {
     va_end(args);
 }
 
-int main(int argc, const char **argv) {
-    if (argc != 2) {
-        printf("chinnu [script]\n");
-        return 1;
+void show_usage(char *program) {
+    printf("Usage: %s [switches] ... [files] ...\n", program);
+    printf("  -d --debug    display generated AST\n");
+    printf("  -h --help     display usage and exit\n");
+    printf("  -v --version  display version and exit\n");
+}
+
+void show_version(char *program, char *version) {
+    printf("%s version %s.\n", program, version);
+}
+
+static int debug_flag;
+static int help_flag;
+static int version_flag;
+
+static struct option options[] = {
+    {"debug",   no_argument,       &debug_flag,   1},
+    {"help",    no_argument,       &help_flag,    1},
+    {"version", no_argument,       &version_flag, 1},
+    {"debug",   no_argument,       0,             'd'},
+    {"help",    no_argument,       0,             'h'},
+    {"version", no_argument,       0,             'v'},
+    {0,         0,                 0,             0}
+};
+
+int main(int argc, char **argv) {
+    int c;
+    int i = 0;
+
+    while ((c = getopt_long(argc, argv, "dhv", options, &i)) != -1) {
+        switch (c) {
+            case 'd':
+                debug_flag = 1;
+                break;
+
+            case 'h':
+                help_flag = 1;
+                break;
+
+            case 'v':
+                version_flag = 1;
+                break;
+
+            default:
+                exit(EXIT_FAILURE);
+        }
     }
 
-    FILE *f = fopen(argv[1], "r");
-
-    if (!f) {
-        fatal("Could not open file.");
+    if (help_flag) {
+        show_usage(argv[0]);
+        exit(EXIT_SUCCESS);
     }
 
-    yyin = f;
-    yyparse();
-    yylex_destroy();
-    fclose(f);
+    if (version_flag) {
+        show_version(argv[0], CHINNU_VERSION);
+        return 0;
+    }
 
-    resolve(program);
-    expression_list_print(program, 0);
-    free_expression_list(program);
+    if (optind == argc) {
+        printf("No files supplied.\n");
+        exit(EXIT_FAILURE);
+    }
+
+    for ( ; optind < argc; optind++) {
+        FILE *fp = fopen(argv[optind], "r");
+
+        if (!fp) {
+            fatal("Could not open file.");
+        }
+
+        yyin = fp;
+        yyparse();
+        yylex_destroy();
+        fclose(fp);
+
+        resolve(program);
+
+        if (debug_flag) {
+            expression_list_print(program, 0);
+        }
+
+        free_expression_list(program);
+    }
 
     return EXIT_SUCCESS;
 }

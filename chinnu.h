@@ -22,6 +22,8 @@
 #include "common.h"
 #include "symbol.h"
 
+#define CHINNU_VERSION "0.0.1"
+
 ExpressionList *program;
 
 void fatal(const char *fmt, ...);
