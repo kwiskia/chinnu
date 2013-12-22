@@ -4,17 +4,19 @@
 
 #include "symbol.h"
 
-typedef struct SymbolNode SymbolNode;
+typedef struct SymbolMap SymbolMap;
 typedef struct ScopeNode ScopeNode;
 typedef struct SymbolTable SymbolTable;
 
-struct SymbolNode {
-    Symbol *symbol;
-    SymbolNode *next;
+const int MAP_SIZE = 64;
+
+struct SymbolMap {
+    int size;
+    Symbol **symbols;
 };
 
 struct ScopeNode {
-    SymbolNode *first;
+    SymbolMap *map;
     ScopeNode *next;
 };
 
@@ -38,34 +40,50 @@ Symbol *make_symbol(char *name, Expression *declaration) {
     return symbol;
 }
 
+// djb2 by Dan Bernstein
+int hash(char *str) {
+    int hash = 5381;
+    int c;
+
+    while ((c = *str++)) {
+        hash = ((hash << 5) + hash) ^ c;
+    }
+
+    return hash;
+}
+
 void symbol_table_insert(SymbolTable *table, Symbol *symbol) {
     if (!table->top) {
         fprintf(stderr, "Empty scope. Aborting.");
         exit(1);
     }
 
-    SymbolNode *node = malloc(sizeof(SymbolNode));
+    SymbolMap *map = table->top->map;
 
-    if (!node) {
-        fprintf(stderr, "Out of memory.");
+    if (map->size == MAP_SIZE) {
+        fprintf(stderr, "Too many variables in one scope.");
         exit(1);
     }
 
-    node->symbol = symbol;
-    node->next = table->top->first;
+    int slot = hash(symbol->name) % MAP_SIZE;
 
-    table->top->first = node;
+    while (map->symbols[slot]) {
+        slot = (slot + 1) % MAP_SIZE;
+    }
+
+    map->size++;
+    map->symbols[slot] = symbol;
 }
 
-Symbol *symbol_table_search_scope(SymbolNode *node, char *name) {
-    SymbolNode *head = node;
+Symbol *symbol_table_search_scope(SymbolMap *map, char *name) {
+    int slot = hash(name) % MAP_SIZE;
 
-    while (head) {
-        if (strcmp(head->symbol->name, name) == 0) {
-            return head->symbol;
+    while (map->symbols[slot]) {
+        if (strcmp(map->symbols[slot]->name, name) == 0) {
+            return map->symbols[slot];
         }
 
-        head = head->next;
+        slot = (slot + 1) % MAP_SIZE;
     }
 
     return 0;
@@ -80,7 +98,7 @@ Symbol *symbol_table_search(SymbolTable *table, char *name) {
     ScopeNode *head = table->top;
 
     while (head) {
-        Symbol *s = symbol_table_search_scope(head->first, name);
+        Symbol *s = symbol_table_search_scope(head->map, name);
 
         if (s) {
             return s;
@@ -98,31 +116,36 @@ Symbol *symbol_table_search_current_scope(SymbolTable *table, char *name) {
         exit(1);
     }
 
-    return symbol_table_search_scope(table->top->first, name);
+    return symbol_table_search_scope(table->top->map, name);
 }
 
 void symbol_table_enter_scope(SymbolTable *table) {
     ScopeNode *scope = malloc(sizeof(ScopeNode));
+    SymbolMap *map = malloc(sizeof(SymbolMap));
+    Symbol **symbols = malloc(sizeof(Symbol) * MAP_SIZE);
 
-    if (!scope) {
+    if (!scope || !map || !symbols) {
         fprintf(stderr, "Out of memory.");
         exit(1);
     }
 
-    scope->first = (SymbolNode *) 0;
+    for (int i = 0; i < MAP_SIZE; i++) {
+        symbols[i] = (Symbol *) 0;
+    }
+
+    map->size = 0;
+    map->symbols = symbols;
+
+    scope->map = map;
     scope->next = table->top;
     table->top = scope;
 }
 
 void free_scope_node(ScopeNode *scope) {
-    SymbolNode *head = scope->first;
+    SymbolMap *map = scope->map;
 
-    while (head) {
-        SymbolNode *temp = head;
-        head = head->next;
-        free(temp);
-    }
-
+    free(map->symbols);
+    free(map);
     free(scope);
 }
 
