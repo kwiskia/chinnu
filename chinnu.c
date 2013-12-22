@@ -90,7 +90,7 @@ void fatal(const char *fmt, ...) {
     fprintf(stderr, "\n");
 
     va_end(args);
-    exit(1);
+    exit(EXIT_FAILURE);
 }
 
 void error(const char *fmt, ...) {
@@ -109,7 +109,6 @@ int main(int argc, const char **argv) {
         return 1;
     }
 
-
     FILE *f = fopen(argv[1], "r");
 
     if (!f) {
@@ -125,5 +124,5 @@ int main(int argc, const char **argv) {
     expression_list_print(program, 0);
     free_expression_list(program);
 
-    return 0;
+    return EXIT_SUCCESS;
 }

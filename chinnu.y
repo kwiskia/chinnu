@@ -142,6 +142,6 @@ void yyerror(const char *fmt, ...) {
     numerrors++;
     if (numerrors >= 10) {
         fprintf(stderr, "Too many errors, aborting.\n");
-        exit(1);
+        exit(EXIT_FAILURE);
     }
 }
