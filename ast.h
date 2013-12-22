@@ -1,5 +1,4 @@
-#ifndef __AST_H
-#define __AST_H
+#pragma once
 
 #include "common.h"
 #include "symbol.h"
@@ -81,5 +80,3 @@ Node *make_real(double d);
 Node *make_str(char *str);
 Node *make_call(Node *target, NodeList *arguments);
 Node *make_func(NodeList *parameters, NodeList *body);
-
-#endif /* __AST_H */

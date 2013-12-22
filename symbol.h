@@ -1,5 +1,4 @@
-#ifndef __SYMBOL_H
-#define __SYMBOL_H
+#pragma once
 
 #include "common.h"
 #include "ast.h"
@@ -27,5 +26,3 @@ struct SymbolTable {
 void resolve(NodeList *list);
 void resolve_list(SymbolTable *table, NodeList *list);
 void resolve_node(SymbolTable *table, Node *node);
-
-#endif /* __SYMBOL_H */
