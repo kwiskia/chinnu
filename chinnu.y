@@ -137,6 +137,8 @@ void yyerror(const char *fmt, ...) {
     vfprintf(stderr, fmt, args);
     fprintf(stderr, "\n");
 
+    va_end(args);
+
     numerrors++;
     if (numerrors >= 10) {
         fprintf(stderr, "Too many errors, aborting.\n");

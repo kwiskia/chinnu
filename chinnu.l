@@ -145,6 +145,8 @@ static void append_to_buffer(const char *fmt, ...) {
 
     int n = vsnprintf(buffer + length, MAX_LITERAL - length, fmt, args);
 
+    va_end(args);
+
     if (n < 0 || length + n >= MAX_LITERAL) {
         length = MAX_LITERAL;
         yyerror("String literal too large, truncated.");

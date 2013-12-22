@@ -89,6 +89,7 @@ void fatal(const char *fmt, ...) {
     vfprintf(stderr, fmt, args);
     fprintf(stderr, "\n");
 
+    va_end(args);
     exit(1);
 }
 
@@ -98,6 +99,8 @@ void error(const char *fmt, ...) {
 
     vfprintf(stderr, fmt, args);
     fprintf(stderr, "\n");
+
+    va_end(args);
 }
 
 int main(int argc, const char **argv) {
