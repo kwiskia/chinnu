@@ -17,24 +17,6 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-%{
-#include <stdio.h>
-#include <stdarg.h>
-#include <stdlib.h>
-#include <string.h>
-
-#include "ast.h"
-#include "chinnu.h"
-
-extern int yylineno;
-extern int yylex(void);
-
-extern ExpressionList *program;
-
-void yyerror(const char *fmt, ...);
-int numerrors = 0;
-%}
-
 %code requires {
 typedef struct SourcePos YYLTYPE;
 
@@ -55,6 +37,24 @@ typedef struct SourcePos YYLTYPE;
         }                                                                          \
     } while (0)
 }
+
+%{
+#include <stdio.h>
+#include <stdarg.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include "ast.h"
+#include "chinnu.h"
+
+extern int yylineno;
+extern int yylex(void);
+
+extern ExpressionList *program;
+
+/* forward */
+void yyerror(const char *fmt, ...);
+%}
 
 %defines
 %locations
@@ -151,6 +151,8 @@ else_block : ELSE expr_list                      { $$ = $2; }
            ;
 
 %%
+
+static int numerrors = 0;
 
 void yyerror(const char *fmt, ...) {
     va_list args;
