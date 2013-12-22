@@ -104,7 +104,13 @@ void error(const char *fmt, ...) {
 }
 
 int main(int argc, const char **argv) {
-    FILE *f = fopen("test.ch", "r");
+    if (argc != 2) {
+        printf("chinnu [script]\n");
+        return 1;
+    }
+
+
+    FILE *f = fopen(argv[1], "r");
 
     if (!f) {
         fatal("Could not open file.");
@@ -113,12 +119,11 @@ int main(int argc, const char **argv) {
     yyin = f;
     yyparse();
     yylex_destroy();
+    fclose(f);
 
     resolve(program);
-
     expression_list_print(program, 0);
     free_expression_list(program);
-    fclose(f);
 
     return 0;
 }
