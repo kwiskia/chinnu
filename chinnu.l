@@ -133,12 +133,10 @@ static void append_to_buffer(const char *fmt, ...) {
     length += n;
 }
 
-static struct name_value {
+static struct {
     char *name;
     int value;
-} name_value;
-
-static struct name_value keywords[] = {
+} keywords[] = {
     {"if", IF},
     {"then", THEN},
     {"elif", ELIF},
@@ -160,12 +158,11 @@ static char punctuators[] = {
     '=', ',', ';',
 };
 
-static int num_keywords = sizeof(keywords) / sizeof(name_value);
-static int num_punctuators = sizeof(punctuators) / sizeof(char);
-
 static int token_for(const char *lexeme) {
     int i;
-    for (i = 0; i < num_keywords; i++) {
+    int n = sizeof(keywords) / sizeof(keywords[0]);
+
+    for (i = 0; i < n; i++) {
         int cmp = strcmp(keywords[i].name, lexeme);
         if (cmp == 0) {
             return keywords[i].value;
@@ -178,7 +175,9 @@ static int token_for(const char *lexeme) {
 
 static int is_punctuator(const char c) {
     int i;
-    for (i = 0; i < num_punctuators; i++) {
+    int n = sizeof(punctuators) / sizeof(punctuators[0]);
+
+    for (i = 0; i < n; i++) {
         if (punctuators[i] == c) {
             return 1;
         }
