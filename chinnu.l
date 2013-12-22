@@ -23,6 +23,7 @@
 #include "chinnu.h"
 #include "chinnu.tab.h"
 
+extern char *filename;
 extern void yyerror(char *fmt, ...);
 
 static void clear_buffer();
@@ -35,6 +36,16 @@ static int is_punctuator(const char);
 
 static int length = 0;
 static char buffer[MAX_LITERAL];
+
+int yycolumn = 1;
+
+#define YY_USER_ACTION                          \
+    yylloc.filename = filename;                 \
+    yylloc.first_line = yylineno;               \
+    yylloc.last_line = yylineno;                \
+    yylloc.first_column = yycolumn;             \
+    yylloc.last_column = yycolumn + yyleng - 1; \
+    yycolumn += yyleng;
 %}
 
 %option noyywrap
@@ -62,6 +73,7 @@ hex_escape          ("\\"x[0-9A-Fa-f]{2})
 
 %%
 
+<INITIAL>\n                 { yycolumn = 1; }
 <INITIAL>{whitespace}       { ; /* ignore */ }
 <INITIAL>{line_comment}     { ; /* ignore */ }
 
@@ -92,22 +104,26 @@ hex_escape          ("\\"x[0-9A-Fa-f]{2})
 <INITIAL>\"\"\"             { BEGIN s3; clear_buffer(); }
 <s3>\"\"\"                  { BEGIN INITIAL; yylval.s = strdup(buffer); return STRING_LITERAL; }
 <s3>\"                      { append_to_buffer("\""); }
-<s3>[^\\\"]+                { append_to_buffer("%s", yytext); }
+<s3>\n                      { append_to_buffer("\n"); yycolumn = 1; }
+<s3>[^\\\"\n]+              { append_to_buffer("%s", yytext); }
 
 <INITIAL>r\"\"\"            { BEGIN s7; clear_buffer(); }
 <s7>\"\"\"                  { BEGIN INITIAL; yylval.s = strdup(buffer); return STRING_LITERAL; }
 <s7>\"                      { append_to_buffer("\""); }
-<s7>[^\"]+                  { append_to_buffer("%s", yytext); }
+<s7>\n                      { append_to_buffer("\n"); yycolumn = 1; }
+<s7>[^\"\n]+                { append_to_buffer("%s", yytext); }
 
 <INITIAL>'''                { BEGIN s4; clear_buffer(); }
 <s4>'''                     { BEGIN INITIAL; yylval.s = strdup(buffer); return STRING_LITERAL; }
 <s4>'                       { append_to_buffer("'"); }
-<s4>[^\\\']+                { append_to_buffer("%s", yytext); }
+<s4>\n                      { append_to_buffer("\n"); yycolumn = 1; }
+<s4>[^\\\'\n]+              { append_to_buffer("%s", yytext); }
 
 <INITIAL>r'''               { BEGIN s8; clear_buffer(); }
 <s8>'''                     { BEGIN INITIAL; yylval.s = strdup(buffer); return STRING_LITERAL; }
 <s8>'                       { append_to_buffer("'"); }
-<s8>[^\']+                  { append_to_buffer("%s", yytext); }
+<s8>\n                      { append_to_buffer("\n"); yycolumn = 1; }
+<s8>[^\'\n]+                { append_to_buffer("%s", yytext); }
 
 <s1,s2,s3,s4>"\\b"          { append_to_buffer("\b"); }
 <s1,s2,s3,s4>"\\t"          { append_to_buffer("\t"); }
@@ -122,7 +138,7 @@ hex_escape          ("\\"x[0-9A-Fa-f]{2})
 <s1,s2,s3,s4>"\\".          { yyerror("Illegal escape sequence."); }
 <s1,s2,s3,s4><<EOF>>        { BEGIN INITIAL; yyerror("Unterminated string literal."); }
 <s5,s6,s7,s8><<EOF>>        { BEGIN INITIAL; yyerror("Unterminated string literal."); }
-<s1,s2>\n                   { yyerror("Newlines in string literals are not allowed."); }
+<s1,s2>\n                   { yycolumn = 1; yyerror("Newlines in string literals are not allowed."); }
 
 <INITIAL>"=="               { return EQEQ; }
 <INITIAL>"!="               { return NEQ; }

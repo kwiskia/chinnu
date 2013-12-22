@@ -28,13 +28,35 @@
 
 extern int yylineno;
 extern int yylex(void);
-void yyerror(const char *fmt, ...);
+
 extern ExpressionList *program;
 
-char *filename = "<unknown>";
+void yyerror(const char *fmt, ...);
 int numerrors = 0;
 %}
 
+%code requires {
+typedef struct SourcePos YYLTYPE;
+
+#define YYLTYPE_IS_DECLARED 1
+
+#define YYLLOC_DEFAULT(Cur, Rhs, N)                                                \
+    do {                                                                           \
+        if (N) {                                                                   \
+            (Cur).first_line   = YYRHSLOC(Rhs, 1).first_line;                      \
+            (Cur).first_column = YYRHSLOC(Rhs, 1).first_column;                    \
+            (Cur).last_line    = YYRHSLOC(Rhs, N).last_line;                       \
+            (Cur).last_column  = YYRHSLOC(Rhs, N).last_column;                     \
+            (Cur).filename     = YYRHSLOC(Rhs, 1).filename;                        \
+        } else {                                                                   \
+            (Cur).first_line   = (Cur).last_line   = YYRHSLOC(Rhs, 0).last_line;   \
+            (Cur).first_column = (Cur).last_column = YYRHSLOC(Rhs, 0).last_column; \
+            (Cur).filename     = "<unknown>";                                      \
+        }                                                                          \
+    } while (0)
+}
+
+%locations
 %error-verbose
 
 %union{
@@ -133,7 +155,10 @@ void yyerror(const char *fmt, ...) {
     va_list args;
     va_start(args, fmt);
 
-    fprintf(stderr, "%s:%d: ", filename, yylineno);
+    fprintf(stderr, "%s:%d.%d-%d.%d: ",
+        yylloc.filename,
+        yylloc.first_line, yylloc.first_column,
+        yylloc.last_line, yylloc.last_column);
     vfprintf(stderr, fmt, args);
     fprintf(stderr, "\n");
 

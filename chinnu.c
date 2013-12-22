@@ -173,10 +173,12 @@ int main(int argc, char **argv) {
     }
 
     for ( ; optind < argc; optind++) {
-        FILE *fp = fopen(argv[optind], "r");
+        filename = argv[optind];
+
+        FILE *fp = fopen(filename, "r");
 
         if (!fp) {
-            printf("Could not open input file '%s'.\n", argv[optind]);
+            printf("Could not open input file '%s'.\n", filename);
             return EXIT_FAILURE;
         }
 
