@@ -19,6 +19,8 @@
 
 #pragma once
 
+#include <stdarg.h>
+
 #include "common.h"
 #include "symbol.h"
 
@@ -28,4 +30,6 @@ ExpressionList *program;
 char *filename;
 
 void fatal(const char *fmt, ...);
-void error(const char *fmt, ...);
+void error(SourcePos pos, const char *fmt, ...);
+
+void verror(SourcePos pos, const char *fmt, va_list args);

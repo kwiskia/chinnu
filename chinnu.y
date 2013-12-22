@@ -152,36 +152,9 @@ else_block : ELSE expr_list                      { $$ = $2; }
 
 %%
 
-static int numerrors = 0;
-
 void yyerror(const char *fmt, ...) {
     va_list args;
     va_start(args, fmt);
-
-    if (yylloc.first_line < yylloc.last_line) {
-        fprintf(stderr, "%s:%d.%d-%d.%d: ",
-            yylloc.filename,
-            yylloc.first_line, yylloc.first_column,
-            yylloc.last_line, yylloc.last_column);
-    } else if (yylloc.first_column < yylloc.last_column) {
-        fprintf(stderr, "%s:%d.%d-%d: ",
-            yylloc.filename,
-            yylloc.first_line, yylloc.first_column,
-            yylloc.last_column);
-    } else {
-        fprintf(stderr, "%s:%d.%d: ",
-            yylloc.filename,
-            yylloc.first_line, yylloc.first_column);
-    }
-
-    vfprintf(stderr, fmt, args);
-    fprintf(stderr, "\n");
-
+    verror(yylloc, fmt, args);
     va_end(args);
-
-    numerrors++;
-    if (numerrors >= 10) {
-        fprintf(stderr, "Too many errors, aborting.\n");
-        exit(EXIT_FAILURE);
-    }
 }

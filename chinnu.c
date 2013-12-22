@@ -99,14 +99,43 @@ void fatal(const char *fmt, ...) {
     exit(EXIT_FAILURE);
 }
 
-void error(const char *fmt, ...) {
+void error(SourcePos pos, const char *fmt, ...) {
     va_list args;
     va_start(args, fmt);
-
-    vfprintf(stderr, fmt, args);
-    fprintf(stderr, "\n");
-
+    verror(pos, fmt, args);
     va_end(args);
+}
+
+static int numerrors = 0;
+
+void verror(SourcePos pos, const char *fmt, va_list args) {
+    fprintf(stderr, "\033[1m");
+
+    if (pos.first_line < pos.last_line) {
+        fprintf(stderr, "%s:%d.%d-%d.%d: ",
+            pos.filename,
+            pos.first_line, pos.first_column,
+            pos.last_line, pos.last_column);
+    } else if (pos.first_column < pos.last_column) {
+        fprintf(stderr, "%s:%d.%d-%d: ",
+            pos.filename,
+            pos.first_line, pos.first_column,
+            pos.last_column);
+    } else {
+        fprintf(stderr, "%s:%d.%d: ",
+            pos.filename,
+            pos.first_line, pos.first_column);
+    }
+
+    fprintf(stderr, "\033[1;31merror:\033[1;30m ");
+    vfprintf(stderr, fmt, args);
+    fprintf(stderr, "\033[0m\n");
+
+    numerrors++;
+    if (numerrors >= 10) {
+        fprintf(stderr, "Too many errors, aborting.\n");
+        exit(EXIT_FAILURE);
+    }
 }
 
 void show_usage(char *program) {
