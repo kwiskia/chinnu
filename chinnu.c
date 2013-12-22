@@ -111,8 +111,8 @@ void show_usage(char *program) {
     printf("  -v --version  display version and exit\n");
 }
 
-void show_version(char *program, char *version) {
-    printf("%s version %s.\n", program, version);
+void show_version(char *program) {
+    printf("%s version %s.\n", program, CHINNU_VERSION);
 }
 
 static int debug_flag;
@@ -123,9 +123,9 @@ static struct option options[] = {
     {"debug",   no_argument,       &debug_flag,   1},
     {"help",    no_argument,       &help_flag,    1},
     {"version", no_argument,       &version_flag, 1},
-    {"debug",   no_argument,       0,             'd'},
-    {"help",    no_argument,       0,             'h'},
-    {"version", no_argument,       0,             'v'},
+    {"d",       no_argument,       0,             'd'},
+    {"h",       no_argument,       0,             'h'},
+    {"v",       no_argument,       0,             'v'},
     {0,         0,                 0,             0}
 };
 
@@ -135,6 +135,10 @@ int main(int argc, char **argv) {
 
     while ((c = getopt_long(argc, argv, "dhv", options, &i)) != -1) {
         switch (c) {
+            case 0:
+                /* getopt_long set a flag */
+                break;
+
             case 'd':
                 debug_flag = 1;
                 break;
@@ -148,23 +152,24 @@ int main(int argc, char **argv) {
                 break;
 
             default:
-                exit(EXIT_FAILURE);
+                /* unrecognized option */
+                return EXIT_FAILURE;
         }
     }
 
     if (help_flag) {
         show_usage(argv[0]);
-        exit(EXIT_SUCCESS);
+        return EXIT_SUCCESS;
     }
 
     if (version_flag) {
-        show_version(argv[0], CHINNU_VERSION);
-        return 0;
+        show_version(argv[0]);
+        return EXIT_SUCCESS;
     }
 
     if (optind == argc) {
         printf("No files supplied.\n");
-        exit(EXIT_FAILURE);
+        return EXIT_FAILURE;
     }
 
     for ( ; optind < argc; optind++) {
