@@ -212,11 +212,7 @@ void expression_resolve(SymbolTable *table, Expression *expr) {
         case TYPE_FUNC:
             symbol_table_enter_scope(table);
             expression_list_resolve(table, expr->llist);
-
-            symbol_table_enter_scope(table);
             expression_list_resolve(table, expr->rlist);
-
-            symbol_table_exit_scope(table);
             symbol_table_exit_scope(table);
             break;
 
