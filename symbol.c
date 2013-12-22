@@ -175,6 +175,7 @@ void expression_resolve(SymbolTable *table, Expression *expr) {
                 symbol_table_insert(table, s1);
             } else {
                 error(expr->pos, "Redefinition of '%s'.\n", expr->value->s);
+                message(s1->declaration->pos, "Previous definition is here.");
             }
 
             if (expr->rexpr) {
@@ -237,6 +238,7 @@ void expression_resolve(SymbolTable *table, Expression *expr) {
 
             if (expr->lexpr->symbol->declaration->immutable == 1) {
                 error(expr->pos, "Assignment to a single-assignment variable.");
+                message(expr->lexpr->symbol->declaration->pos, "Variable is defined here.");
             }
 
             break;

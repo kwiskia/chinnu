@@ -113,6 +113,16 @@ void error(SourcePos pos, const char *fmt, ...) {
     va_end(args);
 }
 
+void message(SourcePos pos, const char *fmt, ...) {
+    va_list args;
+    va_start(args, fmt);
+    vmessage(pos, fmt, args);
+    va_end(args);
+}
+
+static int numwarnings = 0;
+static int numerrors = 0;
+
 void vwarning(SourcePos pos, const char *fmt, va_list args) {
     fprintf(stderr, "\033[1m");
 
@@ -135,9 +145,9 @@ void vwarning(SourcePos pos, const char *fmt, va_list args) {
     fprintf(stderr, "\033[1;35mwarning:\033[1;30m ");
     vfprintf(stderr, fmt, args);
     fprintf(stderr, "\033[0m\n");
-}
 
-static int numerrors = 0;
+    numwarnings++;
+}
 
 void verror(SourcePos pos, const char *fmt, va_list args) {
     fprintf(stderr, "\033[1m");
@@ -167,6 +177,30 @@ void verror(SourcePos pos, const char *fmt, va_list args) {
         fprintf(stderr, "Too many errors, aborting.\n");
         exit(EXIT_FAILURE);
     }
+}
+
+void vmessage(SourcePos pos, const char *fmt, va_list args) {
+    fprintf(stderr, "\033[1m");
+
+    if (pos.first_line < pos.last_line) {
+        fprintf(stderr, "%s:%d.%d-%d.%d: ",
+            pos.filename,
+            pos.first_line, pos.first_column,
+            pos.last_line, pos.last_column);
+    } else if (pos.first_column < pos.last_column) {
+        fprintf(stderr, "%s:%d.%d-%d: ",
+            pos.filename,
+            pos.first_line, pos.first_column,
+            pos.last_column);
+    } else {
+        fprintf(stderr, "%s:%d.%d: ",
+            pos.filename,
+            pos.first_line, pos.first_column);
+    }
+
+    fprintf(stderr, "note: ");
+    vfprintf(stderr, fmt, args);
+    fprintf(stderr, "\033[0m\n");
 }
 
 void show_usage(char *program) {
