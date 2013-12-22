@@ -70,7 +70,7 @@ void symbol_table_insert(SymbolTable *table, Symbol *symbol) {
     scope->symbols[slot] = symbol;
 }
 
-Symbol *symbol_table_search_scope(Scope *scope, char *name) {
+Symbol *scope_search(Scope *scope, char *name) {
     int slot = hash(name) % MAP_SIZE;
 
     while (scope->symbols[slot]) {
@@ -93,7 +93,7 @@ Symbol *symbol_table_search(SymbolTable *table, char *name) {
     Scope *head = table->top;
 
     while (head) {
-        Symbol *s = symbol_table_search_scope(head, name);
+        Symbol *s = scope_search(head, name);
 
         if (s) {
             return s;
@@ -111,7 +111,7 @@ Symbol *symbol_table_search_current_scope(SymbolTable *table, char *name) {
         exit(1);
     }
 
-    return symbol_table_search_scope(table->top, name);
+    return scope_search(table->top, name);
 }
 
 void symbol_table_enter_scope(SymbolTable *table) {
