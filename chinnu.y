@@ -155,10 +155,22 @@ void yyerror(const char *fmt, ...) {
     va_list args;
     va_start(args, fmt);
 
-    fprintf(stderr, "%s:%d.%d-%d.%d: ",
-        yylloc.filename,
-        yylloc.first_line, yylloc.first_column,
-        yylloc.last_line, yylloc.last_column);
+    if (yylloc.first_line < yylloc.last_line) {
+        fprintf(stderr, "%s:%d.%d-%d.%d: ",
+            yylloc.filename,
+            yylloc.first_line, yylloc.first_column,
+            yylloc.last_line, yylloc.last_column);
+    } else if (yylloc.first_column < yylloc.last_column) {
+        fprintf(stderr, "%s:%d.%d-%d: ",
+            yylloc.filename,
+            yylloc.first_line, yylloc.first_column,
+            yylloc.last_column);
+    } else {
+        fprintf(stderr, "%s:%d.%d: ",
+            yylloc.filename,
+            yylloc.first_line, yylloc.first_column);
+    }
+
     vfprintf(stderr, fmt, args);
     fprintf(stderr, "\n");
 
