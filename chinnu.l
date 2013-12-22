@@ -38,12 +38,18 @@ static int length = 0;
 static char buffer[MAX_LITERAL];
 
 int yycolumn = 1;
+int saved_lineno = 1;
+int saved_column = 1;
+
+#define YY_STEP              \
+    saved_lineno = yylineno; \
+    saved_column = yycolumn; \
 
 #define YY_USER_ACTION                          \
     yylloc.filename = filename;                 \
-    yylloc.first_line = yylineno;               \
+    yylloc.first_line = saved_lineno;           \
     yylloc.last_line = yylineno;                \
-    yylloc.first_column = yycolumn;             \
+    yylloc.first_column = saved_column;         \
     yylloc.last_column = yycolumn + yyleng - 1; \
     yycolumn += yyleng;
 %}
@@ -73,54 +79,54 @@ hex_escape          ("\\"x[0-9A-Fa-f]{2})
 
 %%
 
-<INITIAL>\n                 { yycolumn = 1; }
-<INITIAL>{whitespace}       { ; /* ignore */ }
-<INITIAL>{line_comment}     { ; /* ignore */ }
+<INITIAL>\n                 { yycolumn = 1; YY_STEP; }
+<INITIAL>{whitespace}       { YY_STEP; }
+<INITIAL>{line_comment}     { YY_STEP; }
 
-<INITIAL>{dec_literal}      { yylval.i = atoi(yytext); return INTEGER_LITERAL; }
-<INITIAL>{hex_literal}      { yylval.i = strtol(yytext + 2, 0, 16); return INTEGER_LITERAL; }
-<INITIAL>{bin_literal}      { yylval.i = strtol(yytext + 2, 0, 2); return INTEGER_LITERAL; }
-<INITIAL>{oct_literal}      { yylval.i = strtol(yytext + 1, 0, 8); return INTEGER_LITERAL; }
+<INITIAL>{dec_literal}      { yylval.i = atoi(yytext); YY_STEP; return INTEGER_LITERAL; }
+<INITIAL>{hex_literal}      { yylval.i = strtol(yytext + 2, 0, 16); YY_STEP; return INTEGER_LITERAL; }
+<INITIAL>{bin_literal}      { yylval.i = strtol(yytext + 2, 0, 2); YY_STEP; return INTEGER_LITERAL; }
+<INITIAL>{oct_literal}      { yylval.i = strtol(yytext + 1, 0, 8); YY_STEP; return INTEGER_LITERAL; }
 
-<INITIAL>{real_literal1}    { yylval.d = atof(yytext); return REAL_LITERAL; }
-<INITIAL>{real_literal2}    { yylval.d = atof(yytext); return REAL_LITERAL; }
+<INITIAL>{real_literal1}    { yylval.d = atof(yytext); YY_STEP; return REAL_LITERAL; }
+<INITIAL>{real_literal2}    { yylval.d = atof(yytext); YY_STEP; return REAL_LITERAL; }
 
 <INITIAL>\"                 { BEGIN s1; clear_buffer(); }
-<s1>\"                      { BEGIN INITIAL; yylval.s = strdup(buffer); return STRING_LITERAL; }
+<s1>\"                      { BEGIN INITIAL; yylval.s = strdup(buffer); YY_STEP; return STRING_LITERAL; }
 <s1>[^\"\\\n]+              { append_to_buffer("%s", yytext); }
 
 <INITIAL>r\"                { BEGIN s5; clear_buffer(); }
-<s5>\"                      { BEGIN INITIAL; yylval.s = strdup(buffer); return STRING_LITERAL; }
+<s5>\"                      { BEGIN INITIAL; yylval.s = strdup(buffer); YY_STEP; return STRING_LITERAL; }
 <s5>[^\"\n]+                { append_to_buffer("%s", yytext); }
 
 <INITIAL>'                  { BEGIN s2; clear_buffer(); }
-<s2>'                       { BEGIN INITIAL; yylval.s = strdup(buffer); return STRING_LITERAL; }
+<s2>'                       { BEGIN INITIAL; yylval.s = strdup(buffer); YY_STEP; return STRING_LITERAL; }
 <s2>[^'\\\n]+               { append_to_buffer("%s", yytext); }
 
 <INITIAL>r'                 { BEGIN s6; clear_buffer(); }
-<s6>'                       { BEGIN INITIAL; yylval.s = strdup(buffer); return STRING_LITERAL; }
+<s6>'                       { BEGIN INITIAL; yylval.s = strdup(buffer); YY_STEP; return STRING_LITERAL; }
 <s6>[^'\n]+                 { append_to_buffer("%s", yytext); }
 
 <INITIAL>\"\"\"             { BEGIN s3; clear_buffer(); }
-<s3>\"\"\"                  { BEGIN INITIAL; yylval.s = strdup(buffer); return STRING_LITERAL; }
+<s3>\"\"\"                  { BEGIN INITIAL; yylval.s = strdup(buffer); YY_STEP; return STRING_LITERAL; }
 <s3>\"                      { append_to_buffer("\""); }
 <s3>\n                      { append_to_buffer("\n"); yycolumn = 1; }
 <s3>[^\\\"\n]+              { append_to_buffer("%s", yytext); }
 
 <INITIAL>r\"\"\"            { BEGIN s7; clear_buffer(); }
-<s7>\"\"\"                  { BEGIN INITIAL; yylval.s = strdup(buffer); return STRING_LITERAL; }
+<s7>\"\"\"                  { BEGIN INITIAL; yylval.s = strdup(buffer); YY_STEP; return STRING_LITERAL; }
 <s7>\"                      { append_to_buffer("\""); }
 <s7>\n                      { append_to_buffer("\n"); yycolumn = 1; }
 <s7>[^\"\n]+                { append_to_buffer("%s", yytext); }
 
 <INITIAL>'''                { BEGIN s4; clear_buffer(); }
-<s4>'''                     { BEGIN INITIAL; yylval.s = strdup(buffer); return STRING_LITERAL; }
+<s4>'''                     { BEGIN INITIAL; yylval.s = strdup(buffer); YY_STEP; return STRING_LITERAL; }
 <s4>'                       { append_to_buffer("'"); }
 <s4>\n                      { append_to_buffer("\n"); yycolumn = 1; }
 <s4>[^\\\'\n]+              { append_to_buffer("%s", yytext); }
 
 <INITIAL>r'''               { BEGIN s8; clear_buffer(); }
-<s8>'''                     { BEGIN INITIAL; yylval.s = strdup(buffer); return STRING_LITERAL; }
+<s8>'''                     { BEGIN INITIAL; yylval.s = strdup(buffer); YY_STEP; return STRING_LITERAL; }
 <s8>'                       { append_to_buffer("'"); }
 <s8>\n                      { append_to_buffer("\n"); yycolumn = 1; }
 <s8>[^\'\n]+                { append_to_buffer("%s", yytext); }
@@ -145,8 +151,8 @@ hex_escape          ("\\"x[0-9A-Fa-f]{2})
 <INITIAL>"<="               { return LEQ; }
 <INITIAL>">="               { return GEQ; }
 
-<INITIAL>{identifier}       { int token = token_for(yytext); if (token == IDENT) { yylval.s = strdup(yytext); } return token; }
-<INITIAL>.                  { if (is_punctuator(yytext[0])) return yytext[0]; yyerror("Unknown character."); }
+<INITIAL>{identifier}       { int token = token_for(yytext); if (token == IDENT) { yylval.s = strdup(yytext); } YY_STEP; return token; }
+<INITIAL>.                  { if (is_punctuator(yytext[0])) { YY_STEP; return yytext[0]; } yyerror("Unknown character."); }
 
 %%
 
