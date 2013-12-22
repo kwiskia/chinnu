@@ -24,13 +24,18 @@
 #include "symbol.h"
 
 typedef struct Scope Scope;
+typedef struct HashItem HashItem;
 typedef struct SymbolTable SymbolTable;
 
-const int MAP_SIZE = 64;
+const int MAP_SIZE = 32;
+
+struct HashItem {
+    Symbol *symbol;
+    HashItem *next;
+};
 
 struct Scope {
-    int size;
-    Symbol **symbols;
+    HashItem **buckets;
     Scope *next;
 };
 
@@ -63,7 +68,7 @@ int hash(char *str) {
         hash = ((hash << 5) + hash) ^ c;
     }
 
-    return hash;
+    return hash % MAP_SIZE;
 }
 
 void symbol_table_insert(SymbolTable *table, Symbol *symbol) {
@@ -72,32 +77,28 @@ void symbol_table_insert(SymbolTable *table, Symbol *symbol) {
         exit(1);
     }
 
-    Scope *scope = table->top;
+    HashItem *item = malloc(sizeof(HashItem));
+    HashItem **head = &table->top->buckets[hash(symbol->name)];
 
-    if (scope->size == MAP_SIZE) {
-        fprintf(stderr, "Too many variables in one scope.");
+    if (!item) {
+        fprintf(stderr, "Out of memory.");
         exit(1);
     }
 
-    int slot = hash(symbol->name) % MAP_SIZE;
-
-    while (scope->symbols[slot]) {
-        slot = (slot + 1) % MAP_SIZE;
-    }
-
-    scope->size++;
-    scope->symbols[slot] = symbol;
+    item->symbol = symbol;
+    item->next = *head;
+    *head = item;
 }
 
 Symbol *scope_search(Scope *scope, char *name) {
-    int slot = hash(name) % MAP_SIZE;
+    HashItem *head = scope->buckets[hash(name)];
 
-    while (scope->symbols[slot]) {
-        if (strcmp(scope->symbols[slot]->name, name) == 0) {
-            return scope->symbols[slot];
+    while (head) {
+        if (strcmp(head->symbol->name, name) == 0) {
+            return head->symbol;
         }
 
-        slot = (slot + 1) % MAP_SIZE;
+        head = head->next;
     }
 
     return 0;
@@ -134,21 +135,25 @@ Symbol *symbol_table_search_current_scope(SymbolTable *table, char *name) {
 
 void symbol_table_enter_scope(SymbolTable *table) {
     Scope *scope = malloc(sizeof(Scope));
-    Symbol **symbols = malloc(sizeof(Symbol) * MAP_SIZE);
+    HashItem **buckets = malloc(sizeof(HashItem) * MAP_SIZE);
 
-    if (!scope || !symbols) {
+    if (!scope || !buckets) {
         fprintf(stderr, "Out of memory.");
         exit(1);
     }
 
     for (int i = 0; i < MAP_SIZE; i++) {
-        symbols[i] = (Symbol *) 0;
+        buckets[i] = (HashItem *) 0;
     }
 
-    scope->size = 0;
-    scope->symbols = symbols;
+    scope->buckets = buckets;
     scope->next = table->top;
     table->top = scope;
+}
+
+void free_scope(Scope *scope) {
+    free(scope->buckets);
+    free(scope);
 }
 
 void symbol_table_exit_scope(SymbolTable *table) {
@@ -159,9 +164,7 @@ void symbol_table_exit_scope(SymbolTable *table) {
 
     Scope *temp = table->top;
     table->top = table->top->next;
-
-    free(temp->symbols);
-    free(temp);
+    free_scope(temp);
 }
 
 /* forward */
