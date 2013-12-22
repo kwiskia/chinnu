@@ -56,6 +56,7 @@ typedef struct SourcePos YYLTYPE;
     } while (0)
 }
 
+%defines
 %locations
 %error-verbose
 

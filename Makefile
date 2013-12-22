@@ -23,7 +23,7 @@ WARN =
 OPT = -O2
 DEBUG = -g -ggdb
 
-BISON = bison -d
+BISON = bison
 FLEX = flex
 
 PREFIX = /usr/local
