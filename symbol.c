@@ -91,11 +91,10 @@ Symbol *symbol_table_search(SymbolTable *table, char *name) {
     }
 
     Scope *head = table->top;
+    Symbol *s;
 
     while (head) {
-        Symbol *s = scope_search(head, name);
-
-        if (s) {
+        if ((s = scope_search(head, name))) {
             return s;
         }
 
