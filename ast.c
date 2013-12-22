@@ -105,10 +105,12 @@ ExpressionList *expression_list_append(ExpressionList *list, Expression *expr) {
     node->expr = expr;
     node->next = (ExpressionNode *) 0;
 
-    if (!list->tail) {
+    if (!list->head) {
         list->head = node;
         list->tail = node;
+        node->prev = (ExpressionNode *) 0;
     } else {
+        node->prev = list->tail;
         list->tail->next = node;
         list->tail = node;
     }

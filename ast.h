@@ -54,6 +54,7 @@ struct Expression {
 struct ExpressionNode {
     Expression *expr;
     ExpressionNode *next;
+    ExpressionNode *prev;
 };
 
 struct ExpressionList {
