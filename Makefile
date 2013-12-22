@@ -68,6 +68,9 @@ chinnu.lex.c:
 %.o: %.c
 	$(CHINNU_CC) -c $<
 
+%.c: %.y
+%.c: %.l
+
 install: all
 	@mkdir -p $(INSTALL_BIN)
 	$(CHINNU_INSTALL) $(CHINNU_NAME) $(INSTALL_BIN)
