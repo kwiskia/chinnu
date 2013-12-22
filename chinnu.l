@@ -145,7 +145,7 @@ hex_escape          ("\\"x[0-9A-Fa-f]{2})
 <INITIAL>"<="               { return LEQ; }
 <INITIAL>">="               { return GEQ; }
 
-<INITIAL>{identifier}       { return token_for(yytext); }
+<INITIAL>{identifier}       { int token = token_for(yytext); if (token == IDENT) { yylval.s = strdup(yytext); } return token; }
 <INITIAL>.                  { if (is_punctuator(yytext[0])) return yytext[0]; yyerror("Unknown character."); }
 
 %%
@@ -190,12 +190,6 @@ static struct {
     {"val", VAL}
 };
 
-static char punctuators[] = {
-    '+', '-', '*', '/',
-    '(', ')', '<', '>',
-    '=', ',', ';',
-};
-
 static int token_for(const char *lexeme) {
     int i;
     int n = sizeof(keywords) / sizeof(keywords[0]);
@@ -207,9 +201,14 @@ static int token_for(const char *lexeme) {
         }
     }
 
-    yylval.s = strdup(yytext);
     return IDENT;
 }
+
+static char punctuators[] = {
+    '+', '-', '*', '/',
+    '(', ')', '<', '>',
+    '=', ',', ';',
+};
 
 static int is_punctuator(const char c) {
     int i;
