@@ -126,11 +126,12 @@ static void append_to_buffer(const char *fmt, ...) {
 
     int n = vsnprintf(buffer + length, MAX_LITERAL - length, fmt, args);
 
-    if (n < 0 || n >= MAX_LITERAL) {
+    if (n < 0 || length + n >= MAX_LITERAL) {
+        length = MAX_LITERAL;
         yyerror("String literal too large, truncated.");
+    } else {
+        length += n;
     }
-
-    length += n;
 }
 
 static struct {
