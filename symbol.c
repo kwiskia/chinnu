@@ -4,24 +4,19 @@
 
 #include "symbol.h"
 
-typedef struct SymbolMap SymbolMap;
-typedef struct ScopeNode ScopeNode;
+typedef struct Scope Scope;
 typedef struct SymbolTable SymbolTable;
 
 const int MAP_SIZE = 64;
 
-struct SymbolMap {
+struct Scope {
     int size;
     Symbol **symbols;
-};
-
-struct ScopeNode {
-    SymbolMap *map;
-    ScopeNode *next;
+    Scope *next;
 };
 
 struct SymbolTable {
-    ScopeNode *top;
+    Scope *top;
 };
 
 Symbol *make_symbol(char *name, Expression *declaration) {
@@ -58,29 +53,29 @@ void symbol_table_insert(SymbolTable *table, Symbol *symbol) {
         exit(1);
     }
 
-    SymbolMap *map = table->top->map;
+    Scope *scope = table->top;
 
-    if (map->size == MAP_SIZE) {
+    if (scope->size == MAP_SIZE) {
         fprintf(stderr, "Too many variables in one scope.");
         exit(1);
     }
 
     int slot = hash(symbol->name) % MAP_SIZE;
 
-    while (map->symbols[slot]) {
+    while (scope->symbols[slot]) {
         slot = (slot + 1) % MAP_SIZE;
     }
 
-    map->size++;
-    map->symbols[slot] = symbol;
+    scope->size++;
+    scope->symbols[slot] = symbol;
 }
 
-Symbol *symbol_table_search_scope(SymbolMap *map, char *name) {
+Symbol *symbol_table_search_scope(Scope *scope, char *name) {
     int slot = hash(name) % MAP_SIZE;
 
-    while (map->symbols[slot]) {
-        if (strcmp(map->symbols[slot]->name, name) == 0) {
-            return map->symbols[slot];
+    while (scope->symbols[slot]) {
+        if (strcmp(scope->symbols[slot]->name, name) == 0) {
+            return scope->symbols[slot];
         }
 
         slot = (slot + 1) % MAP_SIZE;
@@ -95,10 +90,10 @@ Symbol *symbol_table_search(SymbolTable *table, char *name) {
         exit(1);
     }
 
-    ScopeNode *head = table->top;
+    Scope *head = table->top;
 
     while (head) {
-        Symbol *s = symbol_table_search_scope(head->map, name);
+        Symbol *s = symbol_table_search_scope(head, name);
 
         if (s) {
             return s;
@@ -116,15 +111,14 @@ Symbol *symbol_table_search_current_scope(SymbolTable *table, char *name) {
         exit(1);
     }
 
-    return symbol_table_search_scope(table->top->map, name);
+    return symbol_table_search_scope(table->top, name);
 }
 
 void symbol_table_enter_scope(SymbolTable *table) {
-    ScopeNode *scope = malloc(sizeof(ScopeNode));
-    SymbolMap *map = malloc(sizeof(SymbolMap));
+    Scope *scope = malloc(sizeof(Scope));
     Symbol **symbols = malloc(sizeof(Symbol) * MAP_SIZE);
 
-    if (!scope || !map || !symbols) {
+    if (!scope || !symbols) {
         fprintf(stderr, "Out of memory.");
         exit(1);
     }
@@ -133,20 +127,10 @@ void symbol_table_enter_scope(SymbolTable *table) {
         symbols[i] = (Symbol *) 0;
     }
 
-    map->size = 0;
-    map->symbols = symbols;
-
-    scope->map = map;
+    scope->size = 0;
+    scope->symbols = symbols;
     scope->next = table->top;
     table->top = scope;
-}
-
-void free_scope_node(ScopeNode *scope) {
-    SymbolMap *map = scope->map;
-
-    free(map->symbols);
-    free(map);
-    free(scope);
 }
 
 void symbol_table_exit_scope(SymbolTable *table) {
@@ -155,9 +139,11 @@ void symbol_table_exit_scope(SymbolTable *table) {
         exit(1);
     }
 
-    ScopeNode *temp = table->top;
+    Scope *temp = table->top;
     table->top = table->top->next;
-    free_scope_node(temp);
+
+    free(temp->symbols);
+    free(temp);
 }
 
 /* forward */
@@ -299,7 +285,7 @@ void resolve(ExpressionList *program) {
         exit(1);
     }
 
-    table->top = (ScopeNode *) 0;
+    table->top = (Scope *) 0;
     symbol_table_enter_scope(table);
     expression_list_resolve(table, program);
     symbol_table_exit_scope(table);
