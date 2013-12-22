@@ -4,6 +4,24 @@
 
 #include "symbol.h"
 
+typedef struct SymbolNode SymbolNode;
+typedef struct ScopeNode ScopeNode;
+typedef struct SymbolTable SymbolTable;
+
+struct SymbolNode {
+    Symbol *symbol;
+    SymbolNode *next;
+};
+
+struct ScopeNode {
+    SymbolNode *first;
+    ScopeNode *next;
+};
+
+struct SymbolTable {
+    ScopeNode *top;
+};
+
 Symbol *make_symbol(char *name, Node *declaration) {
     static int id = 0;
 
@@ -20,27 +38,27 @@ Symbol *make_symbol(char *name, Node *declaration) {
     return symbol;
 }
 
-void insert(SymbolTable *table, Symbol *symbol) {
+void symbol_table_insert(SymbolTable *table, Symbol *symbol) {
     if (!table->top) {
         fprintf(stderr, "Empty scope. Aborting.");
         exit(1);
     }
 
-    ScopeItem *item = malloc(sizeof(ScopeItem));
+    SymbolNode *node = malloc(sizeof(SymbolNode));
 
-    if (!item) {
+    if (!node) {
         fprintf(stderr, "Out of memory.");
         exit(1);
     }
 
-    item->symbol = symbol;
-    item->next = table->top->scope;
+    node->symbol = symbol;
+    node->next = table->top->first;
 
-    table->top->scope = item;
+    table->top->first = node;
 }
 
-Symbol *search_in_scope(ScopeItem *scope, char *name) {
-    ScopeItem *head = scope;
+Symbol *symbol_table_search_scope(SymbolNode *node, char *name) {
+    SymbolNode *head = node;
 
     while (head) {
         if (strcmp(head->symbol->name, name) == 0) {
@@ -53,16 +71,16 @@ Symbol *search_in_scope(ScopeItem *scope, char *name) {
     return 0;
 }
 
-Symbol *search(SymbolTable *table, char *name) {
+Symbol *symbol_table_search(SymbolTable *table, char *name) {
     if (!table->top) {
         fprintf(stderr, "Empty scope. Aborting.");
         exit(1);
     }
 
-    SymbolItem *head = table->top;
+    ScopeNode *head = table->top;
 
     while (head) {
-        Symbol *s = search_in_scope(head->scope, name);
+        Symbol *s = symbol_table_search_scope(head->first, name);
 
         if (s) {
             return s;
@@ -74,75 +92,63 @@ Symbol *search(SymbolTable *table, char *name) {
     return 0;
 }
 
-Symbol *search_in_current_scope(SymbolTable *table, char *name) {
+Symbol *symbol_table_search_current_scope(SymbolTable *table, char *name) {
     if (!table->top) {
         fprintf(stderr, "Empty scope. Aborting.");
         exit(1);
     }
 
-    return search_in_scope(table->top->scope, name);
+    return symbol_table_search_scope(table->top->first, name);
 }
 
-void enter_scope(SymbolTable *table) {
-    SymbolItem *scope = malloc(sizeof(SymbolItem));
+void symbol_table_enter_scope(SymbolTable *table) {
+    ScopeNode *scope = malloc(sizeof(ScopeNode));
 
     if (!scope) {
         fprintf(stderr, "Out of memory.");
         exit(1);
     }
 
-    scope->scope = (ScopeItem *) 0;
+    scope->first = (SymbolNode *) 0;
     scope->next = table->top;
     table->top = scope;
 }
 
-void free_scope(SymbolItem *top) {
-    ScopeItem *head = top->scope;
+void scope_node_free(ScopeNode *scope) {
+    SymbolNode *head = scope->first;
 
     while (head) {
-        ScopeItem *temp = head;
+        SymbolNode *temp = head;
         head = head->next;
         free(temp);
     }
 
-    free(top);
+    free(scope);
 }
 
-void exit_scope(SymbolTable *table) {
+void symbol_table_exit_scope(SymbolTable *table) {
     if (!table->top) {
         fprintf(stderr, "Empty scope. Aborting.");
         exit(1);
     }
 
-    SymbolItem *next = table->top->next;
-    free_scope(table->top);
-    table->top = next;
+    ScopeNode *temp = table->top;
+    table->top = table->top->next;
+    scope_node_free(temp);
 }
 
-void resolve(NodeList *program) {
-    SymbolTable *table = malloc(sizeof(SymbolTable));
-
-    if (!table) {
-        fprintf(stderr, "Out of memory.");
-        exit(1);
-    }
-
-    table->top = (SymbolItem *) 0;
-    enter_scope(table);
-    resolve_list(table, program);
-    exit_scope(table);
-    free(table);
-}
+/* forward */
+void resolve_list(SymbolTable *table, NodeList *list);
 
 void resolve_node(SymbolTable *table, Node *node) {
     switch (node->type) {
         case TYPE_DECLARATION:;
-            Symbol *s1 = search_in_current_scope(table, node->value->s);
+            Symbol *s1 = symbol_table_search_current_scope(table, node->value->s);
 
             if (!s1) {
                 s1 = make_symbol(node->value->s, node);
                 node->symbol = s1;
-                insert(table, s1);
+                symbol_table_insert(table, s1);
             } else {
                 fprintf(stderr, "Duplicate declaration of %s\n", node->value->s);
                 exit(1);
@@ -155,7 +161,7 @@ void resolve_node(SymbolTable *table, Node *node) {
             break;
 
         case TYPE_VARREF:;
-            Symbol *s2 = search(table, node->value->s);
+            Symbol *s2 = symbol_table_search(table, node->value->s);
 
             if (!s2) {
                 fprintf(stderr, "Use of undeclared variable %s!\n", node->value->s);
@@ -170,40 +176,40 @@ void resolve_node(SymbolTable *table, Node *node) {
         case TYPE_IF:
             resolve_node(table, node->cond);
 
-            enter_scope(table);
+            symbol_table_enter_scope(table);
             resolve_list(table, node->llist);
-            exit_scope(table);
+            symbol_table_exit_scope(table);
 
-            enter_scope(table);
+            symbol_table_enter_scope(table);
             resolve_list(table, node->rlist);
-            exit_scope(table);
+            symbol_table_exit_scope(table);
             break;
 
         case TYPE_WHILE:
             resolve_node(table, node->cond);
 
-            enter_scope(table);
+            symbol_table_enter_scope(table);
             resolve_list(table, node->llist);
-            exit_scope(table);
+            symbol_table_exit_scope(table);
             break;
 
         case TYPE_CALL:
             resolve_node(table, node->lnode);
 
-            enter_scope(table);
+            symbol_table_enter_scope(table);
             resolve_list(table, node->rlist);
-            exit_scope(table);
+            symbol_table_exit_scope(table);
             break;
 
         case TYPE_FUNC:
-            enter_scope(table);
+            symbol_table_enter_scope(table);
             resolve_list(table, node->llist);
 
-            enter_scope(table);
+            symbol_table_enter_scope(table);
             resolve_list(table, node->rlist);
 
-            exit_scope(table);
-            exit_scope(table);
+            symbol_table_exit_scope(table);
+            symbol_table_exit_scope(table);
             break;
 
         /* binary cases */
@@ -260,4 +266,19 @@ void resolve_list(SymbolTable *table, NodeList *list) {
         resolve_node(table, item->node);
         item = item->next;
     }
+}
+
+void resolve(NodeList *program) {
+    SymbolTable *table = malloc(sizeof(SymbolTable));
+
+    if (!table) {
+        fprintf(stderr, "Out of memory.");
+        exit(1);
+    }
+
+    table->top = (ScopeNode *) 0;
+    symbol_table_enter_scope(table);
+    resolve_list(table, program);
+    symbol_table_exit_scope(table);
+    free(table);
 }
