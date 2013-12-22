@@ -174,7 +174,7 @@ void expression_resolve(SymbolTable *table, Expression *expr) {
                 expr->symbol = s1;
                 symbol_table_insert(table, s1);
             } else {
-                error(expr->pos, "Redefinition of '%s'.\n", expr->value->s);
+                error(expr->pos, "Redefinition of '%s'.", expr->value->s);
                 message(s1->declaration->pos, "Previous definition is here.");
             }
 
