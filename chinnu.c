@@ -120,6 +120,55 @@ void message(SourcePos pos, const char *fmt, ...) {
     va_end(args);
 }
 
+/*
+ * !!! EXTREME HACK !!!
+ */
+
+char *get_line(char *filename, int lineno) {
+    FILE *fp = fopen(filename, "r");
+
+    if (!fp) {
+        fatal("Could not open file for error reporting.");
+    }
+
+    char *line = 0;
+    size_t len = 0;
+
+    while (getline(&line, &len, fp) != -1) {
+        if (--lineno == 0) {
+            break;
+        }
+    }
+
+    fclose(fp);
+    return line;
+}
+
+void highlight_line(SourcePos pos) {
+    if (pos.first_line == pos.last_line) {
+        fprintf(stderr, "%d: %s", pos.first_line, get_line(pos.filename, pos.first_line));
+
+        int line = pos.first_line;
+        while (line > 0) {
+            fprintf(stderr, " ");
+            line /= 10;
+        }
+
+        fprintf(stderr, "  \033[32m");
+        int i;
+        for (i = 1; i <= pos.last_column; i++) {
+            fprintf(stderr, i < pos.first_column ? " " : "^");
+        }
+
+        fprintf(stderr, "\033[30m\n");
+    } else {
+        int i;
+        for (i = pos.first_line; i <= pos.last_line; i++) {
+            fprintf(stderr, "%d: %s\n", i, get_line(pos.filename, i));
+        }
+    }
+}
+
 static int numwarnings = 0;
 static int numerrors = 0;
 
@@ -146,6 +195,8 @@ void vwarning(SourcePos pos, const char *fmt, va_list args) {
     vfprintf(stderr, fmt, args);
     fprintf(stderr, "\033[0m\n");
 
+    highlight_line(pos);
+
     numwarnings++;
 }
 
@@ -171,6 +222,8 @@ void verror(SourcePos pos, const char *fmt, va_list args) {
     fprintf(stderr, "\033[1;31merror:\033[1;30m ");
     vfprintf(stderr, fmt, args);
     fprintf(stderr, "\033[0m\n");
+
+    highlight_line(pos);
 
     numerrors++;
     if (numerrors >= 10) {
@@ -201,6 +254,8 @@ void vmessage(SourcePos pos, const char *fmt, va_list args) {
     fprintf(stderr, "note: ");
     vfprintf(stderr, fmt, args);
     fprintf(stderr, "\033[0m\n");
+
+    highlight_line(pos);
 }
 
 void show_usage(char *program) {
