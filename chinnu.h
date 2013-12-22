@@ -30,6 +30,8 @@ ExpressionList *program;
 char *filename;
 
 void fatal(const char *fmt, ...);
+void warning(SourcePos pos, const char *fmt, ...);
 void error(SourcePos pos, const char *fmt, ...);
 
+void vwarning(SourcePos pos, const char *fmt, va_list args);
 void verror(SourcePos pos, const char *fmt, va_list args);

@@ -99,11 +99,42 @@ void fatal(const char *fmt, ...) {
     exit(EXIT_FAILURE);
 }
 
+void warning(SourcePos pos, const char *fmt, ...) {
+    va_list args;
+    va_start(args, fmt);
+    vwarning(pos, fmt, args);
+    va_end(args);
+}
+
 void error(SourcePos pos, const char *fmt, ...) {
     va_list args;
     va_start(args, fmt);
     verror(pos, fmt, args);
     va_end(args);
+}
+
+void vwarning(SourcePos pos, const char *fmt, va_list args) {
+    fprintf(stderr, "\033[1m");
+
+    if (pos.first_line < pos.last_line) {
+        fprintf(stderr, "%s:%d.%d-%d.%d: ",
+            pos.filename,
+            pos.first_line, pos.first_column,
+            pos.last_line, pos.last_column);
+    } else if (pos.first_column < pos.last_column) {
+        fprintf(stderr, "%s:%d.%d-%d: ",
+            pos.filename,
+            pos.first_line, pos.first_column,
+            pos.last_column);
+    } else {
+        fprintf(stderr, "%s:%d.%d: ",
+            pos.filename,
+            pos.first_line, pos.first_column);
+    }
+
+    fprintf(stderr, "\033[1;35mwarning:\033[1;30m ");
+    vfprintf(stderr, fmt, args);
+    fprintf(stderr, "\033[0m\n");
 }
 
 static int numerrors = 0;
