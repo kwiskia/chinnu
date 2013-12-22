@@ -164,7 +164,7 @@ void highlight_line(SourcePos pos) {
     } else {
         int i;
         for (i = pos.first_line; i <= pos.last_line; i++) {
-            fprintf(stderr, "%d: %s\n", i, get_line(pos.filename, i));
+            fprintf(stderr, "%d: %s", i, get_line(pos.filename, i));
         }
     }
 }
