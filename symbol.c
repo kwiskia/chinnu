@@ -21,6 +21,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "chinnu.h"
 #include "symbol.h"
 
 typedef struct Scope Scope;
@@ -49,8 +50,7 @@ Symbol *make_symbol(char *name, Expression *declaration) {
     Symbol *symbol = malloc(sizeof(Symbol));
 
     if (!symbol) {
-        fprintf(stderr, "Out of memory.");
-        exit(1);
+        fatal("Out of memory.");
     }
 
     symbol->name = strdup(name);
@@ -73,16 +73,14 @@ int hash(char *str) {
 
 void symbol_table_insert(SymbolTable *table, Symbol *symbol) {
     if (!table->top) {
-        fprintf(stderr, "Empty scope. Aborting.");
-        exit(1);
+        fatal("Empty scope.");
     }
 
     HashItem *item = malloc(sizeof(HashItem));
     HashItem **head = &table->top->buckets[hash(symbol->name)];
 
     if (!item) {
-        fprintf(stderr, "Out of memory.");
-        exit(1);
+        fatal("Out of memory.");
     }
 
     item->symbol = symbol;
@@ -106,8 +104,7 @@ Symbol *scope_search(Scope *scope, char *name) {
 
 Symbol *symbol_table_search(SymbolTable *table, char *name) {
     if (!table->top) {
-        fprintf(stderr, "Empty scope. Aborting.");
-        exit(1);
+        fatal("Empty scope.");
     }
 
     Scope *head = table->top;
@@ -126,8 +123,7 @@ Symbol *symbol_table_search(SymbolTable *table, char *name) {
 
 Symbol *symbol_table_search_current_scope(SymbolTable *table, char *name) {
     if (!table->top) {
-        fprintf(stderr, "Empty scope. Aborting.");
-        exit(1);
+        fatal("Empty scope.");
     }
 
     return scope_search(table->top, name);
@@ -138,8 +134,7 @@ void symbol_table_enter_scope(SymbolTable *table) {
     HashItem **buckets = malloc(sizeof(HashItem) * MAP_SIZE);
 
     if (!scope || !buckets) {
-        fprintf(stderr, "Out of memory.");
-        exit(1);
+        fatal("Out of memory.");
     }
 
     for (int i = 0; i < MAP_SIZE; i++) {
@@ -158,8 +153,7 @@ void free_scope(Scope *scope) {
 
 void symbol_table_exit_scope(SymbolTable *table) {
     if (!table->top) {
-        fprintf(stderr, "Empty scope. Aborting.");
-        exit(1);
+        fatal("Empty scope.");
     }
 
     Scope *temp = table->top;
@@ -180,8 +174,7 @@ void expression_resolve(SymbolTable *table, Expression *expr) {
                 expr->symbol = s1;
                 symbol_table_insert(table, s1);
             } else {
-                fprintf(stderr, "Duplicate declaration of %s\n", expr->value->s);
-                exit(1);
+                add_error("Duplicate declaration of %s.", expr->value->s);
             }
 
             if (expr->rexpr) {
@@ -194,8 +187,7 @@ void expression_resolve(SymbolTable *table, Expression *expr) {
             Symbol *s2 = symbol_table_search(table, expr->value->s);
 
             if (!s2) {
-                fprintf(stderr, "Use of undeclared variable %s!\n", expr->value->s);
-                exit(1);
+                add_error("Use of undeclared variable %s.", expr->value->s);
             } else {
                 expr->symbol = s2;
             }
@@ -244,8 +236,7 @@ void expression_resolve(SymbolTable *table, Expression *expr) {
             expression_resolve(table, expr->rexpr);
 
             if (expr->lexpr->symbol->declaration->immutable == 1) {
-                fprintf(stderr, "Assignment to a VAL.\n");
-                exit(1);
+                add_error("Assignment to a VAL.");
             }
 
             break;
@@ -281,11 +272,6 @@ void expression_resolve(SymbolTable *table, Expression *expr) {
 }
 
 void expression_list_resolve(SymbolTable *table, ExpressionList *list) {
-    if (!list) {
-        fprintf(stderr, "Did not expect empty list. Aborting.");
-        exit(1);
-    }
-
     ExpressionNode *head = list->head;
 
     while (head) {
@@ -298,8 +284,7 @@ void resolve(ExpressionList *program) {
     SymbolTable *table = malloc(sizeof(SymbolTable));
 
     if (!table) {
-        fprintf(stderr, "Out of memory.");
-        exit(1);
+        fatal("Out of memory.");
     }
 
     table->top = (Scope *) 0;

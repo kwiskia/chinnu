@@ -22,13 +22,13 @@
 #include <string.h>
 
 #include "ast.h"
+#include "chinnu.h"
 
 Expression *allocexpr() {
     Expression *expr = malloc(sizeof(Expression));
 
     if (!expr) {
-        fprintf(stderr, "Out of memory.");
-        exit(1);
+        fatal("Out of memory.");
     }
 
     expr->cond = (Expression *) 0;
@@ -47,8 +47,7 @@ Val *allocval() {
     Val *val = malloc(sizeof(Val));
 
     if (!val) {
-        fprintf(stderr, "Out of memory.");
-        exit(1);
+        fatal("Out of memory.");
     }
 
     return val;
@@ -98,8 +97,7 @@ ExpressionList *make_list() {
     ExpressionList *list = malloc(sizeof(ExpressionList));
 
     if (!list) {
-        fprintf(stderr, "Out of memory.");
-        exit(1);
+        fatal("Out of memory.");
     }
 
     list->head = (ExpressionNode *) 0;
@@ -117,8 +115,7 @@ ExpressionList *expression_list_append(ExpressionList *list, Expression *expr) {
     ExpressionNode *node = malloc(sizeof(ExpressionNode));
 
     if (!node) {
-        fprintf(stderr, "Out of memory.");
-        exit(1);
+        fatal("Out of memory.");
     }
 
     node->expr = expr;

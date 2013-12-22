@@ -23,3 +23,6 @@
 #include "symbol.h"
 
 ExpressionList *program;
+
+void fatal(const char *fmt, ...);
+void add_error(const char *fmt, ...);

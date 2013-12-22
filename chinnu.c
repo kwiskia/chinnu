@@ -19,6 +19,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdarg.h>
 #include <string.h>
 
 #include "chinnu.h"
@@ -80,11 +81,30 @@ void expression_list_print(ExpressionList *list, int indent) {
     }
 }
 
+void fatal(const char *fmt, ...) {
+    va_list args;
+    va_start(args, fmt);
+
+    fprintf(stderr, "Internal compiler error: ");
+    vfprintf(stderr, fmt, args);
+    fprintf(stderr, "\n");
+
+    exit(1);
+}
+
+void add_error(const char *fmt, ...) {
+    va_list args;
+    va_start(args, fmt);
+
+    vfprintf(stderr, fmt, args);
+    fprintf(stderr, "\n");
+}
+
 int main(int argc, const char **argv) {
     FILE *f = fopen("test.ch", "r");
 
     if (!f) {
-        fprintf(stderr, "Could not open file.");
+        fatal("Could not open file.");
     }
 
     yyin = f;
