@@ -92,7 +92,7 @@ void fatal(const char *fmt, ...) {
     exit(1);
 }
 
-void add_error(const char *fmt, ...) {
+void error(const char *fmt, ...) {
     va_list args;
     va_start(args, fmt);
 

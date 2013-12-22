@@ -174,7 +174,7 @@ void expression_resolve(SymbolTable *table, Expression *expr) {
                 expr->symbol = s1;
                 symbol_table_insert(table, s1);
             } else {
-                add_error("Duplicate declaration of %s.", expr->value->s);
+                error("Duplicate declaration of %s.", expr->value->s);
             }
 
             if (expr->rexpr) {
@@ -187,7 +187,7 @@ void expression_resolve(SymbolTable *table, Expression *expr) {
             Symbol *s2 = symbol_table_search(table, expr->value->s);
 
             if (!s2) {
-                add_error("Use of undeclared variable %s.", expr->value->s);
+                error("Use of undeclared variable %s.", expr->value->s);
             } else {
                 expr->symbol = s2;
             }
@@ -236,7 +236,7 @@ void expression_resolve(SymbolTable *table, Expression *expr) {
             expression_resolve(table, expr->rexpr);
 
             if (expr->lexpr->symbol->declaration->immutable == 1) {
-                add_error("Assignment to a VAL.");
+                error("Assignment to a VAL.");
             }
 
             break;
