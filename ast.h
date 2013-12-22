@@ -1,16 +1,35 @@
+/*
+ * Copyright (C) 2012, Eric Fritz
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of this software
+ * and associated documentation files (the "Software"), to deal in the Software without
+ * restriction, including without limitation the rights to use, copy, modify, merge, publish,
+ * distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all copies or
+ * substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING
+ * BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT.  IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+ * DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ */
+
 #pragma once
 
 #include "common.h"
 #include "symbol.h"
 
 enum {
-    TYPE_IF,
-    TYPE_WHILE,
-    TYPE_ADD,
+    TYPE_IF, // cond, llist, rlist
+    TYPE_WHILE, // cond, llist
+    TYPE_ADD, // lexpr, rexpr
     TYPE_SUB,
     TYPE_MUL,
     TYPE_DIV,
-    TYPE_NEG,
+    TYPE_NEG, // lexpr
     TYPE_NOT,
     TYPE_ASSIGN,
     TYPE_EQEQ,
@@ -21,12 +40,12 @@ enum {
     TYPE_GEQ,
     TYPE_AND,
     TYPE_OR,
-    TYPE_VARREF,
-    TYPE_NUMBER,
-    TYPE_STRING,
-    TYPE_CALL,
-    TYPE_FUNC,
-    TYPE_DECLARATION
+    TYPE_VARREF, // value (s)
+    TYPE_NUMBER, // value (i or d)
+    TYPE_STRING, // value (s)
+    TYPE_CALL, // lexpr, rlist
+    TYPE_FUNC, // llist, rlist
+    TYPE_DECLARATION // rexpr, value (s)
 };
 
 struct Val {
