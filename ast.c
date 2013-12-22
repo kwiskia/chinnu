@@ -4,24 +4,24 @@
 
 #include "ast.h"
 
-Node *allocnode() {
-    Node *node = malloc(sizeof(Node));
+Expression *allocexpr() {
+    Expression *expr = malloc(sizeof(Expression));
 
-    if (!node) {
+    if (!expr) {
         fprintf(stderr, "Out of memory.");
         exit(1);
     }
 
-    node->cond = (Node *) 0;
-    node->lnode = (Node *) 0;
-    node->rnode = (Node *) 0;
-    node->llist = (NodeList *) 0;
-    node->rlist = (NodeList *) 0;
-    node->value = (Val *) 0;
-    node->symbol = (Symbol *) 0;
-    node->immutable = 0;
+    expr->cond = (Expression *) 0;
+    expr->lexpr = (Expression *) 0;
+    expr->rexpr = (Expression *) 0;
+    expr->llist = (ExpressionList *) 0;
+    expr->rlist = (ExpressionList *) 0;
+    expr->value = (Val *) 0;
+    expr->symbol = (Symbol *) 0;
+    expr->immutable = 0;
 
-    return node;
+    return expr;
 }
 
 Val *allocval() {
@@ -35,202 +35,202 @@ Val *allocval() {
     return val;
 }
 
-void free_node(Node *node) {
-    if (node) {
-        if (node->cond)  free_node(node->cond);
-        if (node->lnode) free_node(node->lnode);
-        if (node->rnode) free_node(node->rnode);
-        if (node->llist) free_list(node->llist);
-        if (node->rlist) free_list(node->rlist);
+void expression_free(Expression *expr) {
+    if (expr) {
+        if (expr->cond)  expression_free(expr->cond);
+        if (expr->lexpr) expression_free(expr->lexpr);
+        if (expr->rexpr) expression_free(expr->rexpr);
+        if (expr->llist) expression_list_free(expr->llist);
+        if (expr->rlist) expression_list_free(expr->rlist);
 
-        if (node->value) {
-            if (node->type == TYPE_VARREF || node->type == TYPE_DECLARATION || node->type == TYPE_STRING) {
-                free(node->value->s);
+        if (expr->value) {
+            if (expr->type == TYPE_VARREF || expr->type == TYPE_DECLARATION || expr->type == TYPE_STRING) {
+                free(expr->value->s);
             }
 
-            free(node->value);
+            free(expr->value);
         }
 
-        if (node->type == TYPE_DECLARATION) {
-            free(node->symbol->name);
-            free(node->symbol);
+        if (expr->type == TYPE_DECLARATION) {
+            free(expr->symbol->name);
+            free(expr->symbol);
         }
 
-        free(node);
+        free(expr);
     }
 }
 
-void free_item(ListItem *item) {
+void expression_node_free(ExpressionNode *item) {
     if (item) {
-        free_node(item->node);
-        free_item(item->next);
+        expression_free(item->expr);
+        expression_node_free(item->next);
         free(item);
     }
 }
 
-void free_list(NodeList *list) {
+void expression_list_free(ExpressionList *list) {
     if (list) {
-        free_item(list->head);
+        expression_node_free(list->head);
         free(list);
     }
 }
 
-NodeList *make_list() {
-    NodeList *list = malloc(sizeof(NodeList));
+ExpressionList *make_list() {
+    ExpressionList *list = malloc(sizeof(ExpressionList));
 
     if (!list) {
         fprintf(stderr, "Out of memory.");
         exit(1);
     }
 
-    list->head = (ListItem *) 0;
-    list->tail = (ListItem *) 0;
+    list->head = (ExpressionNode *) 0;
+    list->tail = (ExpressionNode *) 0;
     return list;
 }
 
-NodeList *list1(Node *node) {
-    NodeList *list = make_list();
-    append(list, node);
+ExpressionList *list1(Expression *expr) {
+    ExpressionList *list = make_list();
+    expression_list_append(list, expr);
     return list;
 }
 
-NodeList *append(NodeList *list, Node *node) {
-    ListItem *item = malloc(sizeof(ListItem));
+ExpressionList *expression_list_append(ExpressionList *list, Expression *expr) {
+    ExpressionNode *node = malloc(sizeof(ExpressionNode));
 
-    if (!item) {
+    if (!node) {
         fprintf(stderr, "Out of memory.");
         exit(1);
     }
 
-    item->node = node;
-    item->next = (ListItem *) 0;
+    node->expr = expr;
+    node->next = (ExpressionNode *) 0;
 
     if (!list->tail) {
-        list->head = item;
-        list->tail = item;
+        list->head = node;
+        list->tail = node;
     } else {
-        list->tail->next = item;
-        list->tail = item;
+        list->tail->next = node;
+        list->tail = node;
     }
 
     return list;
 }
 
-Node *make_if(Node *cond, NodeList *body, NodeList *orelse) {
-    Node *node = allocnode();
+Expression *make_if(Expression *cond, ExpressionList *body, ExpressionList *orelse) {
+    Expression *expr = allocexpr();
 
-    node->type = TYPE_IF;
-    node->cond = cond;
-    node->llist = body;
-    node->rlist = orelse;
-    return node;
+    expr->type = TYPE_IF;
+    expr->cond = cond;
+    expr->llist = body;
+    expr->rlist = orelse;
+    return expr;
 }
 
-Node *make_while(Node *cond, NodeList *body) {
-    Node *node = allocnode();
+Expression *make_while(Expression *cond, ExpressionList *body) {
+    Expression *expr = allocexpr();
 
-    node->type = TYPE_WHILE;
-    node->cond = cond;
-    node->llist = body;
-    return node;
+    expr->type = TYPE_WHILE;
+    expr->cond = cond;
+    expr->llist = body;
+    return expr;
 }
 
-Node *make_binop(int type, Node *left, Node *right) {
-    Node *node = allocnode();
+Expression *make_binop(int type, Expression *left, Expression *right) {
+    Expression *expr = allocexpr();
 
-    node->type = type;
-    node->lnode = left;
-    node->rnode = right;
-    return node;
+    expr->type = type;
+    expr->lexpr = left;
+    expr->rexpr = right;
+    return expr;
 }
 
-Node *make_uop(int type, Node *left) {
-    Node *node = allocnode();
+Expression *make_uop(int type, Expression *left) {
+    Expression *expr = allocexpr();
 
-    node->type = type;
-    node->lnode = left;
-    return node;
+    expr->type = type;
+    expr->lexpr = left;
+    return expr;
 }
 
-Node *make_declaration(char *name, Node *value, int immutable) {
-    Node *node = allocnode();
+Expression *make_declaration(char *name, Expression *value, int immutable) {
+    Expression *expr = allocexpr();
     Val *val = allocval();
 
     // TODO - intern?
 
-    node->type = TYPE_DECLARATION;
-    node->rnode = value;
-    node->value = val;
+    expr->type = TYPE_DECLARATION;
+    expr->rexpr = value;
+    expr->value = val;
     val->s = name;
-    node->immutable = immutable;
-    return node;
+    expr->immutable = immutable;
+    return expr;
 }
 
-Node *make_assignment(Node *left, Node *right) {
-    Node *node = allocnode();
+Expression *make_assignment(Expression *left, Expression *right) {
+    Expression *expr = allocexpr();
 
-    node->type = TYPE_ASSIGN;
-    node->lnode = left;
-    node->rnode = right;
-    return node;
+    expr->type = TYPE_ASSIGN;
+    expr->lexpr = left;
+    expr->rexpr = right;
+    return expr;
 }
 
-Node *make_varref(char *name) {
-    Node *node = allocnode();
+Expression *make_varref(char *name) {
+    Expression *expr = allocexpr();
     Val *val = allocval();
 
     // TODO - intern?
 
-    node->type = TYPE_VARREF;
-    node->value = val;
+    expr->type = TYPE_VARREF;
+    expr->value = val;
     val->s = name;
-    return node;
+    return expr;
 }
 
-Node *make_int(int i) {
-    Node *node = allocnode();
+Expression *make_int(int i) {
+    Expression *expr = allocexpr();
     Val *val = allocval();
 
     val->i = i;
-    node->type = TYPE_NUMBER;
-    node->value = val;
-    return node;
+    expr->type = TYPE_NUMBER;
+    expr->value = val;
+    return expr;
 }
 
-Node *make_real(double d) {
-    Node *node = allocnode();
+Expression *make_real(double d) {
+    Expression *expr = allocexpr();
     Val *val = allocval();
 
     val->d = d;
-    node->type = TYPE_NUMBER;
-    node->value = val;
-    return node;
+    expr->type = TYPE_NUMBER;
+    expr->value = val;
+    return expr;
 }
 
-Node *make_str(char *str) {
-    Node *node = allocnode();
+Expression *make_str(char *str) {
+    Expression *expr = allocexpr();
     Val *val = allocval();
 
-    node->type = TYPE_STRING;
-    node->value = val;
+    expr->type = TYPE_STRING;
+    expr->value = val;
     val->s = str;
-    return node;
+    return expr;
 }
 
-Node *make_call(Node *target, NodeList *arguments) {
-    Node *node = allocnode();
+Expression *make_call(Expression *target, ExpressionList *arguments) {
+    Expression *expr = allocexpr();
 
-    node->type = TYPE_CALL;
-    node->lnode = target;
-    node->rlist = arguments;
-    return node;
+    expr->type = TYPE_CALL;
+    expr->lexpr = target;
+    expr->rlist = arguments;
+    return expr;
 }
 
-Node *make_func(NodeList *parameters, NodeList *body) {
-    Node *node = allocnode();
+Expression *make_func(ExpressionList *parameters, ExpressionList *body) {
+    Expression *expr = allocexpr();
 
-    node->type = TYPE_FUNC;
-    node->llist = parameters;
-    node->rlist = body;
-    return node;
+    expr->type = TYPE_FUNC;
+    expr->llist = parameters;
+    expr->rlist = body;
+    return expr;
 }

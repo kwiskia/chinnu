@@ -6,7 +6,7 @@
 struct Symbol {
     int id;
     char *name;
-    Node *declaration;
+    Expression *declaration;
 };
 
-void resolve(NodeList *list);
+void resolve(ExpressionList *list);

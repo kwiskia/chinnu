@@ -10,7 +10,7 @@
 extern int yylineno;
 extern int yylex(void);
 void yyerror(const char *fmt, ...);
-extern NodeList *program;
+extern ExpressionList *program;
 
 char *filename = "<unknown>";
 int numerrors = 0;
@@ -19,8 +19,8 @@ int numerrors = 0;
 %error-verbose
 
 %union{
-    Node *node;
-    NodeList *list;
+    Expression *expr;
+    ExpressionList *list;
     int i;
     double d;
     char *s;
@@ -41,7 +41,7 @@ int numerrors = 0;
 %left '*' '/'
 %left NOT UNARY
 
-%type <node> expr lhs
+%type <expr> expr lhs
 %type <list> program expr_list else_block arg_list arg_list2 param_list param_list2
 
 %start program
@@ -51,7 +51,7 @@ int numerrors = 0;
 program : expr_list                          { program = $1; }
         ;
 
-expr_list : expr_list ';' expr               { $$ = append($1, $3); }
+expr_list : expr_list ';' expr               { $$ = expression_list_append($1, $3); }
           | expr                             { $$ = list1($1); }
           |                                  { $$ = make_list(); }
           ;
@@ -88,7 +88,7 @@ arg_list : '(' arg_list2 ')'                 { $$ = $2; }
          | '(' ')'                           { $$ = make_list(); }
          ;
 
-arg_list2 : arg_list2 ',' expr               { $$ = append($1, $3); }
+arg_list2 : arg_list2 ',' expr               { $$ = expression_list_append($1, $3); }
           | expr                             { $$ = list1($1); }
           ;
 
@@ -96,7 +96,7 @@ param_list : '(' param_list2 ')'             { $$ = $2; }
            | '(' ')'                         { $$ = make_list(); }
            ;
 
-param_list2 : param_list2 ',' IDENT          { $$ = append($1, make_declaration($3, 0, 1)); }
+param_list2 : param_list2 ',' IDENT          { $$ = expression_list_append($1, make_declaration($3, 0, 1)); }
             | IDENT                          { $$ = list1(make_declaration($1, 0, 1)); }
             ;
 

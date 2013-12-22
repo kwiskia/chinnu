@@ -12,51 +12,51 @@ extern void yylex_destroy();
 /* for debugging */
 
 /* forward */
-void print_list(NodeList *list, int indent);
+void expression_list_print(ExpressionList *list, int indent);
 
-void print_node(Node *node, int indent) {
-    if (node) {
+void expression_print(Expression *expr, int indent) {
+    if (expr) {
         int i;
         for (i = 0; i < indent; i++) {
             printf("\t");
         }
 
-        switch (node->type) {
+        switch (expr->type) {
             case TYPE_VARREF:
-                printf("[ref %d]\n", node->symbol->id);
+                printf("[ref %d]\n", expr->symbol->id);
                 break;
 
             case TYPE_DECLARATION:
-                printf("[decl %d]\n", node->symbol->id);
+                printf("[decl %d]\n", expr->symbol->id);
                 break;
 
             case TYPE_NUMBER:
-                printf("[%.2f or %d]\n", node->value->d, node->value->i);
+                printf("[%.2f or %d]\n", expr->value->d, expr->value->i);
                 break;
 
             case TYPE_STRING:
-                printf("[\"%s\"]\n", node->value->s);
+                printf("[\"%s\"]\n", expr->value->s);
                 break;
 
             default:
-                printf("[type %d]\n", node->type);
+                printf("[type %d]\n", expr->type);
         }
 
-        if (node->cond) print_node(node->cond, indent + 1);
-        if (node->lnode) print_node(node->lnode, indent + 1);
-        if (node->rnode) print_node(node->rnode, indent + 1);
-        if (node->llist) print_list(node->llist, indent + 1);
-        if (node->rlist) print_list(node->rlist, indent + 1);
+        if (expr->cond) expression_print(expr->cond, indent + 1);
+        if (expr->lexpr) expression_print(expr->lexpr, indent + 1);
+        if (expr->rexpr) expression_print(expr->rexpr, indent + 1);
+        if (expr->llist) expression_list_print(expr->llist, indent + 1);
+        if (expr->rlist) expression_list_print(expr->rlist, indent + 1);
     }
 }
 
-void print_list(NodeList *list, int indent) {
+void expression_list_print(ExpressionList *list, int indent) {
     if (list) {
-        ListItem *item = list->head;
+        ExpressionNode *head = list->head;
 
-        while (item) {
-            print_node(item->node, indent);
-            item = item->next;
+        while (head) {
+            expression_print(head->expr, indent);
+            head = head->next;
         }
     }
 }
@@ -74,8 +74,8 @@ int main(int argc, const char **argv) {
 
     resolve(program);
 
-    print_list(program, 0);
-    free_list(program);
+    expression_list_print(program, 0);
+    expression_list_free(program);
     fclose(f);
 
     return 0;

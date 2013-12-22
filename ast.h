@@ -37,46 +37,46 @@ struct Val {
     };
 };
 
-struct Node {
+struct Expression {
     unsigned char type;
 
-    Node *cond;
-    Node *lnode;
-    Node *rnode;
-    NodeList *llist;
-    NodeList *rlist;
+    Expression *cond;
+    Expression *lexpr;
+    Expression *rexpr;
+    ExpressionList *llist;
+    ExpressionList *rlist;
 
     Val *value;
     Symbol *symbol;
     int immutable;
 };
 
-struct ListItem {
-    Node *node;
-    ListItem *next;
+struct ExpressionNode {
+    Expression *expr;
+    ExpressionNode *next;
 };
 
-struct NodeList {
-    ListItem *head;
-    ListItem *tail;
+struct ExpressionList {
+    ExpressionNode *head;
+    ExpressionNode *tail;
 };
 
-void free_node(Node *node);
-void free_list(NodeList *list);
+void expression_free(Expression *expr);
+void expression_list_free(ExpressionList *list);
 
-NodeList *make_list();
-NodeList *list1(Node *node);
-NodeList *append(NodeList *list, Node *node);
+ExpressionList *make_list();
+ExpressionList *list1(Expression *expr);
+ExpressionList *expression_list_append(ExpressionList *list, Expression *expr);
 
-Node *make_if(Node *cond, NodeList *body, NodeList *orelse);
-Node *make_while(Node *cond, NodeList *body);
-Node *make_binop(int type, Node *left, Node *right);
-Node *make_uop(int type, Node *left);
-Node *make_declaration(char *name, Node *value, int immutable);
-Node *make_assignment(Node *varref, Node *value);
-Node *make_varref(char *name);
-Node *make_int(int i);
-Node *make_real(double d);
-Node *make_str(char *str);
-Node *make_call(Node *target, NodeList *arguments);
-Node *make_func(NodeList *parameters, NodeList *body);
+Expression *make_if(Expression *cond, ExpressionList *body, ExpressionList *orelse);
+Expression *make_while(Expression *cond, ExpressionList *body);
+Expression *make_binop(int type, Expression *left, Expression *right);
+Expression *make_uop(int type, Expression *left);
+Expression *make_declaration(char *name, Expression *value, int immutable);
+Expression *make_assignment(Expression *varref, Expression *value);
+Expression *make_varref(char *name);
+Expression *make_int(int i);
+Expression *make_real(double d);
+Expression *make_str(char *str);
+Expression *make_call(Expression *target, ExpressionList *arguments);
+Expression *make_func(ExpressionList *parameters, ExpressionList *body);

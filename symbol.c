@@ -22,7 +22,7 @@ struct SymbolTable {
     ScopeNode *top;
 };
 
-Symbol *make_symbol(char *name, Node *declaration) {
+Symbol *make_symbol(char *name, Expression *declaration) {
     static int id = 0;
 
     Symbol *symbol = malloc(sizeof(Symbol));
@@ -138,75 +138,75 @@ void symbol_table_exit_scope(SymbolTable *table) {
 }
 
 /* forward */
-void resolve_list(SymbolTable *table, NodeList *list);
+void expression_list_resolve(SymbolTable *table, ExpressionList *list);
 
-void resolve_node(SymbolTable *table, Node *node) {
-    switch (node->type) {
+void expression_resolve(SymbolTable *table, Expression *expr) {
+    switch (expr->type) {
         case TYPE_DECLARATION:;
-            Symbol *s1 = symbol_table_search_current_scope(table, node->value->s);
+            Symbol *s1 = symbol_table_search_current_scope(table, expr->value->s);
 
             if (!s1) {
-                s1 = make_symbol(node->value->s, node);
-                node->symbol = s1;
+                s1 = make_symbol(expr->value->s, expr);
+                expr->symbol = s1;
                 symbol_table_insert(table, s1);
             } else {
-                fprintf(stderr, "Duplicate declaration of %s\n", node->value->s);
+                fprintf(stderr, "Duplicate declaration of %s\n", expr->value->s);
                 exit(1);
             }
 
-            if (node->rnode) {
-                resolve_node(table, node->rnode);
+            if (expr->rexpr) {
+                expression_resolve(table, expr->rexpr);
             }
 
             break;
 
         case TYPE_VARREF:;
-            Symbol *s2 = symbol_table_search(table, node->value->s);
+            Symbol *s2 = symbol_table_search(table, expr->value->s);
 
             if (!s2) {
-                fprintf(stderr, "Use of undeclared variable %s!\n", node->value->s);
+                fprintf(stderr, "Use of undeclared variable %s!\n", expr->value->s);
                 exit(1);
             } else {
-                node->symbol = s2;
+                expr->symbol = s2;
             }
 
             break;
 
         /* control flow */
         case TYPE_IF:
-            resolve_node(table, node->cond);
+            expression_resolve(table, expr->cond);
 
             symbol_table_enter_scope(table);
-            resolve_list(table, node->llist);
+            expression_list_resolve(table, expr->llist);
             symbol_table_exit_scope(table);
 
             symbol_table_enter_scope(table);
-            resolve_list(table, node->rlist);
+            expression_list_resolve(table, expr->rlist);
             symbol_table_exit_scope(table);
             break;
 
         case TYPE_WHILE:
-            resolve_node(table, node->cond);
+            expression_resolve(table, expr->cond);
 
             symbol_table_enter_scope(table);
-            resolve_list(table, node->llist);
+            expression_list_resolve(table, expr->llist);
             symbol_table_exit_scope(table);
             break;
 
         case TYPE_CALL:
-            resolve_node(table, node->lnode);
+            expression_resolve(table, expr->lexpr);
 
             symbol_table_enter_scope(table);
-            resolve_list(table, node->rlist);
+            expression_list_resolve(table, expr->rlist);
             symbol_table_exit_scope(table);
             break;
 
         case TYPE_FUNC:
             symbol_table_enter_scope(table);
-            resolve_list(table, node->llist);
+            expression_list_resolve(table, expr->llist);
 
             symbol_table_enter_scope(table);
-            resolve_list(table, node->rlist);
+            expression_list_resolve(table, expr->rlist);
 
             symbol_table_exit_scope(table);
             symbol_table_exit_scope(table);
@@ -214,10 +214,10 @@ void resolve_node(SymbolTable *table, Node *node) {
 
         /* binary cases */
         case TYPE_ASSIGN:
-            resolve_node(table, node->lnode);
-            resolve_node(table, node->rnode);
+            expression_resolve(table, expr->lexpr);
+            expression_resolve(table, expr->rexpr);
 
-            if (node->lnode->symbol->declaration->immutable == 1) {
+            if (expr->lexpr->symbol->declaration->immutable == 1) {
                 fprintf(stderr, "Assignment to a VAL.\n");
                 exit(1);
             }
@@ -236,14 +236,14 @@ void resolve_node(SymbolTable *table, Node *node) {
         case TYPE_GEQ:
         case TYPE_AND:
         case TYPE_OR:
-            resolve_node(table, node->lnode);
-            resolve_node(table, node->rnode);
+            expression_resolve(table, expr->lexpr);
+            expression_resolve(table, expr->rexpr);
             break;
 
         /* unary cases */
         case TYPE_NEG:
         case TYPE_NOT:
-            resolve_node(table, node->lnode);
+            expression_resolve(table, expr->lexpr);
             break;
 
         /* constants */
@@ -254,21 +254,21 @@ void resolve_node(SymbolTable *table, Node *node) {
     }
 }
 
-void resolve_list(SymbolTable *table, NodeList *list) {
+void expression_list_resolve(SymbolTable *table, ExpressionList *list) {
     if (!list) {
         fprintf(stderr, "Did not expect empty list. Aborting.");
         exit(1);
     }
 
-    ListItem *item = list->head;
+    ExpressionNode *head = list->head;
 
-    while (item) {
-        resolve_node(table, item->node);
-        item = item->next;
+    while (head) {
+        expression_resolve(table, head->expr);
+        head = head->next;
     }
 }
 
-void resolve(NodeList *program) {
+void resolve(ExpressionList *program) {
     SymbolTable *table = malloc(sizeof(SymbolTable));
 
     if (!table) {
@@ -278,7 +278,7 @@ void resolve(NodeList *program) {
 
     table->top = (ScopeNode *) 0;
     symbol_table_enter_scope(table);
-    resolve_list(table, program);
+    expression_list_resolve(table, program);
     symbol_table_exit_scope(table);
     free(table);
 }

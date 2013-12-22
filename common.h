@@ -3,6 +3,6 @@
 typedef struct Symbol Symbol;
 
 typedef struct Val Val;
-typedef struct Node Node;
-typedef struct ListItem ListItem;
-typedef struct NodeList NodeList;
+typedef struct Expression Expression;
+typedef struct ExpressionNode ExpressionNode;
+typedef struct ExpressionList ExpressionList;
