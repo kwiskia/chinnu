@@ -63,7 +63,6 @@ int saved_column = 1;
 %option stack
 %option nounput
 
-whitespace              ([ \t\r\n])
 line_comment            ("#".*)
 identifier              ([a-zA-Z_][a-zA-Z0-9_]*)
 
@@ -84,18 +83,22 @@ hex_escape              ("\\"x[0-9A-Fa-f]{2})
 %%
 
 <INITIAL>{
+    /* Ignored tokens */
     \n                  { yycolumn = 1; YY_STEP; }
-    {whitespace}        { YY_STEP; }
+    [ \t\r]             { YY_STEP; }
     {line_comment}      { YY_STEP; }
 
+    /* Integer literal */
     {dec_literal}       { yylval.i = strtol(yytext + 0, 0, 10); YIELD(INTEGER_LITERAL); }
     {hex_literal}       { yylval.i = strtol(yytext + 2, 0, 16); YIELD(INTEGER_LITERAL); }
     {bin_literal}       { yylval.i = strtol(yytext + 2, 0, 2); YIELD(INTEGER_LITERAL); }
     {oct_literal}       { yylval.i = strtol(yytext + 1, 0, 8); YIELD(INTEGER_LITERAL); }
 
+    /* Float literal */
     {real_literal1}     { yylval.d = atof(yytext); YIELD(REAL_LITERAL); }
     {real_literal2}     { yylval.d = atof(yytext); YIELD(REAL_LITERAL); }
 
+    /* Multiple-character operators */
     "=="                { YIELD(EQEQ); }
     "!="                { YIELD(NEQ); }
     "<="                { YIELD(LEQ); }
@@ -130,17 +133,19 @@ hex_escape              ("\\"x[0-9A-Fa-f]{2})
                         }
 }
 
+<s1,s2,s3,s4,s5,s6,s7,s8>{
+    /* Non-escape, non-quote, non-newline characters in string literal */
+    [^"'\\\n]+          { append_to_buffer(yytext); }
+
+    /* Unterminated string literal */
+    <<EOF>>             { BEGIN INITIAL; yyerror("Unterminated string literal."); }
+}
+
     /* End of string literal */
 <s1,s5>\"               { BEGIN INITIAL; yylval.s = strdup(buffer); YIELD(STRING_LITERAL); }
 <s2,s6>\'               { BEGIN INITIAL; yylval.s = strdup(buffer); YIELD(STRING_LITERAL); }
 <s3,s7>\"\"\"           { BEGIN INITIAL; yylval.s = strdup(buffer); YIELD(STRING_LITERAL); }
 <s4,s8>\'\'\'           { BEGIN INITIAL; yylval.s = strdup(buffer); YIELD(STRING_LITERAL); }
-
-    /* Non-escape, non-quote, non-newline characters in string literal */
-<s1,s2,s3,s4,s5,s6,s7,s8>{
-    [^"'\\\n]+          { append_to_buffer(yytext); }
-    <<EOF>>             { BEGIN INITIAL; yyerror("Unterminated string literal."); }
-}
 
     /* Allow opposite quote without escape ('"' and "'") */
 <s2,s3,s4,s6,s7,s8>\"   { append_to_buffer(yytext); }
@@ -149,12 +154,12 @@ hex_escape              ("\\"x[0-9A-Fa-f]{2})
     /* Allow backslash in raw string literal */
 <s5,s6,s7,s8>"\\"       { append_to_buffer(yytext); }
 
-    /* Newnline in string literal */
+    /* Newline in string literal */
 <s1,s2,s5,s6>\n         { yyerror("Newlines in string literals are not allowed."); yycolumn = 1; }
 <s3,s4,s7,s8>\n         { append_to_buffer(yytext); yycolumn = 1; }
 
 <s1,s2,s3,s4>{
-    /* Escape sequences */
+    /* Escape sequence */
     "\\b"               { append_to_buffer("\b"); }
     "\\t"               { append_to_buffer("\t"); }
     "\\n"               { append_to_buffer("\n"); }
