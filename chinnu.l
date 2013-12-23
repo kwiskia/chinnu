@@ -63,100 +63,103 @@ int saved_column = 1;
 %option stack
 %option nounput
 
-whitespace          ([ \t\r\n])
-line_comment        ("#".*)
-identifier          ([a-zA-Z_][a-zA-Z0-9_]*)
+whitespace              ([ \t\r\n])
+line_comment            ("#".*)
+identifier              ([a-zA-Z_][a-zA-Z0-9_]*)
 
-dec_literal         (0|[1-9][0-9]*)
-hex_literal         (0[xX][0-9A-fa-f]+)
-bin_literal         (0[bB][01]+)
-oct_literal         (0[0-7]+)
+dec_literal             (0|[1-9][0-9]*)
+hex_literal             (0[xX][0-9A-fa-f]+)
+bin_literal             (0[bB][01]+)
+oct_literal             (0[0-7]+)
 
-exponent_part       ([eE][+-]?[0-9]+)
-real_literal1       ([0-9]+{exponent_part})
-real_literal2       ([0-9]+"."[0-9]+{exponent_part}?)
+exponent_part           ([eE][+-]?[0-9]+)
+real_literal1           ([0-9]+{exponent_part})
+real_literal2           ([0-9]+"."[0-9]+{exponent_part}?)
 
-oct_escape          ("\\"[0-3][0-7]{2})
-hex_escape          ("\\"x[0-9A-Fa-f]{2})
+oct_escape              ("\\"[0-3][0-7]{2})
+hex_escape              ("\\"x[0-9A-Fa-f]{2})
 
 %state s1 s2 s3 s4 s5 s6 s7 s8
 
 %%
 
-<INITIAL>\n                 { yycolumn = 1; YY_STEP; }
-<INITIAL>{whitespace}       { YY_STEP; }
-<INITIAL>{line_comment}     { YY_STEP; }
+<INITIAL>{
+    \n                  { yycolumn = 1; YY_STEP; }
+    {whitespace}        { YY_STEP; }
+    {line_comment}      { YY_STEP; }
 
-<INITIAL>{dec_literal}      { yylval.i = atoi(yytext); YIELD(INTEGER_LITERAL); }
-<INITIAL>{hex_literal}      { yylval.i = strtol(yytext + 2, 0, 16); YIELD(INTEGER_LITERAL); }
-<INITIAL>{bin_literal}      { yylval.i = strtol(yytext + 2, 0, 2); YIELD(INTEGER_LITERAL); }
-<INITIAL>{oct_literal}      { yylval.i = strtol(yytext + 1, 0, 8); YIELD(INTEGER_LITERAL); }
+    {dec_literal}       { yylval.i = strtol(yytext + 0, 0, 10); YIELD(INTEGER_LITERAL); }
+    {hex_literal}       { yylval.i = strtol(yytext + 2, 0, 16); YIELD(INTEGER_LITERAL); }
+    {bin_literal}       { yylval.i = strtol(yytext + 2, 0, 2); YIELD(INTEGER_LITERAL); }
+    {oct_literal}       { yylval.i = strtol(yytext + 1, 0, 8); YIELD(INTEGER_LITERAL); }
 
-<INITIAL>{real_literal1}    { yylval.d = atof(yytext); YIELD(REAL_LITERAL); }
-<INITIAL>{real_literal2}    { yylval.d = atof(yytext); YIELD(REAL_LITERAL); }
+    {real_literal1}     { yylval.d = atof(yytext); YIELD(REAL_LITERAL); }
+    {real_literal2}     { yylval.d = atof(yytext); YIELD(REAL_LITERAL); }
 
-<INITIAL>\"                 { BEGIN s1; clear_buffer(); }
-<s1>\"                      { BEGIN INITIAL; yylval.s = strdup(buffer); YIELD(STRING_LITERAL); }
-<s1>[^\"\\\n]+              { append_to_buffer("%s", yytext); }
+    "=="                { YIELD(EQEQ); }
+    "!="                { YIELD(NEQ); }
+    "<="                { YIELD(LEQ); }
+    ">="                { YIELD(GEQ); }
 
-<INITIAL>r\"                { BEGIN s5; clear_buffer(); }
-<s5>\"                      { BEGIN INITIAL; yylval.s = strdup(buffer); YIELD(STRING_LITERAL); }
-<s5>[^\"\n]+                { append_to_buffer("%s", yytext); }
+    \"                  { BEGIN s1; clear_buffer(); }
+    \'                  { BEGIN s2; clear_buffer(); }
+    \"\"\"              { BEGIN s3; clear_buffer(); }
+    \'\'\'              { BEGIN s4; clear_buffer(); }
+    r\"                 { BEGIN s5; clear_buffer(); }
+    r\'                 { BEGIN s6; clear_buffer(); }
+    r\"\"\"             { BEGIN s7; clear_buffer(); }
+    r\'\'\'             { BEGIN s8; clear_buffer(); }
 
-<INITIAL>'                  { BEGIN s2; clear_buffer(); }
-<s2>'                       { BEGIN INITIAL; yylval.s = strdup(buffer); YIELD(STRING_LITERAL); }
-<s2>[^'\\\n]+               { append_to_buffer("%s", yytext); }
+    {identifier}        {
+                            int token = token_for(yytext);
+                            if (token == IDENT) {
+                                yylval.s = strdup(yytext);
+                            }
 
-<INITIAL>r'                 { BEGIN s6; clear_buffer(); }
-<s6>'                       { BEGIN INITIAL; yylval.s = strdup(buffer); YIELD(STRING_LITERAL); }
-<s6>[^'\n]+                 { append_to_buffer("%s", yytext); }
+                            YIELD(token);
+                        }
 
-<INITIAL>\"\"\"             { BEGIN s3; clear_buffer(); }
-<s3>\"\"\"                  { BEGIN INITIAL; yylval.s = strdup(buffer); YIELD(STRING_LITERAL); }
-<s3>\"                      { append_to_buffer("\""); }
-<s3>\n                      { append_to_buffer("\n"); yycolumn = 1; }
-<s3>[^\\\"\n]+              { append_to_buffer("%s", yytext); }
+    .                   {
+                            if (is_punctuator(yytext[0])) {
+                                YIELD(yytext[0]);
+                            }
 
-<INITIAL>r\"\"\"            { BEGIN s7; clear_buffer(); }
-<s7>\"\"\"                  { BEGIN INITIAL; yylval.s = strdup(buffer); YIELD(STRING_LITERAL); }
-<s7>\"                      { append_to_buffer("\""); }
-<s7>\n                      { append_to_buffer("\n"); yycolumn = 1; }
-<s7>[^\"\n]+                { append_to_buffer("%s", yytext); }
+                            yyerror("Unknown character.");
+                            YY_STEP;
+                        }
+}
 
-<INITIAL>'''                { BEGIN s4; clear_buffer(); }
-<s4>'''                     { BEGIN INITIAL; yylval.s = strdup(buffer); YIELD(STRING_LITERAL); }
-<s4>'                       { append_to_buffer("'"); }
-<s4>\n                      { append_to_buffer("\n"); yycolumn = 1; }
-<s4>[^\\\'\n]+              { append_to_buffer("%s", yytext); }
+<s1,s5>\"               { BEGIN INITIAL; yylval.s = strdup(buffer); YIELD(STRING_LITERAL); }
+<s2,s6>\'               { BEGIN INITIAL; yylval.s = strdup(buffer); YIELD(STRING_LITERAL); }
+<s3,s7>\"\"\"           { BEGIN INITIAL; yylval.s = strdup(buffer); YIELD(STRING_LITERAL); }
+<s4,s8>\'\'\'           { BEGIN INITIAL; yylval.s = strdup(buffer); YIELD(STRING_LITERAL); }
 
-<INITIAL>r'''               { BEGIN s8; clear_buffer(); }
-<s8>'''                     { BEGIN INITIAL; yylval.s = strdup(buffer); YIELD(STRING_LITERAL); }
-<s8>'                       { append_to_buffer("'"); }
-<s8>\n                      { append_to_buffer("\n"); yycolumn = 1; }
-<s8>[^\'\n]+                { append_to_buffer("%s", yytext); }
+<s1,s2,s5,s6>[^"'\\\n]+ { append_to_buffer(yytext); }
+<s3,s4,s7,s8>[^"'\\\n]+ { append_to_buffer(yytext); }
 
-<s1,s2,s3,s4>"\\b"          { append_to_buffer("\b"); }
-<s1,s2,s3,s4>"\\t"          { append_to_buffer("\t"); }
-<s1,s2,s3,s4>"\\n"          { append_to_buffer("\n"); }
-<s1,s2,s3,s4>"\\f"          { append_to_buffer("\f"); }
-<s1,s2,s3,s4>"\\r"          { append_to_buffer("\r"); }
-<s1,s2,s3,s4>"\\\""         { append_to_buffer("\""); }
-<s1,s2,s3,s4>"\\'"          { append_to_buffer("'"); }
-<s1,s2,s3,s4>"\\\\"         { append_to_buffer("\\"); }
-<s1,s2,s3,s4>{oct_escape}   { append_to_buffer("%c", strtol(yytext + 1, 0, 8)); }
-<s1,s2,s3,s4>{hex_escape}   { append_to_buffer("%c", strtol(yytext + 2, 0, 16)); }
-<s1,s2,s3,s4>"\\".          { yyerror("Illegal escape sequence."); }
-<s1,s2,s3,s4><<EOF>>        { BEGIN INITIAL; yyerror("Unterminated string literal."); }
-<s5,s6,s7,s8><<EOF>>        { BEGIN INITIAL; yyerror("Unterminated string literal."); }
-<s1,s2>\n                   { yycolumn = 1; yyerror("Newlines in string literals are not allowed."); }
+<s2,s3,s4,s6,s7,s8>\"   { append_to_buffer(yytext); }
+<s1,s3,s4,s5,s7,s8>\'   { append_to_buffer(yytext); }
+<s5,s6,s7,s8>"\\"       { append_to_buffer(yytext); }
 
-<INITIAL>"=="               { return EQEQ; }
-<INITIAL>"!="               { return NEQ; }
-<INITIAL>"<="               { return LEQ; }
-<INITIAL>">="               { return GEQ; }
+<s1,s2,s5,s6>\n         { yyerror("Newlines in string literals are not allowed."); yycolumn = 1; }
+<s3,s4,s7,s8>\n         { append_to_buffer("\n"); yycolumn = 1; }
 
-<INITIAL>{identifier}       { int token = token_for(yytext); if (token == IDENT) yylval.s = strdup(yytext); YIELD(token); }
-<INITIAL>.                  { if (is_punctuator(yytext[0])) YIELD(yytext[0]); yyerror("Unknown character."); YY_STEP; }
+<s1,s2,s3,s4><<EOF>>    { BEGIN INITIAL; yyerror("Unterminated string literal."); }
+<s5,s6,s7,s8><<EOF>>    { BEGIN INITIAL; yyerror("Unterminated string literal."); }
+
+<s1,s2,s3,s4>{
+    "\\b"               { append_to_buffer("\b"); }
+    "\\t"               { append_to_buffer("\t"); }
+    "\\n"               { append_to_buffer("\n"); }
+    "\\f"               { append_to_buffer("\f"); }
+    "\\r"               { append_to_buffer("\r"); }
+    "\\\""              { append_to_buffer("\""); }
+    "\\\'"              { append_to_buffer("\'"); }
+    "\\\\"              { append_to_buffer("\\"); }
+    {oct_escape}        { append_to_buffer("%c", strtol(yytext + 1, 0, 8)); }
+    {hex_escape}        { append_to_buffer("%c", strtol(yytext + 2, 0, 16)); }
+    "\\".               { yyerror("Illegal escape sequence."); }
+}
 
 %%
 
