@@ -101,6 +101,7 @@ hex_escape              ("\\"x[0-9A-Fa-f]{2})
     "<="                { YIELD(LEQ); }
     ">="                { YIELD(GEQ); }
 
+    /* Beginning of string literal */
     \"                  { BEGIN s1; clear_buffer(); }
     \'                  { BEGIN s2; clear_buffer(); }
     \"\"\"              { BEGIN s3; clear_buffer(); }
@@ -129,25 +130,31 @@ hex_escape              ("\\"x[0-9A-Fa-f]{2})
                         }
 }
 
+    /* End of string literal */
 <s1,s5>\"               { BEGIN INITIAL; yylval.s = strdup(buffer); YIELD(STRING_LITERAL); }
 <s2,s6>\'               { BEGIN INITIAL; yylval.s = strdup(buffer); YIELD(STRING_LITERAL); }
 <s3,s7>\"\"\"           { BEGIN INITIAL; yylval.s = strdup(buffer); YIELD(STRING_LITERAL); }
 <s4,s8>\'\'\'           { BEGIN INITIAL; yylval.s = strdup(buffer); YIELD(STRING_LITERAL); }
 
-<s1,s2,s5,s6>[^"'\\\n]+ { append_to_buffer(yytext); }
-<s3,s4,s7,s8>[^"'\\\n]+ { append_to_buffer(yytext); }
+    /* Non-escape, non-quote, non-newline characters in string literal */
+<s1,s2,s3,s4,s5,s6,s7,s8>{
+    [^"'\\\n]+          { append_to_buffer(yytext); }
+    <<EOF>>             { BEGIN INITIAL; yyerror("Unterminated string literal."); }
+}
 
+    /* Allow opposite quote without escape ('"' and "'") */
 <s2,s3,s4,s6,s7,s8>\"   { append_to_buffer(yytext); }
 <s1,s3,s4,s5,s7,s8>\'   { append_to_buffer(yytext); }
+
+    /* Allow backslash in raw string literal */
 <s5,s6,s7,s8>"\\"       { append_to_buffer(yytext); }
 
+    /* Newnline in string literal */
 <s1,s2,s5,s6>\n         { yyerror("Newlines in string literals are not allowed."); yycolumn = 1; }
-<s3,s4,s7,s8>\n         { append_to_buffer("\n"); yycolumn = 1; }
-
-<s1,s2,s3,s4><<EOF>>    { BEGIN INITIAL; yyerror("Unterminated string literal."); }
-<s5,s6,s7,s8><<EOF>>    { BEGIN INITIAL; yyerror("Unterminated string literal."); }
+<s3,s4,s7,s8>\n         { append_to_buffer(yytext); yycolumn = 1; }
 
 <s1,s2,s3,s4>{
+    /* Escape sequences */
     "\\b"               { append_to_buffer("\b"); }
     "\\t"               { append_to_buffer("\t"); }
     "\\n"               { append_to_buffer("\n"); }
