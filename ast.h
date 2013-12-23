@@ -111,4 +111,4 @@ Expression *make_int(SourcePos pos, int i);
 Expression *make_real(SourcePos pos, double d);
 Expression *make_str(SourcePos pos, char *str);
 Expression *make_call(SourcePos pos, Expression *target, ExpressionList *arguments);
-Expression *make_func(SourcePos pos, ExpressionList *parameters, ExpressionList *body);
+Expression *make_func(SourcePos pos, char *name, ExpressionList *parameters, ExpressionList *body);

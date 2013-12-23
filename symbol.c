@@ -184,6 +184,27 @@ void expression_resolve(SymbolTable *table, Expression *expr) {
             }
         } break;
 
+        case TYPE_FUNC:
+        {
+            if (expr->value->s) {
+                Symbol *symbol = symbol_table_search_current_scope(table, expr->value->s);
+
+                if (!symbol) {
+                    symbol = make_symbol(expr->value->s, expr);
+                    expr->symbol = symbol;
+                    symbol_table_insert(table, symbol);
+                } else {
+                    error(expr->pos, "Redefinition of '%s'.", expr->value->s);
+                    message(symbol->declaration->pos, "Previous definition is here.");
+                }
+            }
+
+            symbol_table_enter_scope(table);
+            expression_list_resolve(table, expr->llist);
+            expression_list_resolve(table, expr->rlist);
+            symbol_table_exit_scope(table);
+        } break;
+
         case TYPE_VARREF:
         {
             Symbol *symbol = symbol_table_search(table, expr->value->s);
@@ -220,13 +241,6 @@ void expression_resolve(SymbolTable *table, Expression *expr) {
             expression_resolve(table, expr->lexpr);
 
             symbol_table_enter_scope(table);
-            expression_list_resolve(table, expr->rlist);
-            symbol_table_exit_scope(table);
-            break;
-
-        case TYPE_FUNC:
-            symbol_table_enter_scope(table);
-            expression_list_resolve(table, expr->llist);
             expression_list_resolve(table, expr->rlist);
             symbol_table_exit_scope(table);
             break;

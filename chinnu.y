@@ -125,7 +125,8 @@ expr : IF expr THEN expr_list else_block END { $$ = make_if(@$, $2, $4, $5); }
      | REAL_LITERAL                          { $$ = make_real(@$, $1); }
      | STRING_LITERAL                        { $$ = make_str(@$, $1); }
      | expr arg_list                         { $$ = make_call(@$, $1, $2); }
-     | FUN param_list expr_list END          { $$ = make_func(@$, $2, $3); }
+     | FUN param_list expr_list END          { $$ = make_func(@$, 0, $2, $3); }
+     | FUN IDENT param_list expr_list END    { $$ = make_func(@$, $2, $3, $4); }
      ;
 
 arg_list : '(' arg_list2 ')'                 { $$ = $2; }

@@ -1,9 +1,9 @@
-var a = 3.0;
-val b = 4.0;
-
-function (a, b, c)
-    var d = 3;
-    a + b + c + d
+function fac(n)
+    if n == 0 then
+        1
+    else
+        fac(n - 1) * n
+    end
 end;
 
-a = 5.0
+fac(5)

@@ -255,12 +255,15 @@ Expression *make_call(SourcePos pos, Expression *target, ExpressionList *argumen
     return expr;
 }
 
-Expression *make_func(SourcePos pos, ExpressionList *parameters, ExpressionList *body) {
+Expression *make_func(SourcePos pos, char *name, ExpressionList *parameters, ExpressionList *body) {
     Expression *expr = allocexpr();
+    Val *val = allocval();
 
     expr->type = TYPE_FUNC;
     expr->pos = pos;
     expr->llist = parameters;
     expr->rlist = body;
+    expr->value = val;
+    val->s = name;
     return expr;
 }
