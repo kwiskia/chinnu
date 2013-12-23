@@ -44,9 +44,9 @@ struct SymbolTable {
     Scope *top;
 };
 
-Symbol *make_symbol(char *name, Expression *declaration) {
-    static int id = 0;
+static int symbol_id = 0;
 
+Symbol *make_symbol(char *name, Expression *declaration) {
     Symbol *symbol = malloc(sizeof(Symbol));
 
     if (!symbol) {
@@ -54,7 +54,7 @@ Symbol *make_symbol(char *name, Expression *declaration) {
     }
 
     symbol->name = strdup(name);
-    symbol->id = id++;
+    symbol->id = symbol_id++;
     symbol->declaration = declaration;
     return symbol;
 }
@@ -166,34 +166,34 @@ void expression_list_resolve(SymbolTable *table, ExpressionList *list);
 
 void expression_resolve(SymbolTable *table, Expression *expr) {
     switch (expr->type) {
-        case TYPE_DECLARATION:;
-            Symbol *s1 = symbol_table_search_current_scope(table, expr->value->s);
+        case TYPE_DECLARATION:
+        {
+            Symbol *symbol = symbol_table_search_current_scope(table, expr->value->s);
 
-            if (!s1) {
-                s1 = make_symbol(expr->value->s, expr);
-                expr->symbol = s1;
-                symbol_table_insert(table, s1);
+            if (!symbol) {
+                symbol = make_symbol(expr->value->s, expr);
+                expr->symbol = symbol;
+                symbol_table_insert(table, symbol);
             } else {
                 error(expr->pos, "Redefinition of '%s'.", expr->value->s);
-                message(s1->declaration->pos, "Previous definition is here.");
+                message(symbol->declaration->pos, "Previous definition is here.");
             }
 
             if (expr->rexpr) {
                 expression_resolve(table, expr->rexpr);
             }
+        } break;
 
-            break;
+        case TYPE_VARREF:
+        {
+            Symbol *symbol = symbol_table_search(table, expr->value->s);
 
-        case TYPE_VARREF:;
-            Symbol *s2 = symbol_table_search(table, expr->value->s);
-
-            if (!s2) {
+            if (!symbol) {
                 error(expr->pos, "Use of undeclared identifier '%s'.", expr->value->s);
             } else {
-                expr->symbol = s2;
+                expr->symbol = symbol;
             }
-
-            break;
+        } break;
 
         /* control flow */
         case TYPE_IF:
