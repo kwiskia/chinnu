@@ -31,13 +31,13 @@ Expression *allocexpr() {
         fatal("Out of memory.");
     }
 
-    expr->cond = (Expression *) 0;
-    expr->lexpr = (Expression *) 0;
-    expr->rexpr = (Expression *) 0;
-    expr->llist = (ExpressionList *) 0;
-    expr->rlist = (ExpressionList *) 0;
-    expr->value = (Val *) 0;
-    expr->symbol = (Symbol *) 0;
+    expr->cond = NULL;
+    expr->lexpr = NULL;
+    expr->rexpr = NULL;
+    expr->llist = NULL;
+    expr->rlist = NULL;
+    expr->value = NULL;
+    expr->symbol = NULL;
     expr->immutable = 0;
 
     return expr;
@@ -100,8 +100,8 @@ ExpressionList *make_list() {
         fatal("Out of memory.");
     }
 
-    list->head = (ExpressionNode *) 0;
-    list->tail = (ExpressionNode *) 0;
+    list->head = NULL;
+    list->tail = NULL;
     return list;
 }
 
@@ -119,12 +119,12 @@ ExpressionList *expression_list_append(ExpressionList *list, Expression *expr) {
     }
 
     node->expr = expr;
-    node->next = (ExpressionNode *) 0;
+    node->next = NULL;
 
     if (!list->head) {
         list->head = node;
         list->tail = node;
-        node->prev = (ExpressionNode *) 0;
+        node->prev = NULL;
     } else {
         node->prev = list->tail;
         list->tail->next = node;

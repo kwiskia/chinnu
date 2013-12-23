@@ -138,7 +138,7 @@ void symbol_table_enter_scope(SymbolTable *table) {
     }
 
     for (int i = 0; i < MAP_SIZE; i++) {
-        buckets[i] = (HashItem *) 0;
+        buckets[i] = NULL;
     }
 
     scope->buckets = buckets;
@@ -289,7 +289,7 @@ void resolve(ExpressionList *program) {
         fatal("Out of memory.");
     }
 
-    table->top = (Scope *) 0;
+    table->top = NULL;
     symbol_table_enter_scope(table);
     expression_list_resolve(table, program);
     symbol_table_exit_scope(table);
