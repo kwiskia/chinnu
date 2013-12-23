@@ -41,7 +41,8 @@ enum {
     TYPE_AND,
     TYPE_OR,
     TYPE_VARREF, // value (s)
-    TYPE_NUMBER, // value (i or d)
+    TYPE_INT, // value (i)
+    TYPE_REAL, // value (d)
     TYPE_STRING, // value (s)
     TYPE_CALL, // lexpr, rlist
     TYPE_FUNC, // llist, rlist

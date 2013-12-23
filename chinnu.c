@@ -56,8 +56,12 @@ void expression_print(Expression *expr, int indent) {
                 printf("[decl %d]\n", expr->symbol->id);
                 break;
 
-            case TYPE_NUMBER:
-                printf("[%.2f or %d]\n", expr->value->d, expr->value->i);
+            case TYPE_INT:
+                printf("[%d]\n", expr->value->i);
+                break;
+
+            case TYPE_REAL:
+                printf("[%.2f]\n", expr->value->d);
                 break;
 
             case TYPE_STRING:

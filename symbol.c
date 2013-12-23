@@ -266,7 +266,8 @@ void expression_resolve(SymbolTable *table, Expression *expr) {
             break;
 
         /* constants */
-        case TYPE_NUMBER:
+        case TYPE_INT:
+        case TYPE_REAL:
         case TYPE_STRING:
             /* ignore */
             break;

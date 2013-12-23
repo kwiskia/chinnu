@@ -216,7 +216,7 @@ Expression *make_int(SourcePos pos, int i) {
     Expression *expr = allocexpr();
     Val *val = allocval();
 
-    expr->type = TYPE_NUMBER;
+    expr->type = TYPE_INT;
     expr->pos = pos;
     expr->value = val;
     val->i = i;
@@ -227,7 +227,7 @@ Expression *make_real(SourcePos pos, double d) {
     Expression *expr = allocexpr();
     Val *val = allocval();
 
-    expr->type = TYPE_NUMBER;
+    expr->type = TYPE_REAL;
     expr->pos = pos;
     expr->value = val;
     val->d = d;
