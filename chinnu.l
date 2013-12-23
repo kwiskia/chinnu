@@ -58,6 +58,8 @@ int saved_column = 1;
     yycolumn += yyleng;
 %}
 
+%option outfile="chinnu.lex.c"
+%option header-file="chinnu.lex.h"
 %option noyywrap
 %option yylineno
 %option stack

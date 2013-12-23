@@ -56,7 +56,9 @@ extern ExpressionList *program;
 void yyerror(const char *fmt, ...);
 %}
 
-%defines
+%output "chinnu.tab.c"
+%defines "chinnu.tab.h"
+
 %locations
 %error-verbose
 

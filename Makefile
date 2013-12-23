@@ -63,7 +63,7 @@ chinnu.tab.c:
 	$(CHINNU_BISON) chinnu.y
 
 chinnu.lex.c:
-	$(CHINNU_FLEX) -o chinnu.lex.c chinnu.l
+	$(CHINNU_FLEX) chinnu.l
 
 %.o: %.c
 	$(CHINNU_CC) -c $<
@@ -81,6 +81,6 @@ dep:
 .PHONY: dep
 
 clean:
-	rm -rf $(CHINNU_NAME) *.o chinnu.lex.c chinnu.tab.*
+	rm -rf $(CHINNU_NAME) *.o chinnu.lex.* chinnu.tab.*
 
 .PHONY: clean
