@@ -5,5 +5,5 @@
 chinnu
 
 # Flex and Bison generated files
-chinnu.lex.c
+chinnu.lex.*
 chinnu.tab.*
