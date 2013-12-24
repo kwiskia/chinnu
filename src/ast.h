@@ -22,7 +22,7 @@
 #include "common.h"
 #include "symbol.h"
 
-enum {
+typedef enum {
     TYPE_IF, // cond, llist, rlist
     TYPE_WHILE, // cond, llist
     TYPE_ADD, // lexpr, rexpr
@@ -46,8 +46,9 @@ enum {
     TYPE_STRING, // value (s)
     TYPE_CALL, // lexpr, rlist
     TYPE_FUNC, // llist, rlist
-    TYPE_DECLARATION // rexpr, value (s)
-};
+    TYPE_DECLARATION, // rexpr, value (s),
+    NUM_EXPRESSION_TYPES
+} ExpressionType;
 
 typedef struct SourcePos SourcePos;
 
@@ -92,6 +93,8 @@ struct ExpressionList {
     ExpressionNode *head;
     ExpressionNode *tail;
 };
+
+const char *const expression_type_names[NUM_EXPRESSION_TYPES];
 
 void free_expression(Expression *expr);
 void free_expression_list(ExpressionList *list);

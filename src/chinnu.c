@@ -42,34 +42,29 @@ void expression_print(Expression *expr, int indent) {
             printf("\t");
         }
 
-        printf("%s:%d.%d-%d.%d: ",
-            expr->pos.filename,
-            expr->pos.first_line, expr->pos.first_column,
-            expr->pos.last_line, expr->pos.last_column);
-
         switch (expr->type) {
             case TYPE_VARREF:
-                printf("[ref %d]\n", expr->symbol->id);
+                printf("[Varref: %d]\n", expr->symbol->id);
                 break;
 
             case TYPE_DECLARATION:
-                printf("[decl %d]\n", expr->symbol->id);
+                printf("[Declaration: %d]\n", expr->symbol->id);
                 break;
 
             case TYPE_INT:
-                printf("[%d]\n", expr->value->i);
+                printf("[Int: %d]\n", expr->value->i);
                 break;
 
             case TYPE_REAL:
-                printf("[%.2f]\n", expr->value->d);
+                printf("[Real: %.2f]\n", expr->value->d);
                 break;
 
             case TYPE_STRING:
-                printf("[\"%s\"]\n", expr->value->s);
+                printf("[String: %s]\n", expr->value->s);
                 break;
 
             default:
-                printf("[type %d]\n", expr->type);
+                printf("[%s]\n", expression_type_names[expr->type]);
         }
 
         if (expr->cond) expression_print(expr->cond, indent + 1);

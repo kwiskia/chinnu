@@ -24,6 +24,33 @@
 #include "ast.h"
 #include "chinnu.h"
 
+const char *const expression_type_names[] = {
+    "If",
+    "While",
+    "Add",
+    "Sub",
+    "Mul",
+    "Div",
+    "Neg",
+    "Not",
+    "Assign",
+    "Eqeq",
+    "Neq",
+    "Lt",
+    "Leq",
+    "Gt",
+    "Geq",
+    "And",
+    "Or",
+    "Varref",
+    "Int",
+    "Real",
+    "String",
+    "Call",
+    "Func",
+    "Declaration"
+};
+
 Expression *allocexpr() {
     Expression *expr = malloc(sizeof(Expression));
 
