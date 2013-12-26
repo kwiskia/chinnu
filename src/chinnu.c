@@ -59,6 +59,14 @@ void expression_print(Expression *expr, int indent) {
                 printf("[Real: %.2f]\n", expr->value->d);
                 break;
 
+            case TYPE_BOOL:
+                printf("[Bool: %d]\n", expr->value->i);
+                break;
+
+            case TYPE_NULL:
+                printf("[NUL]\n");
+                break;
+
             case TYPE_STRING:
                 printf("[String: %s]\n", expr->value->s);
                 break;

@@ -43,6 +43,8 @@ typedef enum {
     TYPE_VARREF, // value (s)
     TYPE_INT, // value (i)
     TYPE_REAL, // value (d)
+    TYPE_BOOL, // value (i)
+    TYPE_NULL,
     TYPE_STRING, // value (s)
     TYPE_CALL, // lexpr, rlist
     TYPE_FUNC, // llist, rlist
@@ -112,6 +114,8 @@ Expression *make_assignment(SourcePos pos, Expression *varref, Expression *value
 Expression *make_varref(SourcePos pos, char *name);
 Expression *make_int(SourcePos pos, int i);
 Expression *make_real(SourcePos pos, double d);
+Expression *make_bool(SourcePos pos, int i);
+Expression *make_null(SourcePos pos);
 Expression *make_str(SourcePos pos, char *str);
 Expression *make_call(SourcePos pos, Expression *target, ExpressionList *arguments);
 Expression *make_func(SourcePos pos, char *name, ExpressionList *parameters, ExpressionList *body);

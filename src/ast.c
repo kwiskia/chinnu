@@ -45,6 +45,8 @@ const char *const expression_type_names[] = {
     "Varref",
     "Int",
     "Real",
+    "Bool",
+    "Null",
     "String",
     "Call",
     "Func",
@@ -258,6 +260,27 @@ Expression *make_real(SourcePos pos, double d) {
     expr->pos = pos;
     expr->value = val;
     val->d = d;
+    return expr;
+}
+
+Expression *make_bool(SourcePos pos, int i) {
+    Expression *expr = allocexpr();
+    Val *val = allocval();
+
+    expr->type = TYPE_BOOL;
+    expr->pos = pos;
+    expr->value = val;
+    val->i = i;
+
+    return expr;
+}
+
+Expression *make_null(SourcePos pos) {
+    Expression *expr = allocexpr();
+
+    expr->type = TYPE_NULL;
+    expr->pos = pos;
+
     return expr;
 }
 

@@ -214,7 +214,10 @@ static struct {
     {"not", NOT},
     {"function", FUN},
     {"var", VAR},
-    {"val", VAL}
+    {"val", VAL},
+    {"true", TRUE},
+    {"false", FALSE},
+    {"null", NIL}
 };
 
 static int token_for(const char *lexeme) {

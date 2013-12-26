@@ -75,7 +75,7 @@ void yyerror(const char *fmt, ...);
 %token <d> REAL_LITERAL
 %token <s> STRING_LITERAL
 
-%token IF THEN ELIF ELSE WHILE DO END FUN VAR VAL
+%token IF THEN ELIF ELSE WHILE DO END FUN VAR VAL TRUE FALSE NIL
 
 %left '('
 %right '='
@@ -124,6 +124,9 @@ expr : IF expr THEN expr_list else_block END { $$ = make_if(@$, $2, $4, $5); }
      | INTEGER_LITERAL                       { $$ = make_int(@$, $1); }
      | REAL_LITERAL                          { $$ = make_real(@$, $1); }
      | STRING_LITERAL                        { $$ = make_str(@$, $1); }
+     | TRUE                                  { $$ = make_bool(@$, 1); }
+     | FALSE                                 { $$ = make_bool(@$, 0); }
+     | NIL                                   { $$ = make_null(@$); }
      | expr arg_list                         { $$ = make_call(@$, $1, $2); }
      | FUN param_list expr_list END          { $$ = make_func(@$, NULL, $2, $3); }
      | FUN IDENT param_list expr_list END    { $$ = make_func(@$, $2, $3, $4); }
