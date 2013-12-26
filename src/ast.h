@@ -23,8 +23,8 @@
 #include "symbol.h"
 
 typedef enum {
-    TYPE_IF, // cond, llist, rlist
-    TYPE_WHILE, // cond, llist
+    TYPE_IF, // cond, lexpr, rexpr
+    TYPE_WHILE, // cond, lexpr
     TYPE_ADD, // lexpr, rexpr
     TYPE_SUB,
     TYPE_MUL,
@@ -46,8 +46,8 @@ typedef enum {
     TYPE_BOOL, // value (i)
     TYPE_NULL,
     TYPE_STRING, // value (s)
-    TYPE_CALL, // lexpr, rlist
-    TYPE_FUNC, // llist, rlist
+    TYPE_CALL, // lexpr, llist
+    TYPE_FUNC, // llist, rexpr
     TYPE_DECLARATION, // rexpr, value (s),
     TYPE_BLOCK, // llist
     NUM_EXPRESSION_TYPES
@@ -79,7 +79,6 @@ struct Expression {
     Expression *lexpr;
     Expression *rexpr;
     ExpressionList *llist;
-    ExpressionList *rlist;
 
     Val *value;
     Symbol *symbol;
@@ -106,8 +105,8 @@ ExpressionList *make_list();
 ExpressionList *list1(Expression *expr);
 ExpressionList *expression_list_append(ExpressionList *list, Expression *expr);
 
-Expression *make_if(SourcePos pos, Expression *cond, ExpressionList *body, ExpressionList *orelse);
-Expression *make_while(SourcePos pos, Expression *cond, ExpressionList *body);
+Expression *make_if(SourcePos pos, Expression *cond, Expression *body, Expression *orelse);
+Expression *make_while(SourcePos pos, Expression *cond, Expression *body);
 Expression *make_binop(SourcePos pos, int type, Expression *left, Expression *right);
 Expression *make_uop(SourcePos pos, int type, Expression *left);
 Expression *make_declaration(SourcePos pos, char *name, Expression *value, int immutable);
@@ -119,5 +118,5 @@ Expression *make_bool(SourcePos pos, int i);
 Expression *make_null(SourcePos pos);
 Expression *make_str(SourcePos pos, char *str);
 Expression *make_call(SourcePos pos, Expression *target, ExpressionList *arguments);
-Expression *make_func(SourcePos pos, char *name, ExpressionList *parameters, ExpressionList *body);
+Expression *make_func(SourcePos pos, char *name, ExpressionList *parameters, Expression *body);
 Expression *make_block(SourcePos pos, ExpressionList *block);

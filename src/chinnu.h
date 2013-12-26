@@ -26,7 +26,7 @@
 
 #define CHINNU_VERSION "0.0.1"
 
-ExpressionList *program;
+Expression *program;
 char *filename;
 
 void fatal(const char *fmt, ...);

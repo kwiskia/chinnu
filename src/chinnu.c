@@ -79,7 +79,6 @@ void expression_print(Expression *expr, int indent) {
         if (expr->lexpr) expression_print(expr->lexpr, indent + 1);
         if (expr->rexpr) expression_print(expr->rexpr, indent + 1);
         if (expr->llist) expression_list_print(expr->llist, indent + 1);
-        if (expr->rlist) expression_list_print(expr->rlist, indent + 1);
     }
 }
 
@@ -351,10 +350,10 @@ int main(int argc, char **argv) {
         resolve(program);
 
         if (debug_flag) {
-            expression_list_print(program, 0);
+            expression_print(program, 0);
         }
 
-        free_expression_list(program);
+        free_expression(program);
     }
 
     return EXIT_SUCCESS;

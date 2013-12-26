@@ -201,7 +201,7 @@ void expression_resolve(SymbolTable *table, Expression *expr) {
 
             symbol_table_enter_scope(table);
             expression_list_resolve(table, expr->llist);
-            expression_list_resolve(table, expr->rlist);
+            expression_resolve(table, expr->rexpr);
             symbol_table_exit_scope(table);
         } break;
 
@@ -221,19 +221,21 @@ void expression_resolve(SymbolTable *table, Expression *expr) {
             expression_resolve(table, expr->cond);
 
             symbol_table_enter_scope(table);
-            expression_list_resolve(table, expr->llist);
+            expression_resolve(table, expr->lexpr);
             symbol_table_exit_scope(table);
 
-            symbol_table_enter_scope(table);
-            expression_list_resolve(table, expr->rlist);
-            symbol_table_exit_scope(table);
+            if (expr->rexpr) {
+                symbol_table_enter_scope(table);
+                expression_resolve(table, expr->rexpr);
+                symbol_table_exit_scope(table);
+            }
             break;
 
         case TYPE_WHILE:
             expression_resolve(table, expr->cond);
 
             symbol_table_enter_scope(table);
-            expression_list_resolve(table, expr->llist);
+            expression_resolve(table, expr->lexpr);
             symbol_table_exit_scope(table);
             break;
 
@@ -241,7 +243,7 @@ void expression_resolve(SymbolTable *table, Expression *expr) {
             expression_resolve(table, expr->lexpr);
 
             symbol_table_enter_scope(table);
-            expression_list_resolve(table, expr->rlist);
+            expression_list_resolve(table, expr->llist);
             symbol_table_exit_scope(table);
             break;
 
@@ -305,7 +307,7 @@ void expression_list_resolve(SymbolTable *table, ExpressionList *list) {
     }
 }
 
-void resolve(ExpressionList *program) {
+void resolve(Expression *expr) {
     SymbolTable *table = malloc(sizeof(SymbolTable));
 
     if (!table) {
@@ -314,7 +316,7 @@ void resolve(ExpressionList *program) {
 
     table->top = NULL;
     symbol_table_enter_scope(table);
-    expression_list_resolve(table, program);
+    expression_resolve(table, expr);
     symbol_table_exit_scope(table);
     free(table);
 }

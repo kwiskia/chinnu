@@ -50,7 +50,7 @@ typedef struct SourcePos YYLTYPE;
 extern int yylineno;
 extern int yylex(void);
 
-extern ExpressionList *program;
+extern Expression *program;
 
 /* forward */
 void yyerror(const char *fmt, ...);
@@ -85,23 +85,26 @@ void yyerror(const char *fmt, ...);
 %left '*' '/'
 %left NOT UNARY
 
-%type <expr> expr lhs
-%type <list> program expr_list else_block arg_list arg_list2 param_list param_list2
+%type <expr> program expr lhs block else_block
+%type <list> expr_list arg_list arg_list2 param_list param_list2
 
 %start program
 
 %%
 
-program : expr_list                          { program = $1; }
+program : block                              { program = $1; }
         ;
+
+block : expr_list                            { $$ = make_block(@$, $1); }
+      ;
 
 expr_list : expr_list ';' expr               { $$ = expression_list_append($1, $3); }
           | expr                             { $$ = list1($1); }
           |                                  { $$ = make_list(); }
           ;
 
-expr : IF expr THEN expr_list else_block END { $$ = make_if(@$, $2, $4, $5); }
-     | WHILE expr DO expr_list END           { $$ = make_while(@$, $2, $4); }
+expr : IF expr THEN block else_block END     { $$ = make_if(@$, $2, $4, $5); }
+     | WHILE expr DO block END               { $$ = make_while(@$, $2, $4); }
      | expr '+' expr                         { $$ = make_binop(@$, TYPE_ADD, $1, $3); }
      | expr '-' expr                         { $$ = make_binop(@$, TYPE_SUB, $1, $3); }
      | expr '*' expr                         { $$ = make_binop(@$, TYPE_MUL, $1, $3); }
@@ -128,9 +131,9 @@ expr : IF expr THEN expr_list else_block END { $$ = make_if(@$, $2, $4, $5); }
      | FALSE                                 { $$ = make_bool(@$, 0); }
      | NIL                                   { $$ = make_null(@$); }
      | expr arg_list                         { $$ = make_call(@$, $1, $2); }
-     | FUN param_list expr_list END          { $$ = make_func(@$, NULL, $2, $3); }
-     | FUN IDENT param_list expr_list END    { $$ = make_func(@$, $2, $3, $4); }
-     | DO expr_list END                      { $$ = make_block(@$, $2); }
+     | FUN param_list block END              { $$ = make_func(@$, NULL, $2, $3); }
+     | FUN IDENT param_list block END        { $$ = make_func(@$, $2, $3, $4); }
+     | DO block END                          { $$ = $2; }
      ;
 
 arg_list : '(' arg_list2 ')'                 { $$ = $2; }
@@ -152,9 +155,9 @@ param_list2 : param_list2 ',' IDENT          { $$ = expression_list_append($1, m
 lhs : IDENT                                  { $$ = make_varref(@$, $1); }
     ;
 
-else_block : ELSE expr_list                      { $$ = $2; }
-           | ELIF expr THEN expr_list else_block { $$ = list1(make_if(@$, $2, $4, $5)); }
-           |                                     { $$ = make_list(); }
+else_block : ELSE block                      { $$ = $2; }
+           | ELIF expr THEN block else_block { $$ = make_if(@$, $2, $4, $5); }
+           |                                 { $$ = NULL; }
            ;
 
 %%

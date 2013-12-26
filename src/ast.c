@@ -65,7 +65,6 @@ Expression *allocexpr() {
     expr->lexpr = NULL;
     expr->rexpr = NULL;
     expr->llist = NULL;
-    expr->rlist = NULL;
     expr->value = NULL;
     expr->symbol = NULL;
     expr->immutable = 0;
@@ -89,7 +88,6 @@ void free_expression(Expression *expr) {
         if (expr->lexpr) free_expression(expr->lexpr);
         if (expr->rexpr) free_expression(expr->rexpr);
         if (expr->llist) free_expression_list(expr->llist);
-        if (expr->rlist) free_expression_list(expr->rlist);
 
         if (expr->value) {
             if (expr->type == TYPE_VARREF || expr->type == TYPE_DECLARATION || expr->type == TYPE_STRING) {
@@ -164,24 +162,24 @@ ExpressionList *expression_list_append(ExpressionList *list, Expression *expr) {
     return list;
 }
 
-Expression *make_if(SourcePos pos, Expression *cond, ExpressionList *body, ExpressionList *orelse) {
+Expression *make_if(SourcePos pos, Expression *cond, Expression *body, Expression *orelse) {
     Expression *expr = allocexpr();
 
     expr->type = TYPE_IF;
     expr->pos = pos;
     expr->cond = cond;
-    expr->llist = body;
-    expr->rlist = orelse;
+    expr->lexpr = body;
+    expr->rexpr = orelse;
     return expr;
 }
 
-Expression *make_while(SourcePos pos, Expression *cond, ExpressionList *body) {
+Expression *make_while(SourcePos pos, Expression *cond, Expression *body) {
     Expression *expr = allocexpr();
 
     expr->type = TYPE_WHILE;
     expr->pos = pos;
     expr->cond = cond;
-    expr->llist = body;
+    expr->lexpr = body;
     return expr;
 }
 
@@ -302,18 +300,18 @@ Expression *make_call(SourcePos pos, Expression *target, ExpressionList *argumen
     expr->type = TYPE_CALL;
     expr->pos = pos;
     expr->lexpr = target;
-    expr->rlist = arguments;
+    expr->llist = arguments;
     return expr;
 }
 
-Expression *make_func(SourcePos pos, char *name, ExpressionList *parameters, ExpressionList *body) {
+Expression *make_func(SourcePos pos, char *name, ExpressionList *parameters, Expression *body) {
     Expression *expr = allocexpr();
     Val *val = allocval();
 
     expr->type = TYPE_FUNC;
     expr->pos = pos;
     expr->llist = parameters;
-    expr->rlist = body;
+    expr->rexpr = body;
     expr->value = val;
     val->s = name;
     return expr;

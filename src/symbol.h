@@ -28,4 +28,4 @@ struct Symbol {
     Expression *declaration;
 };
 
-void resolve(ExpressionList *list);
+void resolve(Expression *expr);
