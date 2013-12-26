@@ -50,7 +50,8 @@ const char *const expression_type_names[] = {
     "String",
     "Call",
     "Func",
-    "Declaration"
+    "Declaration",
+    "Block"
 };
 
 Expression *allocexpr() {
@@ -315,5 +316,15 @@ Expression *make_func(SourcePos pos, char *name, ExpressionList *parameters, Exp
     expr->rlist = body;
     expr->value = val;
     val->s = name;
+    return expr;
+}
+
+Expression *make_block(SourcePos pos, ExpressionList *block) {
+    Expression *expr = allocexpr();
+
+    expr->type = TYPE_BLOCK;
+    expr->pos = pos;
+    expr->llist = block;
+
     return expr;
 }

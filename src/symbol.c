@@ -282,8 +282,16 @@ void expression_resolve(SymbolTable *table, Expression *expr) {
         /* constants */
         case TYPE_INT:
         case TYPE_REAL:
+        case TYPE_BOOL:
+        case TYPE_NULL:
         case TYPE_STRING:
             /* ignore */
+            break;
+
+        case TYPE_BLOCK:
+            symbol_table_enter_scope(table);
+            expression_list_resolve(table, expr->llist);
+            symbol_table_exit_scope(table);
             break;
     }
 }

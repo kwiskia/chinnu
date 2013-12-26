@@ -130,6 +130,7 @@ expr : IF expr THEN expr_list else_block END { $$ = make_if(@$, $2, $4, $5); }
      | expr arg_list                         { $$ = make_call(@$, $1, $2); }
      | FUN param_list expr_list END          { $$ = make_func(@$, NULL, $2, $3); }
      | FUN IDENT param_list expr_list END    { $$ = make_func(@$, $2, $3, $4); }
+     | DO expr_list END                      { $$ = make_block(@$, $2); }
      ;
 
 arg_list : '(' arg_list2 ')'                 { $$ = $2; }
