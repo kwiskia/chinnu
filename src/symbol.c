@@ -123,7 +123,7 @@ Symbol *symbol_table_search_current_scope(SymbolTable *table, char *name) {
     return scope_search(table->top, name);
 }
 
-void symbol_table_enter_scope(SymbolTable *table) {
+void enter_scope(SymbolTable *table) {
     Scope *scope = malloc(sizeof(Scope));
     HashItem **buckets = malloc(sizeof(HashItem) * MAP_SIZE);
 
@@ -145,7 +145,7 @@ void free_scope(Scope *scope) {
     free(scope);
 }
 
-void symbol_table_exit_scope(SymbolTable *table) {
+void leave_scope(SymbolTable *table) {
     if (!table->top) {
         fatal("Empty scope.");
     }
@@ -156,9 +156,9 @@ void symbol_table_exit_scope(SymbolTable *table) {
 }
 
 /* forward */
-void expression_list_resolve(SymbolTable *table, ExpressionList *list);
+void resolve_list(SymbolTable *table, ExpressionList *list);
 
-void expression_resolve(SymbolTable *table, Expression *expr) {
+void resolve_expr(SymbolTable *table, Expression *expr) {
     switch (expr->type) {
         case TYPE_DECLARATION:
         {
@@ -174,7 +174,7 @@ void expression_resolve(SymbolTable *table, Expression *expr) {
             }
 
             if (expr->rexpr) {
-                expression_resolve(table, expr->rexpr);
+                resolve_expr(table, expr->rexpr);
             }
         } break;
 
@@ -193,10 +193,10 @@ void expression_resolve(SymbolTable *table, Expression *expr) {
                 }
             }
 
-            symbol_table_enter_scope(table);
-            expression_list_resolve(table, expr->llist);
-            expression_resolve(table, expr->rexpr);
-            symbol_table_exit_scope(table);
+            enter_scope(table);
+            resolve_list(table, expr->llist);
+            resolve_expr(table, expr->rexpr);
+            leave_scope(table);
         } break;
 
         case TYPE_VARREF:
@@ -212,39 +212,39 @@ void expression_resolve(SymbolTable *table, Expression *expr) {
 
         /* control flow */
         case TYPE_IF:
-            expression_resolve(table, expr->cond);
+            resolve_expr(table, expr->cond);
 
-            symbol_table_enter_scope(table);
-            expression_resolve(table, expr->lexpr);
-            symbol_table_exit_scope(table);
+            enter_scope(table);
+            resolve_expr(table, expr->lexpr);
+            leave_scope(table);
 
             if (expr->rexpr) {
-                symbol_table_enter_scope(table);
-                expression_resolve(table, expr->rexpr);
-                symbol_table_exit_scope(table);
+                enter_scope(table);
+                resolve_expr(table, expr->rexpr);
+                leave_scope(table);
             }
             break;
 
         case TYPE_WHILE:
-            expression_resolve(table, expr->cond);
+            resolve_expr(table, expr->cond);
 
-            symbol_table_enter_scope(table);
-            expression_resolve(table, expr->lexpr);
-            symbol_table_exit_scope(table);
+            enter_scope(table);
+            resolve_expr(table, expr->lexpr);
+            leave_scope(table);
             break;
 
         case TYPE_CALL:
-            expression_resolve(table, expr->lexpr);
+            resolve_expr(table, expr->lexpr);
 
-            symbol_table_enter_scope(table);
-            expression_list_resolve(table, expr->llist);
-            symbol_table_exit_scope(table);
+            enter_scope(table);
+            resolve_list(table, expr->llist);
+            leave_scope(table);
             break;
 
         /* binary cases */
         case TYPE_ASSIGN:
-            expression_resolve(table, expr->lexpr);
-            expression_resolve(table, expr->rexpr);
+            resolve_expr(table, expr->lexpr);
+            resolve_expr(table, expr->rexpr);
 
             if (expr->lexpr->symbol->declaration->immutable == 1) {
                 error(expr->pos, "Assignment to a single-assignment variable.");
@@ -265,14 +265,14 @@ void expression_resolve(SymbolTable *table, Expression *expr) {
         case TYPE_GEQ:
         case TYPE_AND:
         case TYPE_OR:
-            expression_resolve(table, expr->lexpr);
-            expression_resolve(table, expr->rexpr);
+            resolve_expr(table, expr->lexpr);
+            resolve_expr(table, expr->rexpr);
             break;
 
         /* unary cases */
         case TYPE_NEG:
         case TYPE_NOT:
-            expression_resolve(table, expr->lexpr);
+            resolve_expr(table, expr->lexpr);
             break;
 
         /* constants */
@@ -285,17 +285,17 @@ void expression_resolve(SymbolTable *table, Expression *expr) {
             break;
 
         case TYPE_BLOCK:
-            symbol_table_enter_scope(table);
-            expression_list_resolve(table, expr->llist);
-            symbol_table_exit_scope(table);
+            enter_scope(table);
+            resolve_list(table, expr->llist);
+            leave_scope(table);
             break;
     }
 }
 
-void expression_list_resolve(SymbolTable *table, ExpressionList *list) {
+void resolve_list(SymbolTable *table, ExpressionList *list) {
     ExpressionNode *head;
     for (head = list->head; head != NULL; head = head->next) {
-        expression_resolve(table, head->expr);
+        resolve_expr(table, head->expr);
     }
 }
 
@@ -307,8 +307,8 @@ void resolve(Expression *expr) {
     }
 
     table->top = NULL;
-    symbol_table_enter_scope(table);
-    expression_resolve(table, expr);
-    symbol_table_exit_scope(table);
+    enter_scope(table);
+    resolve_expr(table, expr);
+    leave_scope(table);
     free(table);
 }
