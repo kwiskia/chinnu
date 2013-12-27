@@ -33,9 +33,9 @@ extern void yylex_destroy();
 /* for debugging */
 
 /* forward */
-void expression_list_print(ExpressionList *list, int indent);
+void print_list(ExpressionList *list, int indent);
 
-void expression_print(Expression *expr, int indent) {
+void print_expr(Expression *expr, int indent) {
     if (expr) {
         int i;
         for (i = 0; i < indent; i++) {
@@ -75,18 +75,18 @@ void expression_print(Expression *expr, int indent) {
                 printf("[%s]\n", expression_type_names[expr->type]);
         }
 
-        if (expr->cond) expression_print(expr->cond, indent + 1);
-        if (expr->lexpr) expression_print(expr->lexpr, indent + 1);
-        if (expr->rexpr) expression_print(expr->rexpr, indent + 1);
-        if (expr->llist) expression_list_print(expr->llist, indent + 1);
+        if (expr->cond) print_expr(expr->cond, indent + 1);
+        if (expr->lexpr) print_expr(expr->lexpr, indent + 1);
+        if (expr->rexpr) print_expr(expr->rexpr, indent + 1);
+        if (expr->llist) print_list(expr->llist, indent + 1);
     }
 }
 
-void expression_list_print(ExpressionList *list, int indent) {
+void print_list(ExpressionList *list, int indent) {
     if (list) {
         ExpressionNode *head;
         for (head = list->head; head != NULL; head = head->next) {
-            expression_print(head->expr, indent);
+            print_expr(head->expr, indent);
         }
     }
 }
@@ -348,7 +348,7 @@ int main(int argc, char **argv) {
         resolve(program);
 
         if (debug_flag) {
-            expression_print(program, 0);
+            print_expr(program, 0);
         }
 
         free_expression(program);
