@@ -264,6 +264,7 @@ void vmessage(SourcePos pos, const char *fmt, va_list args) {
 
 void show_usage(char *program) {
     printf("Usage: %s [switches] ... [files] ...\n", program);
+    printf("  -w<type>      display warnings\n");
     printf("  -d --debug    display generated AST\n");
     printf("  -h --help     display usage and exit\n");
     printf("  -v --version  display version and exit\n");
@@ -281,6 +282,7 @@ static struct option options[] = {
     {"debug",   no_argument,       &debug_flag,   1},
     {"help",    no_argument,       &help_flag,    1},
     {"version", no_argument,       &version_flag, 1},
+    {"w",       required_argument, 0,             'w'},
     {"d",       no_argument,       0,             'd'},
     {"h",       no_argument,       0,             'h'},
     {"v",       no_argument,       0,             'v'},
@@ -291,11 +293,21 @@ int main(int argc, char **argv) {
     int c;
     int i = 0;
 
-    while ((c = getopt_long(argc, argv, "dhv", options, &i)) != -1) {
+    while ((c = getopt_long(argc, argv, "w:dhv", options, &i)) != -1) {
         switch (c) {
-            case 0:
-                /* getopt_long set a flag */
-                break;
+            case 'w':
+            {
+                if (strcmp(optarg, "all") == 0) {
+                    int i;
+                    for (i = 0; i < NUM_WARNING_TYPES; i++) {
+                        warning_flags[i] = 1;
+                    }
+                }
+
+                if (strcmp(optarg, "shadow") == 0) {
+                    warning_flags[WARNING_SHADOW] = 1;
+                }
+            } break;
 
             case 'd':
                 debug_flag = 1;
@@ -307,6 +319,10 @@ int main(int argc, char **argv) {
 
             case 'v':
                 version_flag = 1;
+                break;
+
+            case 0:
+                /* getopt_long set a flag */
                 break;
 
             default:

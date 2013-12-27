@@ -24,6 +24,7 @@
 
 struct Symbol {
     int id;
+    int level;
     char *name;
     Expression *declaration;
 };

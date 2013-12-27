@@ -29,6 +29,14 @@
 Expression *program;
 char *filename;
 
+typedef enum {
+    WARNING_SHADOW
+} WarningType;
+
+#define NUM_WARNING_TYPES (WARNING_SHADOW + 1)
+
+int warning_flags[NUM_WARNING_TYPES];
+
 void fatal(const char *fmt, ...);
 void warning(SourcePos pos, const char *fmt, ...);
 void error(SourcePos pos, const char *fmt, ...);

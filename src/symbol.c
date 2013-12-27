@@ -41,20 +41,22 @@ struct Scope {
 };
 
 struct SymbolTable {
+    int level;
     Scope *top;
 };
 
 static int symbol_id = 0;
 
-Symbol *make_symbol(char *name, Expression *declaration) {
+Symbol *make_symbol(char *name, int level, Expression *declaration) {
     Symbol *symbol = malloc(sizeof(Symbol));
 
     if (!symbol) {
         fatal("Out of memory.");
     }
 
-    symbol->name = strdup(name);
     symbol->id = symbol_id++;
+    symbol->level = level;
+    symbol->name = strdup(name);
     symbol->declaration = declaration;
     return symbol;
 }
@@ -71,7 +73,7 @@ int hash(char *str) {
     return hash % MAP_SIZE;
 }
 
-void symbol_table_insert(SymbolTable *table, Symbol *symbol) {
+void add_symbol(SymbolTable *table, Symbol *symbol) {
     if (!table->top) {
         fatal("Empty scope.");
     }
@@ -99,7 +101,7 @@ Symbol *scope_search(Scope *scope, char *name) {
     return NULL;
 }
 
-Symbol *symbol_table_search(SymbolTable *table, char *name) {
+Symbol *find_symbol(SymbolTable *table, char *name) {
     if (!table->top) {
         fatal("Empty scope.");
     }
@@ -113,14 +115,6 @@ Symbol *symbol_table_search(SymbolTable *table, char *name) {
     }
 
     return NULL;
-}
-
-Symbol *symbol_table_search_current_scope(SymbolTable *table, char *name) {
-    if (!table->top) {
-        fatal("Empty scope.");
-    }
-
-    return scope_search(table->top, name);
 }
 
 void enter_scope(SymbolTable *table) {
@@ -162,16 +156,21 @@ void resolve_expr(SymbolTable *table, Expression *expr) {
     switch (expr->type) {
         case TYPE_DECLARATION:
         {
-            Symbol *symbol = symbol_table_search_current_scope(table, expr->value->s);
+            Symbol *symbol = find_symbol(table, expr->value->s);
 
-            if (!symbol) {
-                symbol = make_symbol(expr->value->s, expr);
-                expr->symbol = symbol;
-                symbol_table_insert(table, symbol);
-            } else {
+            if (symbol && symbol->level == table->level) {
                 error(expr->pos, "Redefinition of '%s'.", expr->value->s);
                 message(symbol->declaration->pos, "Previous definition is here.");
             }
+
+            if (symbol && warning_flags[WARNING_SHADOW]) {
+                warning(expr->pos, "Shadowing declaration of '%s'.", expr->value->s);
+                message(symbol->declaration->pos, "Previous definition is here.");
+            }
+
+            symbol = make_symbol(expr->value->s, table->level, expr);
+            expr->symbol = symbol;
+            add_symbol(table, symbol);
 
             if (expr->rexpr) {
                 resolve_expr(table, expr->rexpr);
@@ -181,27 +180,34 @@ void resolve_expr(SymbolTable *table, Expression *expr) {
         case TYPE_FUNC:
         {
             if (expr->value->s) {
-                Symbol *symbol = symbol_table_search_current_scope(table, expr->value->s);
+                Symbol *symbol = find_symbol(table, expr->value->s);
 
-                if (!symbol) {
-                    symbol = make_symbol(expr->value->s, expr);
-                    expr->symbol = symbol;
-                    symbol_table_insert(table, symbol);
-                } else {
+                if (symbol && symbol->level == table->level) {
                     error(expr->pos, "Redefinition of '%s'.", expr->value->s);
                     message(symbol->declaration->pos, "Previous definition is here.");
                 }
+
+                if (symbol && warning_flags[WARNING_SHADOW]) {
+                    warning(expr->pos, "Shadowing declaration of '%s'.", expr->value->s);
+                    message(symbol->declaration->pos, "Previous definition is here.");
+                }
+
+                symbol = make_symbol(expr->value->s, table->level, expr);
+                expr->symbol = symbol;
+                add_symbol(table, symbol);
             }
 
+            table->level++;
             enter_scope(table);
             resolve_list(table, expr->llist);
             resolve_expr(table, expr->rexpr);
             leave_scope(table);
+            table->level--;
         } break;
 
         case TYPE_VARREF:
         {
-            Symbol *symbol = symbol_table_search(table, expr->value->s);
+            Symbol *symbol = find_symbol(table, expr->value->s);
 
             if (!symbol) {
                 error(expr->pos, "Use of undeclared identifier '%s'.", expr->value->s);
@@ -307,8 +313,11 @@ void resolve(Expression *expr) {
     }
 
     table->top = NULL;
+    table->level = 0;
+
     enter_scope(table);
     resolve_expr(table, expr);
     leave_scope(table);
+
     free(table);
 }
