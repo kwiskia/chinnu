@@ -98,8 +98,8 @@ struct ExpressionList {
 
 const char *const expression_type_names[NUM_EXPRESSION_TYPES];
 
-void free_expression(Expression *expr);
-void free_expression_list(ExpressionList *list);
+void free_expr(Expression *expr);
+void free_list(ExpressionList *list);
 
 ExpressionList *make_list();
 ExpressionList *list1(Expression *expr);

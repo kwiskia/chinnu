@@ -351,7 +351,7 @@ int main(int argc, char **argv) {
             print_expr(program, 0);
         }
 
-        free_expression(program);
+        free_expr(program);
     }
 
     return EXIT_SUCCESS;

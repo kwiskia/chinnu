@@ -82,12 +82,12 @@ Val *allocval() {
     return val;
 }
 
-void free_expression(Expression *expr) {
+void free_expr(Expression *expr) {
     if (expr) {
-        if (expr->cond)  free_expression(expr->cond);
-        if (expr->lexpr) free_expression(expr->lexpr);
-        if (expr->rexpr) free_expression(expr->rexpr);
-        if (expr->llist) free_expression_list(expr->llist);
+        if (expr->cond)  free_expr(expr->cond);
+        if (expr->lexpr) free_expr(expr->lexpr);
+        if (expr->rexpr) free_expr(expr->rexpr);
+        if (expr->llist) free_list(expr->llist);
 
         if (expr->value) {
             if (expr->type == TYPE_VARREF || expr->type == TYPE_DECLARATION || expr->type == TYPE_STRING) {
@@ -106,17 +106,17 @@ void free_expression(Expression *expr) {
     }
 }
 
-void free_expression_node(ExpressionNode *item) {
+void free_node(ExpressionNode *item) {
     if (item) {
-        free_expression(item->expr);
-        free_expression_node(item->next);
+        free_expr(item->expr);
+        free_node(item->next);
         free(item);
     }
 }
 
-void free_expression_list(ExpressionList *list) {
+void free_list(ExpressionList *list) {
     if (list) {
-        free_expression_node(list->head);
+        free_node(list->head);
         free(list);
     }
 }
