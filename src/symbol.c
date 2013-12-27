@@ -89,17 +89,14 @@ void symbol_table_insert(SymbolTable *table, Symbol *symbol) {
 }
 
 Symbol *scope_search(Scope *scope, char *name) {
-    HashItem *head = scope->buckets[hash(name)];
-
-    while (head) {
+    HashItem *head;
+    for (head = scope->buckets[hash(name)]; head != NULL; head = head->next) {
         if (strcmp(head->symbol->name, name) == 0) {
             return head->symbol;
         }
-
-        head = head->next;
     }
 
-    return 0;
+    return NULL;
 }
 
 Symbol *symbol_table_search(SymbolTable *table, char *name) {
@@ -107,18 +104,15 @@ Symbol *symbol_table_search(SymbolTable *table, char *name) {
         fatal("Empty scope.");
     }
 
-    Scope *head = table->top;
-    Symbol *s;
-
-    while (head) {
-        if ((s = scope_search(head, name))) {
+    Scope *head;
+    for (head = table->top; head != NULL; head = head->next) {
+        Symbol *s;
+        if ((s = scope_search(head, name)) != NULL) {
             return s;
         }
-
-        head = head->next;
     }
 
-    return 0;
+    return NULL;
 }
 
 Symbol *symbol_table_search_current_scope(SymbolTable *table, char *name) {
@@ -299,11 +293,9 @@ void expression_resolve(SymbolTable *table, Expression *expr) {
 }
 
 void expression_list_resolve(SymbolTable *table, ExpressionList *list) {
-    ExpressionNode *head = list->head;
-
-    while (head) {
+    ExpressionNode *head;
+    for (head = list->head; head != NULL; head = head->next) {
         expression_resolve(table, head->expr);
-        head = head->next;
     }
 }
 

@@ -84,11 +84,9 @@ void expression_print(Expression *expr, int indent) {
 
 void expression_list_print(ExpressionList *list, int indent) {
     if (list) {
-        ExpressionNode *head = list->head;
-
-        while (head) {
+        ExpressionNode *head;
+        for (head = list->head; head != NULL; head = head->next) {
             expression_print(head->expr, indent);
-            head = head->next;
         }
     }
 }
