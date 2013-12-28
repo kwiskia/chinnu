@@ -44,11 +44,15 @@ void print_expr(Expression *expr, int indent) {
 
         switch (expr->type) {
             case TYPE_VARREF:
-                printf("[Varref: %d]\n", expr->symbol->id);
+                printf("[Varref: %s (#%d)]\n", expr->symbol->name, expr->symbol->id);
+                break;
+
+            case TYPE_FUNC:
+                printf("[Function: %s (#%d), %d]\n", expr->symbol->name, expr->symbol->id, expr->nonlocal);
                 break;
 
             case TYPE_DECLARATION:
-                printf("[Declaration: %d]\n", expr->symbol->id);
+                printf("[Declaration: %s (#%d), %d]\n", expr->symbol->name, expr->symbol->id, expr->nonlocal);
                 break;
 
             case TYPE_INT:
