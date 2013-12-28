@@ -43,8 +43,8 @@
 
 typedef enum {
     OP_MOVE,            // R(A) := RK(B)
-    OP_GETUPVAL,        // R(A) := UpValue[B]
-    OP_SETUPVAL,        // UpValue[B] := R(A)
+    OP_GETUPVAR,        // R(A) := UpVar[B]
+    OP_SETUPVAR,        // UpVar[B] := R(A)
 
     OP_ADD,             // R(A) := RK(B) + RK(C)
     OP_SUB,             // R(A) := RK(B) - RK(C)
