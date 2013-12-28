@@ -73,6 +73,7 @@ struct Val {
 
 struct Expression {
     unsigned int type      : 5;
+    unsigned int nonlocal  : 1;
     unsigned int immutable : 1;
 
     Expression *cond;

@@ -172,6 +172,8 @@ void resolve_expr(SymbolTable *table, Expression *expr) {
             expr->symbol = symbol;
             add_symbol(table, symbol);
 
+            // TODO - can refer to itself before initialization
+
             if (expr->rexpr) {
                 resolve_expr(table, expr->rexpr);
             }
@@ -212,6 +214,10 @@ void resolve_expr(SymbolTable *table, Expression *expr) {
             if (!symbol) {
                 error(expr->pos, "Use of undeclared identifier '%s'.", expr->value->s);
             } else {
+                if (symbol->level != table->level) {
+                    symbol->declaration->nonlocal = 1;
+                }
+
                 expr->symbol = symbol;
             }
         } break;
