@@ -48,11 +48,15 @@ void print_expr(Expression *expr, int indent) {
                 break;
 
             case TYPE_FUNC:
-                printf("[Function: %s (#%d), %d]\n", expr->symbol->name, expr->symbol->id, expr->nonlocal);
+                if (expr->value->s) {
+                    printf("[Function: %s (#%d)]\n", expr->symbol->name, expr->symbol->id);
+                } else {
+                    printf("[Anonymous Function]\n");
+                }
                 break;
 
             case TYPE_DECLARATION:
-                printf("[Declaration: %s (#%d), %d]\n", expr->symbol->name, expr->symbol->id, expr->nonlocal);
+                printf("[Declaration: %s (#%d)]\n", expr->symbol->name, expr->symbol->id);
                 break;
 
             case TYPE_INT:

@@ -40,10 +40,117 @@ struct Scope {
     Scope *next;
 };
 
+typedef struct FunctionDesc FunctionDesc;
+
+struct FunctionDesc {
+    FunctionDesc *parent;
+    Symbol **locals;
+    Symbol **upvars;
+    FunctionDesc **functions;
+
+    int numlocals;
+    int numupvars;
+    int numfunctions;
+
+    int maxlocals;
+    int maxupvars;
+    int maxfunctions;
+};
+
 struct SymbolTable {
     int level;
     Scope *top;
+    FunctionDesc *func;
 };
+
+FunctionDesc *make_desc() {
+    FunctionDesc *desc = malloc(sizeof(FunctionDesc));
+    Symbol **locals = malloc(sizeof(Symbol *) * 8);
+    Symbol **upvars = malloc(sizeof(Symbol *) * 8);
+    FunctionDesc **functions = malloc(sizeof(FunctionDesc *) * 4);
+
+    if (!desc || !locals || !upvars || !functions) {
+        fatal("Out of memory.");
+    }
+
+    desc->parent = NULL;
+    desc->locals = locals;
+    desc->upvars = upvars;
+    desc->functions = functions;
+    desc->numlocals = 0;
+    desc->numupvars = 0;
+    desc->numfunctions = 0;
+    desc->maxlocals = 8;
+    desc->maxupvars = 8;
+    desc->maxfunctions = 4;
+
+    return desc;
+}
+
+void add_local(FunctionDesc *desc, Symbol *local) {
+    if (desc->numlocals == desc->maxlocals) {
+        desc->maxlocals *= 2;
+
+        Symbol **resize = realloc(desc->locals, sizeof(Symbol *) * desc->maxlocals);
+
+        if (!resize) {
+            fatal("Out of memory.");
+        }
+
+        desc->locals = resize;
+    }
+
+    desc->locals[desc->numlocals++] = local;
+}
+
+void add_upvar(FunctionDesc *desc, Symbol *upvar) {
+    if (desc->numupvars == desc->maxupvars) {
+        desc->maxupvars *= 2;
+
+        Symbol **resize = realloc(desc->upvars, sizeof(Symbol *) * desc->maxupvars);
+
+        if (!resize) {
+            fatal("Out of memory.");
+        }
+
+        desc->upvars = resize;
+    }
+
+    desc->upvars[desc->numupvars++] = upvar;
+}
+
+void add_function(FunctionDesc *desc, FunctionDesc *function) {
+    if (desc->numfunctions == desc->maxfunctions) {
+        desc->maxfunctions *= 2;
+
+        FunctionDesc **resize = realloc(desc->functions, sizeof(FunctionDesc *) * desc->maxfunctions);
+
+        if (!resize) {
+            fatal("Out of memory.");
+        }
+
+        desc->functions = resize;
+    }
+
+    desc->functions[desc->numfunctions++] = function;
+}
+
+int has_ref(FunctionDesc *desc, Symbol *symbol) {
+    int i;
+    for (i = 0; i < desc->numlocals; i++) {
+        if (desc->locals[i] == symbol) {
+            return 1;
+        }
+    }
+
+    for (i = 0; i < desc->numupvars; i++) {
+        if (desc->upvars[i] == symbol) {
+            return 1;
+        }
+    }
+
+    return 0;
+}
 
 static int symbol_id = 0;
 
@@ -170,7 +277,9 @@ void resolve_expr(SymbolTable *table, Expression *expr) {
 
             symbol = make_symbol(expr->value->s, table->level, expr);
             expr->symbol = symbol;
+
             add_symbol(table, symbol);
+            add_local(table->func, symbol);
 
             // TODO - can refer to itself before initialization
 
@@ -196,8 +305,18 @@ void resolve_expr(SymbolTable *table, Expression *expr) {
 
                 symbol = make_symbol(expr->value->s, table->level, expr);
                 expr->symbol = symbol;
+
                 add_symbol(table, symbol);
+                add_local(table->func, symbol);
             }
+
+            FunctionDesc *temp = table->func;
+            FunctionDesc *desc = make_desc();
+
+            desc->parent = temp;
+            add_function(temp, desc);
+
+            table->func = desc;
 
             table->level++;
             enter_scope(table);
@@ -205,6 +324,8 @@ void resolve_expr(SymbolTable *table, Expression *expr) {
             resolve_expr(table, expr->rexpr);
             leave_scope(table);
             table->level--;
+
+            table->func = temp;
         } break;
 
         case TYPE_VARREF:
@@ -213,9 +334,19 @@ void resolve_expr(SymbolTable *table, Expression *expr) {
 
             if (!symbol) {
                 error(expr->pos, "Use of undeclared identifier '%s'.", expr->value->s);
+
+                // TODO - will cause error here when traversing tree
+                // put something here to find more errors [?]
             } else {
                 if (symbol->level != table->level) {
-                    symbol->declaration->nonlocal = 1;
+                    FunctionDesc *head;
+                    for (head = table->func; head != NULL; head = head->parent) {
+                        if (has_ref(head, symbol)) {
+                            break;
+                        }
+
+                        add_upvar(head, symbol);
+                    }
                 }
 
                 expr->symbol = symbol;
@@ -311,6 +442,40 @@ void resolve_list(SymbolTable *table, ExpressionList *list) {
     }
 }
 
+void debug(FunctionDesc *desc, int indent) {
+    int i, j;
+
+    for (j = 0; j < indent; j++) {
+        printf("  ");
+    }
+
+    printf("[%d] Locals: [", indent);
+
+    for (i = 0; i < desc->numlocals; i++) {
+        if (i > 0) {
+            printf(", ");
+        }
+
+        printf("%s", desc->locals[i]->name);
+    }
+
+    printf("] Upvars: [");
+
+    for (i = 0; i < desc->numupvars; i++) {
+        if (i > 0) {
+            printf(", ");
+        }
+
+        printf("%s", desc->upvars[i]->name);
+    }
+
+    printf("]\n");
+
+    for (i = 0; i < desc->numfunctions; i++) {
+        debug(desc->functions[i], indent + 1);
+    }
+}
+
 void resolve(Expression *expr) {
     SymbolTable *table = malloc(sizeof(SymbolTable));
 
@@ -320,10 +485,16 @@ void resolve(Expression *expr) {
 
     table->top = NULL;
     table->level = 0;
+    table->func = make_desc();
 
     enter_scope(table);
     resolve_expr(table, expr);
     leave_scope(table);
+
+    debug(table->func, 0);
+
+    // TODO - add function to free desc
+    // TODO - move functions somewhere usable (not in AST)
 
     free(table);
 }

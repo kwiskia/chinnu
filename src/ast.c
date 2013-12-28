@@ -67,7 +67,6 @@ Expression *allocexpr() {
     expr->llist = NULL;
     expr->value = NULL;
     expr->symbol = NULL;
-    expr->nonlocal = 0;
     expr->immutable = 0;
 
     return expr;
