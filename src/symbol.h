@@ -29,4 +29,19 @@ struct Symbol {
     Expression *declaration;
 };
 
-void resolve(Expression *expr);
+struct FunctionDesc {
+    FunctionDesc *parent;
+    Symbol **locals;
+    Symbol **upvars;
+    FunctionDesc **functions;
+
+    int numlocals;
+    int numupvars;
+    int numfunctions;
+
+    int maxlocals;
+    int maxupvars;
+    int maxfunctions;
+};
+
+FunctionDesc *resolve(Expression *expr);

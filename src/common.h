@@ -20,6 +20,7 @@
 #pragma once
 
 typedef struct Symbol Symbol;
+typedef struct FunctionDesc FunctionDesc;
 
 typedef struct Val Val;
 typedef struct Expression Expression;

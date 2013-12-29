@@ -40,23 +40,6 @@ struct Scope {
     Scope *next;
 };
 
-typedef struct FunctionDesc FunctionDesc;
-
-struct FunctionDesc {
-    FunctionDesc *parent;
-    Symbol **locals;
-    Symbol **upvars;
-    FunctionDesc **functions;
-
-    int numlocals;
-    int numupvars;
-    int numfunctions;
-
-    int maxlocals;
-    int maxupvars;
-    int maxfunctions;
-};
-
 struct SymbolTable {
     int level;
     Scope *top;
@@ -442,59 +425,23 @@ void resolve_list(SymbolTable *table, ExpressionList *list) {
     }
 }
 
-void debug(FunctionDesc *desc, int indent) {
-    int i, j;
-
-    for (j = 0; j < indent; j++) {
-        printf("  ");
-    }
-
-    printf("[%d] Locals: [", indent);
-
-    for (i = 0; i < desc->numlocals; i++) {
-        if (i > 0) {
-            printf(", ");
-        }
-
-        printf("%s", desc->locals[i]->name);
-    }
-
-    printf("] Upvars: [");
-
-    for (i = 0; i < desc->numupvars; i++) {
-        if (i > 0) {
-            printf(", ");
-        }
-
-        printf("%s", desc->upvars[i]->name);
-    }
-
-    printf("]\n");
-
-    for (i = 0; i < desc->numfunctions; i++) {
-        debug(desc->functions[i], indent + 1);
-    }
-}
-
-void resolve(Expression *expr) {
+FunctionDesc *resolve(Expression *expr) {
     SymbolTable *table = malloc(sizeof(SymbolTable));
 
     if (!table) {
         fatal("Out of memory.");
     }
 
+    FunctionDesc *root = make_desc();
+
     table->top = NULL;
     table->level = 0;
-    table->func = make_desc();
+    table->func = root;
 
     enter_scope(table);
     resolve_expr(table, expr);
     leave_scope(table);
 
-    debug(table->func, 0);
-
-    // TODO - add function to free desc
-    // TODO - move functions somewhere usable (not in AST)
-
     free(table);
+    return root;
 }
