@@ -101,6 +101,8 @@ const char *const expression_type_names[NUM_EXPRESSION_TYPES];
 void free_expr(Expression *expr);
 void free_list(ExpressionList *list);
 
+void free_expr_shallow(Expression *expr);
+
 ExpressionList *make_list();
 ExpressionList *list1(Expression *expr);
 ExpressionList *expression_list_append(ExpressionList *list, Expression *expr);
