@@ -1,3 +1,7 @@
 ast.o: ast.c ast.h common.h symbol.h chinnu.h
-chinnu.o: chinnu.c chinnu.h common.h symbol.h ast.h
+bytecode.o: bytecode.c bytecode.h
+chinnu.o: chinnu.c chinnu.h common.h symbol.h ast.h folding.h compile.h
+compile.o: compile.c compile.h common.h ast.h symbol.h
+folding.o: folding.c ast.h common.h symbol.h folding.h
 symbol.o: symbol.c chinnu.h common.h symbol.h ast.h
+vm.o: vm.c vm.h
