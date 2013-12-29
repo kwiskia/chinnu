@@ -25,6 +25,7 @@
 
 #include "chinnu.h"
 #include "symbol.h"
+#include "compile.h"
 
 extern FILE *yyin;
 extern int yyparse();
@@ -370,6 +371,7 @@ int main(int argc, char **argv) {
         fclose(fp);
 
         resolve(program);
+        compile(program);
 
         if (debug_flag) {
             print_expr(program, 0);
