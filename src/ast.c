@@ -51,7 +51,8 @@ const char *const expression_type_names[] = {
     "Call",
     "Func",
     "Declaration",
-    "Block"
+    "Block",
+    "Module"
 };
 
 Expression *allocexpr() {
@@ -323,6 +324,16 @@ Expression *make_block(SourcePos pos, ExpressionList *block) {
     expr->type = TYPE_BLOCK;
     expr->pos = pos;
     expr->llist = block;
+
+    return expr;
+}
+
+Expression *make_module(SourcePos pos, Expression *block) {
+    Expression *expr = allocexpr();
+
+    expr->type = TYPE_MODULE;
+    expr->pos = pos;
+    expr->lexpr = block;
 
     return expr;
 }

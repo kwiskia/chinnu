@@ -50,6 +50,8 @@ typedef enum {
     TYPE_FUNC, // llist, rexpr
     TYPE_DECLARATION, // rexpr, value (s),
     TYPE_BLOCK, // llist
+    TYPE_MODULE, // lexpr
+
     NUM_EXPRESSION_TYPES
 } ExpressionType;
 
@@ -120,3 +122,4 @@ Expression *make_str(SourcePos pos, char *str);
 Expression *make_call(SourcePos pos, Expression *target, ExpressionList *arguments);
 Expression *make_func(SourcePos pos, char *name, ExpressionList *parameters, Expression *body);
 Expression *make_block(SourcePos pos, ExpressionList *block);
+Expression *make_module(SourcePos pos, Expression *block);

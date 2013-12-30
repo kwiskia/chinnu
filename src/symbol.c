@@ -329,6 +329,10 @@ void resolve_list(SymbolTable *table, ExpressionList *list);
 
 void resolve_expr(SymbolTable *table, Expression *expr) {
     switch (expr->type) {
+        case TYPE_MODULE:
+            resolve_expr(table, expr->lexpr);
+            break;
+
         case TYPE_DECLARATION:
         {
             Symbol *symbol = find_symbol(table, expr->value->s);

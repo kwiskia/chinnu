@@ -92,7 +92,7 @@ void yyerror(const char *fmt, ...);
 
 %%
 
-program : block                              { program = $1; }
+program : block                              { program = make_module(@$, $1); }
         ;
 
 block : expr_list                            { $$ = make_block(@$, $1); }
