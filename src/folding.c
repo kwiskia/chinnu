@@ -21,6 +21,7 @@
 #include <stdlib.h>
 
 #include "ast.h"
+#include "chinnu.h"
 #include "folding.h"
 
 int is_arith_const(Expression *expr) {
@@ -116,6 +117,10 @@ Expression *fold_expr(Expression *expr) {
                     n = expr->lexpr;
 
                     if (expr->rexpr) {
+                        if (warning_flags[WARNING_SHADOW]) {
+                            warning(expr->rexpr->pos, "Unreachable code.");
+                        }
+
                         free_expr(expr->rexpr);
                     }
                 } else {
@@ -123,6 +128,10 @@ Expression *fold_expr(Expression *expr) {
                         n = expr->rexpr;
                     } else {
                         n = make_null(expr->pos);
+                    }
+
+                    if (warning_flags[WARNING_SHADOW]) {
+                        warning(expr->lexpr->pos, "Unreachable code.");
                     }
 
                     free_expr(expr->lexpr);
@@ -144,6 +153,10 @@ Expression *fold_expr(Expression *expr) {
                 if (expr->cond->value->i) {
                     n = expr->lexpr;
                 } else {
+                    if (warning_flags[WARNING_SHADOW]) {
+                        warning(expr->lexpr->pos, "Unreachable code.");
+                    }
+
                     n = make_null(expr->pos);
                     free_expr(expr->lexpr);
                 }

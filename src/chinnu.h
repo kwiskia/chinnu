@@ -30,10 +30,11 @@ Expression *program;
 char *filename;
 
 typedef enum {
-    WARNING_SHADOW
+    WARNING_SHADOW,
+    WARNING_UNREACHABLE
 } WarningType;
 
-#define NUM_WARNING_TYPES (WARNING_SHADOW + 1)
+#define NUM_WARNING_TYPES (WARNING_UNREACHABLE + 1)
 
 int warning_flags[NUM_WARNING_TYPES];
 

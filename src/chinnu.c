@@ -317,6 +317,10 @@ int main(int argc, char **argv) {
                 if (strcmp(optarg, "shadow") == 0) {
                     warning_flags[WARNING_SHADOW] = 1;
                 }
+
+                if (strcmp(optarg, "unreachable") == 0) {
+                    warning_flags[WARNING_UNREACHABLE] = 1;
+                }
             } break;
 
             case 'd':
