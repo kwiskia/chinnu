@@ -48,6 +48,7 @@ struct Upvar {
 };
 
 struct FunctionDesc {
+    Expression *expr;
     FunctionDesc *parent;
     Local **locals;
     Upvar **upvars;
@@ -64,4 +65,4 @@ struct FunctionDesc {
 
 void free_desc(FunctionDesc *desc);
 
-FunctionDesc *resolve(Expression *expr);
+void resolve(Expression *expr);

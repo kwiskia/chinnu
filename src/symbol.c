@@ -68,7 +68,7 @@ Upvar *make_upvar(Symbol *symbol) {
     return upvar;
 }
 
-FunctionDesc *make_desc() {
+FunctionDesc *make_desc(Expression *expr) {
     FunctionDesc *desc = malloc(sizeof(FunctionDesc));
     Local **locals = malloc(sizeof(Local *) * 8);
     Upvar **upvars = malloc(sizeof(Upvar *) * 8);
@@ -78,6 +78,7 @@ FunctionDesc *make_desc() {
         fatal("Out of memory.");
     }
 
+    desc->expr = expr;
     desc->parent = NULL;
     desc->locals = locals;
     desc->upvars = upvars;
@@ -100,10 +101,6 @@ void free_desc(FunctionDesc *desc) {
 
     for (i = 0; i < desc->numupvars; i++) {
         free(desc->upvars[i]);
-    }
-
-    for (i = 0; i < desc->numfunctions; i++) {
-        free_desc(desc->functions[i]);
     }
 
     free(desc->locals);
@@ -381,8 +378,9 @@ void resolve_expr(SymbolTable *table, Expression *expr) {
             }
 
             FunctionDesc *temp = table->func;
-            FunctionDesc *desc = make_desc();
+            FunctionDesc *desc = make_desc(expr);
 
+            expr->desc = desc;
             desc->parent = temp;
             add_function(temp, desc);
 
@@ -505,23 +503,23 @@ void resolve_list(SymbolTable *table, ExpressionList *list) {
     }
 }
 
-FunctionDesc *resolve(Expression *expr) {
+void resolve(Expression *expr) {
     SymbolTable *table = malloc(sizeof(SymbolTable));
 
     if (!table) {
         fatal("Out of memory.");
     }
 
-    FunctionDesc *root = make_desc();
+    FunctionDesc *desc = make_desc(expr);
+    expr->desc = desc;
 
     table->top = NULL;
     table->level = 0;
-    table->func = root;
+    table->func = desc;
 
     enter_scope(table);
     resolve_expr(table, expr);
     leave_scope(table);
 
     free(table);
-    return root;
 }

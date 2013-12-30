@@ -36,6 +36,31 @@ extern void yylex_destroy();
 /* forward */
 void print_list(ExpressionList *list, int indent);
 
+void print_desc(FunctionDesc *desc, int indent) {
+    int i;
+    for (i = 0; i < desc->numlocals; i++) {
+        int j;
+        for (j = 0; j < indent; j++) {
+            printf("\t");
+        }
+
+        printf("Local %s at slot %d\n", desc->locals[i]->symbol->name, i);
+    }
+
+    for (i = 0; i < desc->numupvars; i++) {
+        int j;
+        for (j = 0; j < indent; j++) {
+            printf("\t");
+        }
+
+        printf("Upvar %s at slot %d (in parent slot %d (%d))\n", desc->upvars[i]->symbol->name, i, desc->upvars[i]->refslot, desc->upvars[i]->reftype);
+    }
+
+    for (i = 0; i < desc->numfunctions; i++) {
+        print_desc(desc->functions[i], indent + 1);
+    }
+}
+
 void print_expr(Expression *expr, int indent) {
     if (expr) {
         int i;
@@ -84,6 +109,10 @@ void print_expr(Expression *expr, int indent) {
                 printf("[%s]\n", expression_type_names[expr->type]);
         }
 
+        if (expr->desc) {
+            print_desc(expr->desc, indent);
+        }
+
         if (expr->cond) print_expr(expr->cond, indent + 1);
         if (expr->lexpr) print_expr(expr->lexpr, indent + 1);
         if (expr->rexpr) print_expr(expr->rexpr, indent + 1);
@@ -97,31 +126,6 @@ void print_list(ExpressionList *list, int indent) {
         for (head = list->head; head != NULL; head = head->next) {
             print_expr(head->expr, indent);
         }
-    }
-}
-
-void print_desc(FunctionDesc *desc, int indent) {
-    int i;
-    for (i = 0; i < desc->numlocals; i++) {
-        int j;
-        for (j = 0; j < indent; j++) {
-            printf("\t");
-        }
-
-        printf("Local %s at slot %d\n", desc->locals[i]->symbol->name, i);
-    }
-
-    for (i = 0; i < desc->numupvars; i++) {
-        int j;
-        for (j = 0; j < indent; j++) {
-            printf("\t");
-        }
-
-        printf("Upvar %s at slot %d (in parent slot %d (%d))\n", desc->upvars[i]->symbol->name, i, desc->upvars[i]->refslot, desc->upvars[i]->reftype);
-    }
-
-    for (i = 0; i < desc->numfunctions; i++) {
-        print_desc(desc->functions[i], indent + 1);
     }
 }
 
@@ -399,14 +403,13 @@ int main(int argc, char **argv) {
         yylex_destroy();
         fclose(fp);
 
-        FunctionDesc *root = resolve(program);
+        resolve(program);
         compile(program);
 
         if (debug_flag) {
-            print_desc(root, 0);
+            print_expr(program, 0);
         }
 
-        free_desc(root);
         free_expr(program);
     }
 
