@@ -100,6 +100,31 @@ void print_list(ExpressionList *list, int indent) {
     }
 }
 
+void print_desc(FunctionDesc *desc, int indent) {
+    int i;
+    for (i = 0; i < desc->numlocals; i++) {
+        int j;
+        for (j = 0; j < indent; j++) {
+            printf("\t");
+        }
+
+        printf("Local %s at slot %d\n", desc->locals[i]->symbol->name, i);
+    }
+
+    for (i = 0; i < desc->numupvars; i++) {
+        int j;
+        for (j = 0; j < indent; j++) {
+            printf("\t");
+        }
+
+        printf("Upvar %s at slot %d (in parent slot %d (%d))\n", desc->upvars[i]->symbol->name, i, desc->upvars[i]->refslot, desc->upvars[i]->reftype);
+    }
+
+    for (i = 0; i < desc->numfunctions; i++) {
+        print_desc(desc->functions[i], indent + 1);
+    }
+}
+
 void fatal(const char *fmt, ...) {
     va_list args;
     va_start(args, fmt);
@@ -378,7 +403,7 @@ int main(int argc, char **argv) {
         compile(program);
 
         if (debug_flag) {
-            print_expr(program, 0);
+            print_desc(root, 0);
         }
 
         free_desc(root);
