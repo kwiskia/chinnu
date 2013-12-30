@@ -373,13 +373,14 @@ int main(int argc, char **argv) {
 
         program = fold(program);
 
-        resolve(program);
+        FunctionDesc *root = resolve(program);
         compile(program);
 
         if (debug_flag) {
             print_expr(program, 0);
         }
 
+        free_desc(root);
         free_expr(program);
     }
 

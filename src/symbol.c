@@ -70,6 +70,18 @@ FunctionDesc *make_desc() {
     return desc;
 }
 
+void free_desc(FunctionDesc *desc) {
+    int i;
+    for (i = 0; i < desc->numfunctions; i++) {
+        free_desc(desc->functions[i]);
+    }
+
+    free(desc->locals);
+    free(desc->upvars);
+    free(desc->functions);
+    free(desc);
+}
+
 void add_local(FunctionDesc *desc, Symbol *local) {
     if (desc->numlocals == desc->maxlocals) {
         desc->maxlocals *= 2;
@@ -226,6 +238,16 @@ void enter_scope(SymbolTable *table) {
 }
 
 void free_scope(Scope *scope) {
+    int i;
+    for (i = 0; i < MAP_SIZE; i++) {
+        HashItem *head = scope->buckets[i];
+        while (head != NULL) {
+            HashItem *temp = head->next;
+            free(head);
+            head = temp;
+        }
+    }
+
     free(scope->buckets);
     free(scope);
 }

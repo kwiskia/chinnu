@@ -44,4 +44,6 @@ struct FunctionDesc {
     int maxfunctions;
 };
 
+void free_desc(FunctionDesc *desc);
+
 FunctionDesc *resolve(Expression *expr);
