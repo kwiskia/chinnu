@@ -375,7 +375,7 @@ int main(int argc, char **argv) {
         yylex_destroy();
         fclose(fp);
 
-        program = fold(program);
+        // program = fold(program);
 
         FunctionDesc *root = resolve(program);
         compile(program);
