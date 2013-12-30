@@ -24,7 +24,7 @@
 #include "chinnu.h"
 #include "symbol.h"
 
-typedef struct Scope Scope;
+typedef struct Contour Contour;
 typedef struct HashItem HashItem;
 typedef struct SymbolTable SymbolTable;
 
@@ -35,14 +35,14 @@ struct HashItem {
     HashItem *next;
 };
 
-struct Scope {
+struct Contour {
     HashItem **buckets;
-    Scope *next;
+    Contour *next;
 };
 
 struct SymbolTable {
     int level;
-    Scope *top;
+    Contour *top;
     FunctionDesc *func;
 };
 
@@ -236,7 +236,7 @@ int hash(char *str) {
 
 void add_symbol(SymbolTable *table, Symbol *symbol) {
     if (!table->top) {
-        fatal("Empty scope.");
+        fatal("Empty contour.");
     }
 
     HashItem *item = malloc(sizeof(HashItem));
@@ -251,9 +251,9 @@ void add_symbol(SymbolTable *table, Symbol *symbol) {
     *head = item;
 }
 
-Symbol *scope_search(Scope *scope, char *name) {
+Symbol *contour_search(Contour *contour, char *name) {
     HashItem *head;
-    for (head = scope->buckets[hash(name)]; head != NULL; head = head->next) {
+    for (head = contour->buckets[hash(name)]; head != NULL; head = head->next) {
         if (strcmp(head->symbol->name, name) == 0) {
             return head->symbol;
         }
@@ -264,13 +264,13 @@ Symbol *scope_search(Scope *scope, char *name) {
 
 Symbol *find_symbol(SymbolTable *table, char *name) {
     if (!table->top) {
-        fatal("Empty scope.");
+        fatal("Empty contour.");
     }
 
-    Scope *head;
+    Contour *head;
     for (head = table->top; head != NULL; head = head->next) {
         Symbol *s;
-        if ((s = scope_search(head, name)) != NULL) {
+        if ((s = contour_search(head, name)) != NULL) {
             return s;
         }
     }
@@ -278,11 +278,11 @@ Symbol *find_symbol(SymbolTable *table, char *name) {
     return NULL;
 }
 
-void enter_scope(SymbolTable *table) {
-    Scope *scope = malloc(sizeof(Scope));
+void enter_contour(SymbolTable *table) {
+    Contour *contour = malloc(sizeof(Contour));
     HashItem **buckets = malloc(sizeof(HashItem) * MAP_SIZE);
 
-    if (!scope || !buckets) {
+    if (!contour || !buckets) {
         fatal("Out of memory.");
     }
 
@@ -291,15 +291,15 @@ void enter_scope(SymbolTable *table) {
         buckets[i] = NULL;
     }
 
-    scope->buckets = buckets;
-    scope->next = table->top;
-    table->top = scope;
+    contour->buckets = buckets;
+    contour->next = table->top;
+    table->top = contour;
 }
 
-void free_scope(Scope *scope) {
+void free_contour(Contour *contour) {
     int i;
     for (i = 0; i < MAP_SIZE; i++) {
-        HashItem *head = scope->buckets[i];
+        HashItem *head = contour->buckets[i];
         while (head != NULL) {
             HashItem *temp = head->next;
             free(head);
@@ -307,18 +307,18 @@ void free_scope(Scope *scope) {
         }
     }
 
-    free(scope->buckets);
-    free(scope);
+    free(contour->buckets);
+    free(contour);
 }
 
-void leave_scope(SymbolTable *table) {
+void leave_contour(SymbolTable *table) {
     if (!table->top) {
-        fatal("Empty scope.");
+        fatal("Empty contour.");
     }
 
-    Scope *temp = table->top;
+    Contour *temp = table->top;
     table->top = table->top->next;
-    free_scope(temp);
+    free_contour(temp);
 }
 
 /* forward */
@@ -387,10 +387,10 @@ void resolve_expr(SymbolTable *table, Expression *expr) {
             table->func = desc;
 
             table->level++;
-            enter_scope(table);
+            enter_contour(table);
             resolve_list(table, expr->llist);
             resolve_expr(table, expr->rexpr);
-            leave_scope(table);
+            leave_contour(table);
             table->level--;
 
             table->func = temp;
@@ -418,31 +418,31 @@ void resolve_expr(SymbolTable *table, Expression *expr) {
         case TYPE_IF:
             resolve_expr(table, expr->cond);
 
-            enter_scope(table);
+            enter_contour(table);
             resolve_expr(table, expr->lexpr);
-            leave_scope(table);
+            leave_contour(table);
 
             if (expr->rexpr) {
-                enter_scope(table);
+                enter_contour(table);
                 resolve_expr(table, expr->rexpr);
-                leave_scope(table);
+                leave_contour(table);
             }
             break;
 
         case TYPE_WHILE:
             resolve_expr(table, expr->cond);
 
-            enter_scope(table);
+            enter_contour(table);
             resolve_expr(table, expr->lexpr);
-            leave_scope(table);
+            leave_contour(table);
             break;
 
         case TYPE_CALL:
             resolve_expr(table, expr->lexpr);
 
-            enter_scope(table);
+            enter_contour(table);
             resolve_list(table, expr->llist);
-            leave_scope(table);
+            leave_contour(table);
             break;
 
         /* binary cases */
@@ -489,9 +489,9 @@ void resolve_expr(SymbolTable *table, Expression *expr) {
             break;
 
         case TYPE_BLOCK:
-            enter_scope(table);
+            enter_contour(table);
             resolve_list(table, expr->llist);
-            leave_scope(table);
+            leave_contour(table);
             break;
     }
 }
@@ -517,9 +517,9 @@ void resolve(Expression *expr) {
     table->level = 0;
     table->func = desc;
 
-    enter_scope(table);
+    enter_contour(table);
     resolve_expr(table, expr);
-    leave_scope(table);
+    leave_contour(table);
 
     free(table);
 }
