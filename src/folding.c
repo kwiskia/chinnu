@@ -46,7 +46,7 @@ Expression *fold_arith(Expression *expr) {
         int b = expr->rexpr->value->i;
         int c;
 
-        if (b == 0) {
+        if (expr->type == TYPE_DIV && b == 0) {
             return expr;
         }
 
@@ -63,7 +63,7 @@ Expression *fold_arith(Expression *expr) {
         double b = to_real(expr->rexpr);
         double c;
 
-        if (b == 0) {
+        if (expr->type == TYPE_DIV && b == 0) {
             return expr;
         }
 
