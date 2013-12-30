@@ -32,6 +32,14 @@ int is_logic_const(Expression *expr) {
     return expr->type == TYPE_BOOL;
 }
 
+int is_zero(Expression *expr) {
+    if (expr->type == TYPE_INT) {
+        return expr->value->i == 0;
+    }
+
+    return expr->value->d == 0;
+}
+
 double to_real(Expression *expr) {
     if (expr->type == TYPE_INT) {
         return (double) expr->value->i;
@@ -46,10 +54,6 @@ Expression *fold_arith(Expression *expr) {
         int b = expr->rexpr->value->i;
         int c;
 
-        if (expr->type == TYPE_DIV && b == 0) {
-            return expr;
-        }
-
         switch (expr->type) {
             case TYPE_ADD: c = a + b; break;
             case TYPE_SUB: c = a - b; break;
@@ -62,10 +66,6 @@ Expression *fold_arith(Expression *expr) {
         double a = to_real(expr->lexpr);
         double b = to_real(expr->rexpr);
         double c;
-
-        if (expr->type == TYPE_DIV && b == 0) {
-            return expr;
-        }
 
         switch (expr->type) {
             case TYPE_ADD: c = a + b; break;
@@ -185,6 +185,12 @@ Expression *fold_expr(Expression *expr) {
             expr->lexpr = fold_expr(expr->lexpr);
             expr->rexpr = fold_expr(expr->rexpr);
 
+            // protect against div by zero
+            if (expr->type == TYPE_DIV && is_arith_const(expr->rexpr) && is_zero(expr->rexpr)) {
+                break;
+            }
+
+            // operation can be folded
             if (is_arith_const(expr->lexpr) && is_arith_const(expr->rexpr)) {
                 Expression *n = fold_arith(expr);
 
@@ -194,6 +200,96 @@ Expression *fold_expr(Expression *expr) {
                 }
 
                 return n;
+            }
+
+            // lexpr = 0
+            if (is_arith_const(expr->lexpr) && is_zero(expr->lexpr)) {
+                switch (expr->type) {
+                    case TYPE_ADD:
+                    {
+                        // 0 + x = x
+                        Expression *n = expr->rexpr;
+                        free_expr(expr->lexpr);
+                        free_expr_shallow(expr);
+                        return n;
+                    }
+
+                    case TYPE_MUL:
+                    case TYPE_DIV:
+                    {
+                        // 0 * x = 0
+                        // 0 / x = 0
+                        Expression *n;
+                        if (expr->lexpr->type == TYPE_REAL || expr->rexpr->type == TYPE_REAL) {
+                            n = make_real(expr->pos, 0);
+                        } else {
+                            n = make_int(expr->pos, 0);
+                        }
+
+                        free_expr(expr);
+                        return n;
+                    }
+                }
+            }
+
+            // rexpr = 0
+            if (is_arith_const(expr->rexpr) && is_zero(expr->rexpr)) {
+                switch (expr->type) {
+                    case TYPE_SUB:
+                    case TYPE_ADD:
+                    {
+                        // x + 0 = x
+                        // x - 0 = x
+                        Expression *n = expr->lexpr;
+                        free_expr(expr->rexpr);
+                        free_expr_shallow(expr);
+                        return n;
+                    }
+
+                    case TYPE_MUL:
+                    {
+                        // x * 0 = 0
+                        Expression *n;
+                        if (expr->lexpr->type == TYPE_REAL || expr->rexpr->type == TYPE_REAL) {
+                            n = make_real(expr->pos, 0);
+                        } else {
+                            n = make_int(expr->pos, 0);
+                        }
+
+                        free_expr(expr);
+                        return n;
+                    }
+                }
+            }
+
+            // lexpr = 1
+            if (is_arith_const(expr->lexpr) && to_real(expr->lexpr) == 1) {
+                switch (expr->type) {
+                    case TYPE_MUL:
+                    {
+                        // 1 * x = x
+                        Expression *n = expr->rexpr;
+                        free_expr(expr->lexpr);
+                        free_expr_shallow(expr);
+                        return n;
+                    }
+                }
+            }
+
+            // rexpr = 1
+            if (is_arith_const(expr->rexpr) && to_real(expr->rexpr) == 1) {
+                switch (expr->type) {
+                    case TYPE_MUL:
+                    case TYPE_DIV:
+                    {
+                        // x * 1 = x
+                        // x / 1 = x
+                        Expression *n = expr->lexpr;
+                        free_expr(expr->rexpr);
+                        free_expr_shallow(expr);
+                        return n;
+                    }
+                }
             }
             break;
 
