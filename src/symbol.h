@@ -29,10 +29,28 @@ struct Symbol {
     Expression *declaration;
 };
 
+typedef struct Local Local;
+typedef struct Upvar Upvar;
+
+struct Local {
+    Symbol *symbol;
+};
+
+typedef enum {
+    PARENT_LOCAL,
+    PARENT_UPVAR
+} UpvarRefType;
+
+struct Upvar {
+    int refslot;
+    int reftype;
+    Symbol *symbol;
+};
+
 struct FunctionDesc {
     FunctionDesc *parent;
-    Symbol **locals;
-    Symbol **upvars;
+    Local **locals;
+    Upvar **upvars;
     FunctionDesc **functions;
 
     int numlocals;

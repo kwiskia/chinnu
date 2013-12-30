@@ -46,10 +46,32 @@ struct SymbolTable {
     FunctionDesc *func;
 };
 
+Local *make_local(Symbol *symbol) {
+    Local *local = malloc(sizeof(Local));
+
+    if (!local) {
+        fatal("Out of memory.");
+    }
+
+    local->symbol = symbol;
+    return local;
+}
+
+Upvar *make_upvar(Symbol *symbol) {
+    Upvar *upvar = malloc(sizeof(Upvar));
+
+    if (!upvar) {
+        fatal("Out of memory.");
+    }
+
+    upvar->symbol = symbol;
+    return upvar;
+}
+
 FunctionDesc *make_desc() {
     FunctionDesc *desc = malloc(sizeof(FunctionDesc));
-    Symbol **locals = malloc(sizeof(Symbol *) * 8);
-    Symbol **upvars = malloc(sizeof(Symbol *) * 8);
+    Local **locals = malloc(sizeof(Local *) * 8);
+    Upvar **upvars = malloc(sizeof(Upvar *) * 8);
     FunctionDesc **functions = malloc(sizeof(FunctionDesc *) * 4);
 
     if (!desc || !locals || !upvars || !functions) {
@@ -72,6 +94,14 @@ FunctionDesc *make_desc() {
 
 void free_desc(FunctionDesc *desc) {
     int i;
+    for (i = 0; i < desc->numlocals; i++) {
+        free(desc->locals[i]);
+    }
+
+    for (i = 0; i < desc->numupvars; i++) {
+        free(desc->upvars[i]);
+    }
+
     for (i = 0; i < desc->numfunctions; i++) {
         free_desc(desc->functions[i]);
     }
@@ -82,11 +112,11 @@ void free_desc(FunctionDesc *desc) {
     free(desc);
 }
 
-void add_local(FunctionDesc *desc, Symbol *local) {
+int add_local(FunctionDesc *desc, Local *local) {
     if (desc->numlocals == desc->maxlocals) {
         desc->maxlocals *= 2;
 
-        Symbol **resize = realloc(desc->locals, sizeof(Symbol *) * desc->maxlocals);
+        Local **resize = realloc(desc->locals, sizeof(Local *) * desc->maxlocals);
 
         if (!resize) {
             fatal("Out of memory.");
@@ -95,14 +125,15 @@ void add_local(FunctionDesc *desc, Symbol *local) {
         desc->locals = resize;
     }
 
-    desc->locals[desc->numlocals++] = local;
+    desc->locals[desc->numlocals] = local;
+    return desc->numlocals++;
 }
 
-void add_upvar(FunctionDesc *desc, Symbol *upvar) {
+int add_upvar(FunctionDesc *desc, Upvar *upvar) {
     if (desc->numupvars == desc->maxupvars) {
         desc->maxupvars *= 2;
 
-        Symbol **resize = realloc(desc->upvars, sizeof(Symbol *) * desc->maxupvars);
+        Upvar **resize = realloc(desc->upvars, sizeof(Upvar *) * desc->maxupvars);
 
         if (!resize) {
             fatal("Out of memory.");
@@ -111,10 +142,11 @@ void add_upvar(FunctionDesc *desc, Symbol *upvar) {
         desc->upvars = resize;
     }
 
-    desc->upvars[desc->numupvars++] = upvar;
+    desc->upvars[desc->numupvars] = upvar;
+    return desc->numupvars++;
 }
 
-void add_function(FunctionDesc *desc, FunctionDesc *function) {
+int add_function(FunctionDesc *desc, FunctionDesc *function) {
     if (desc->numfunctions == desc->maxfunctions) {
         desc->maxfunctions *= 2;
 
@@ -127,24 +159,54 @@ void add_function(FunctionDesc *desc, FunctionDesc *function) {
         desc->functions = resize;
     }
 
-    desc->functions[desc->numfunctions++] = function;
+    desc->functions[desc->numfunctions] = function;
+    return desc->numfunctions++;
 }
 
-int has_ref(FunctionDesc *desc, Symbol *symbol) {
+int local_index(FunctionDesc *desc, Symbol *symbol) {
     int i;
     for (i = 0; i < desc->numlocals; i++) {
-        if (desc->locals[i] == symbol) {
-            return 1;
+        if (desc->locals[i]->symbol == symbol) {
+            return i;
         }
     }
 
+    return -1;
+}
+
+int upvar_index(FunctionDesc *desc, Symbol *symbol) {
+    int i;
     for (i = 0; i < desc->numupvars; i++) {
-        if (desc->upvars[i] == symbol) {
-            return 1;
+        if (desc->upvars[i]->symbol == symbol) {
+            return i;
         }
     }
 
-    return 0;
+    return -1;
+}
+
+int register_upvar(FunctionDesc *desc, Symbol *symbol) {
+    int index = upvar_index(desc, symbol);
+
+    if (index != -1) {
+        return index;
+    }
+
+    index = local_index(desc->parent, symbol);
+
+    Upvar *upvar = make_upvar(symbol);
+
+    if (index != -1) {
+        upvar->refslot = index;
+        upvar->reftype = PARENT_LOCAL;
+    } else {
+        index = register_upvar(desc->parent, symbol);
+
+        upvar->refslot = index;
+        upvar->reftype = PARENT_UPVAR;
+    }
+
+    return add_upvar(desc, upvar);
 }
 
 static int symbol_id = 0;
@@ -289,7 +351,7 @@ void resolve_expr(SymbolTable *table, Expression *expr) {
             expr->symbol = symbol;
 
             add_symbol(table, symbol);
-            add_local(table->func, symbol);
+            add_local(table->func, make_local(symbol));
         } break;
 
         case TYPE_FUNC:
@@ -311,7 +373,7 @@ void resolve_expr(SymbolTable *table, Expression *expr) {
                 expr->symbol = symbol;
 
                 add_symbol(table, symbol);
-                add_local(table->func, symbol);
+                add_local(table->func, make_local(symbol));
             }
 
             FunctionDesc *temp = table->func;
@@ -343,14 +405,7 @@ void resolve_expr(SymbolTable *table, Expression *expr) {
                 // put something here to find more errors [?]
             } else {
                 if (symbol->level != table->level) {
-                    FunctionDesc *head;
-                    for (head = table->func; head != NULL; head = head->parent) {
-                        if (has_ref(head, symbol)) {
-                            break;
-                        }
-
-                        add_upvar(head, symbol);
-                    }
+                    register_upvar(table->func, symbol);
                 }
 
                 expr->symbol = symbol;
