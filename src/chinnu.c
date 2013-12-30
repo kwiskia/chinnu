@@ -25,7 +25,6 @@
 
 #include "chinnu.h"
 #include "symbol.h"
-#include "folding.h"
 #include "compile.h"
 
 extern FILE *yyin;
@@ -374,8 +373,6 @@ int main(int argc, char **argv) {
         yyparse();
         yylex_destroy();
         fclose(fp);
-
-        // program = fold(program);
 
         FunctionDesc *root = resolve(program);
         compile(program);
