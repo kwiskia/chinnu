@@ -281,17 +281,15 @@ void resolve_expr(SymbolTable *table, Expression *expr) {
                 message(symbol->declaration->pos, "Previous definition is here.");
             }
 
+            if (expr->rexpr) {
+                resolve_expr(table, expr->rexpr);
+            }
+
             symbol = make_symbol(expr->value->s, table->level, expr);
             expr->symbol = symbol;
 
             add_symbol(table, symbol);
             add_local(table->func, symbol);
-
-            // TODO - can refer to itself before initialization
-
-            if (expr->rexpr) {
-                resolve_expr(table, expr->rexpr);
-            }
         } break;
 
         case TYPE_FUNC:
