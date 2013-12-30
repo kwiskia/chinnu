@@ -43,7 +43,7 @@ struct Contour {
 struct SymbolTable {
     int level;
     Contour *top;
-    FunctionDesc *func;
+    Scope *scope;
 };
 
 Local *make_local(Symbol *symbol) {
@@ -68,102 +68,102 @@ Upvar *make_upvar(Symbol *symbol) {
     return upvar;
 }
 
-FunctionDesc *make_desc(Expression *expr) {
-    FunctionDesc *desc = malloc(sizeof(FunctionDesc));
+Scope *make_scope(Expression *expr) {
+    Scope *scope = malloc(sizeof(Scope));
     Local **locals = malloc(sizeof(Local *) * 8);
     Upvar **upvars = malloc(sizeof(Upvar *) * 8);
-    FunctionDesc **functions = malloc(sizeof(FunctionDesc *) * 4);
+    Scope **children = malloc(sizeof(Scope *) * 4);
 
-    if (!desc || !locals || !upvars || !functions) {
+    if (!scope || !locals || !upvars || !children) {
         fatal("Out of memory.");
     }
 
-    desc->expr = expr;
-    desc->parent = NULL;
-    desc->locals = locals;
-    desc->upvars = upvars;
-    desc->functions = functions;
-    desc->numlocals = 0;
-    desc->numupvars = 0;
-    desc->numfunctions = 0;
-    desc->maxlocals = 8;
-    desc->maxupvars = 8;
-    desc->maxfunctions = 4;
+    scope->expr = expr;
+    scope->parent = NULL;
+    scope->locals = locals;
+    scope->upvars = upvars;
+    scope->children = children;
+    scope->numlocals = 0;
+    scope->numupvars = 0;
+    scope->numchildren = 0;
+    scope->maxlocals = 8;
+    scope->maxupvars = 8;
+    scope->maxchildren = 4;
 
-    return desc;
+    return scope;
 }
 
-void free_desc(FunctionDesc *desc) {
+void free_scope(Scope *scope) {
     int i;
-    for (i = 0; i < desc->numlocals; i++) {
-        free(desc->locals[i]);
+    for (i = 0; i < scope->numlocals; i++) {
+        free(scope->locals[i]);
     }
 
-    for (i = 0; i < desc->numupvars; i++) {
-        free(desc->upvars[i]);
+    for (i = 0; i < scope->numupvars; i++) {
+        free(scope->upvars[i]);
     }
 
-    free(desc->locals);
-    free(desc->upvars);
-    free(desc->functions);
-    free(desc);
+    free(scope->locals);
+    free(scope->upvars);
+    free(scope->children);
+    free(scope);
 }
 
-int add_local(FunctionDesc *desc, Local *local) {
-    if (desc->numlocals == desc->maxlocals) {
-        desc->maxlocals *= 2;
+int add_local(Scope *scope, Local *local) {
+    if (scope->numlocals == scope->maxlocals) {
+        scope->maxlocals *= 2;
 
-        Local **resize = realloc(desc->locals, sizeof(Local *) * desc->maxlocals);
+        Local **resize = realloc(scope->locals, sizeof(Local *) * scope->maxlocals);
 
         if (!resize) {
             fatal("Out of memory.");
         }
 
-        desc->locals = resize;
+        scope->locals = resize;
     }
 
-    desc->locals[desc->numlocals] = local;
-    return desc->numlocals++;
+    scope->locals[scope->numlocals] = local;
+    return scope->numlocals++;
 }
 
-int add_upvar(FunctionDesc *desc, Upvar *upvar) {
-    if (desc->numupvars == desc->maxupvars) {
-        desc->maxupvars *= 2;
+int add_upvar(Scope *scope, Upvar *upvar) {
+    if (scope->numupvars == scope->maxupvars) {
+        scope->maxupvars *= 2;
 
-        Upvar **resize = realloc(desc->upvars, sizeof(Upvar *) * desc->maxupvars);
+        Upvar **resize = realloc(scope->upvars, sizeof(Upvar *) * scope->maxupvars);
 
         if (!resize) {
             fatal("Out of memory.");
         }
 
-        desc->upvars = resize;
+        scope->upvars = resize;
     }
 
-    desc->upvars[desc->numupvars] = upvar;
-    return desc->numupvars++;
+    scope->upvars[scope->numupvars] = upvar;
+    return scope->numupvars++;
 }
 
-int add_function(FunctionDesc *desc, FunctionDesc *function) {
-    if (desc->numfunctions == desc->maxfunctions) {
-        desc->maxfunctions *= 2;
+int add_child(Scope *scope, Scope *child) {
+    if (scope->numchildren == scope->maxchildren) {
+        scope->maxchildren *= 2;
 
-        FunctionDesc **resize = realloc(desc->functions, sizeof(FunctionDesc *) * desc->maxfunctions);
+        Scope **resize = realloc(scope->children, sizeof(Scope *) * scope->maxchildren);
 
         if (!resize) {
             fatal("Out of memory.");
         }
 
-        desc->functions = resize;
+        scope->children = resize;
     }
 
-    desc->functions[desc->numfunctions] = function;
-    return desc->numfunctions++;
+    scope->children[scope->numchildren] = child;
+    return scope->numchildren++;
 }
 
-int local_index(FunctionDesc *desc, Symbol *symbol) {
+int local_index(Scope *scope, Symbol *symbol) {
     int i;
-    for (i = 0; i < desc->numlocals; i++) {
-        if (desc->locals[i]->symbol == symbol) {
+    for (i = 0; i < scope->numlocals; i++) {
+        if (scope->locals[i]->symbol == symbol) {
             return i;
         }
     }
@@ -171,10 +171,10 @@ int local_index(FunctionDesc *desc, Symbol *symbol) {
     return -1;
 }
 
-int upvar_index(FunctionDesc *desc, Symbol *symbol) {
+int upvar_index(Scope *scope, Symbol *symbol) {
     int i;
-    for (i = 0; i < desc->numupvars; i++) {
-        if (desc->upvars[i]->symbol == symbol) {
+    for (i = 0; i < scope->numupvars; i++) {
+        if (scope->upvars[i]->symbol == symbol) {
             return i;
         }
     }
@@ -182,14 +182,14 @@ int upvar_index(FunctionDesc *desc, Symbol *symbol) {
     return -1;
 }
 
-int register_upvar(FunctionDesc *desc, Symbol *symbol) {
-    int index = upvar_index(desc, symbol);
+int register_upvar(Scope *scope, Symbol *symbol) {
+    int index = upvar_index(scope, symbol);
 
     if (index != -1) {
         return index;
     }
 
-    index = local_index(desc->parent, symbol);
+    index = local_index(scope->parent, symbol);
 
     Upvar *upvar = make_upvar(symbol);
 
@@ -197,13 +197,13 @@ int register_upvar(FunctionDesc *desc, Symbol *symbol) {
         upvar->refslot = index;
         upvar->reftype = PARENT_LOCAL;
     } else {
-        index = register_upvar(desc->parent, symbol);
+        index = register_upvar(scope->parent, symbol);
 
         upvar->refslot = index;
         upvar->reftype = PARENT_UPVAR;
     }
 
-    return add_upvar(desc, upvar);
+    return add_upvar(scope, upvar);
 }
 
 static int symbol_id = 0;
@@ -352,7 +352,7 @@ void resolve_expr(SymbolTable *table, Expression *expr) {
             expr->symbol = symbol;
 
             add_symbol(table, symbol);
-            add_local(table->func, make_local(symbol));
+            add_local(table->scope, make_local(symbol));
         } break;
 
         case TYPE_FUNC:
@@ -374,17 +374,17 @@ void resolve_expr(SymbolTable *table, Expression *expr) {
                 expr->symbol = symbol;
 
                 add_symbol(table, symbol);
-                add_local(table->func, make_local(symbol));
+                add_local(table->scope, make_local(symbol));
             }
 
-            FunctionDesc *temp = table->func;
-            FunctionDesc *desc = make_desc(expr);
+            Scope *temp = table->scope;
+            Scope *scope = make_scope(expr);
 
-            expr->desc = desc;
-            desc->parent = temp;
-            add_function(temp, desc);
+            expr->scope = scope;
+            scope->parent = temp;
+            add_child(temp, scope);
 
-            table->func = desc;
+            table->scope = scope;
 
             table->level++;
             enter_contour(table);
@@ -393,7 +393,7 @@ void resolve_expr(SymbolTable *table, Expression *expr) {
             leave_contour(table);
             table->level--;
 
-            table->func = temp;
+            table->scope = temp;
         } break;
 
         case TYPE_VARREF:
@@ -407,7 +407,7 @@ void resolve_expr(SymbolTable *table, Expression *expr) {
                 // put something here to find more errors [?]
             } else {
                 if (symbol->level != table->level) {
-                    register_upvar(table->func, symbol);
+                    register_upvar(table->scope, symbol);
                 }
 
                 expr->symbol = symbol;
@@ -510,12 +510,12 @@ void resolve(Expression *expr) {
         fatal("Out of memory.");
     }
 
-    FunctionDesc *desc = make_desc(expr);
-    expr->desc = desc;
+    Scope *scope = make_scope(expr);
+    expr->scope = scope;
 
     table->top = NULL;
     table->level = 0;
-    table->func = desc;
+    table->scope = scope;
 
     enter_contour(table);
     resolve_expr(table, expr);

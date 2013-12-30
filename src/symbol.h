@@ -47,22 +47,22 @@ struct Upvar {
     Symbol *symbol;
 };
 
-struct FunctionDesc {
+struct Scope {
     Expression *expr;
-    FunctionDesc *parent;
+    Scope *parent;
     Local **locals;
     Upvar **upvars;
-    FunctionDesc **functions;
+    Scope **children;
 
     int numlocals;
     int numupvars;
-    int numfunctions;
+    int numchildren;
 
     int maxlocals;
     int maxupvars;
-    int maxfunctions;
+    int maxchildren;
 };
 
-void free_desc(FunctionDesc *desc);
+void free_scope(Scope *scope);
 
 void resolve(Expression *expr);

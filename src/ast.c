@@ -68,7 +68,7 @@ Expression *allocexpr() {
     expr->llist = NULL;
     expr->value = NULL;
     expr->symbol = NULL;
-    expr->desc = NULL;
+    expr->scope = NULL;
     expr->immutable = 0;
 
     return expr;
@@ -104,8 +104,8 @@ void free_expr(Expression *expr) {
             free(expr->value);
         }
 
-        if (expr->desc) {
-            free_desc(expr->desc);
+        if (expr->scope) {
+            free_scope(expr->scope);
         }
 
         free(expr);

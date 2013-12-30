@@ -84,7 +84,7 @@ struct Expression {
 
     Val *value;
     Symbol *symbol;
-    FunctionDesc *desc;
+    Scope *scope;
     SourcePos pos;
 };
 

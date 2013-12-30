@@ -36,28 +36,28 @@ extern void yylex_destroy();
 /* forward */
 void print_list(ExpressionList *list, int indent);
 
-void print_desc(FunctionDesc *desc, int indent) {
+void print_scope(Scope *scope, int indent) {
     int i;
-    for (i = 0; i < desc->numlocals; i++) {
+    for (i = 0; i < scope->numlocals; i++) {
         int j;
         for (j = 0; j < indent; j++) {
             printf("\t");
         }
 
-        printf("Local %s at slot %d\n", desc->locals[i]->symbol->name, i);
+        printf("Local %s at slot %d\n", scope->locals[i]->symbol->name, i);
     }
 
-    for (i = 0; i < desc->numupvars; i++) {
+    for (i = 0; i < scope->numupvars; i++) {
         int j;
         for (j = 0; j < indent; j++) {
             printf("\t");
         }
 
-        printf("Upvar %s at slot %d (in parent slot %d (%d))\n", desc->upvars[i]->symbol->name, i, desc->upvars[i]->refslot, desc->upvars[i]->reftype);
+        printf("Upvar %s at slot %d (in parent slot %d (%d))\n", scope->upvars[i]->symbol->name, i, scope->upvars[i]->refslot, scope->upvars[i]->reftype);
     }
 
-    for (i = 0; i < desc->numfunctions; i++) {
-        print_desc(desc->functions[i], indent + 1);
+    for (i = 0; i < scope->numchildren; i++) {
+        print_scope(scope->children[i], indent + 1);
     }
 }
 
@@ -109,8 +109,8 @@ void print_expr(Expression *expr, int indent) {
                 printf("[%s]\n", expression_type_names[expr->type]);
         }
 
-        if (expr->desc) {
-            print_desc(expr->desc, indent);
+        if (expr->scope) {
+            print_scope(expr->scope, indent);
         }
 
         if (expr->cond) print_expr(expr->cond, indent + 1);
