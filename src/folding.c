@@ -136,6 +136,21 @@ Expression *fold_expr(Expression *expr) {
         case TYPE_WHILE:
             expr->cond = fold_expr(expr->cond);
             expr->lexpr = fold_expr(expr->lexpr);
+
+            if (is_logic_const(expr->cond)) {
+                Expression *n;
+
+                if (expr->cond->value->i) {
+                    n = expr->lexpr;
+                } else {
+                    n = make_null(expr->pos);
+                    free_expr(expr->lexpr);
+                }
+
+                free_expr(expr->cond);
+                free_expr_shallow(expr);
+                return n;
+            }
             break;
 
         case TYPE_CALL:
