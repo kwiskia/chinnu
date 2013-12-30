@@ -252,6 +252,12 @@ Expression *fold_expr(Expression *expr) {
 
         case TYPE_BLOCK:
             expr->llist = fold_list(expr->llist);
+
+            if (expr->llist->head == NULL) {
+                Expression *n = make_null(expr->pos);
+                free_expr(expr);
+                return n;
+            }
             break;
     }
 
@@ -264,12 +270,22 @@ ExpressionList *fold_list(ExpressionList *list) {
         head->expr = fold(head->expr);
     }
 
+    head = list->head;
+    while (head != NULL) {
+        if (head->expr->type == TYPE_NULL && head->next != NULL) {
+            free_expr(head->expr);
+            ExpressionNode *temp = head->next;
+            head->expr = head->next->expr;
+            head->next = head->next->next;
+            free(temp);
+        } else {
+            head = head->next;
+        }
+    }
+
     return list;
 }
 
 Expression *fold(Expression *expr) {
-    // TODO - remove nil nodes that don't end a block
-    // TODO - reduce blocks of a single expr to that expr
-
     return fold_expr(expr);
 }
