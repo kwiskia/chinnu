@@ -96,14 +96,14 @@ void free_expr(Expression *expr) {
 void free_expr_shallow(Expression *expr) {
     if (expr) {
         if (expr->value) {
-            if (expr->type == TYPE_VARREF || expr->type == TYPE_DECLARATION || expr->type == TYPE_STRING) {
+            if (expr->type == TYPE_VARREF || expr->type == TYPE_DECLARATION || expr->type == TYPE_STRING || expr->type == TYPE_FUNC) {
                 free(expr->value->s);
             }
 
             free(expr->value);
         }
 
-        if (expr->type == TYPE_DECLARATION) {
+        if (expr->type == TYPE_DECLARATION || (expr->type == TYPE_FUNC && expr->value)) {
             free(expr->symbol->name);
             free(expr->symbol);
         }
