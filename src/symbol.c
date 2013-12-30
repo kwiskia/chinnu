@@ -215,7 +215,8 @@ void enter_scope(SymbolTable *table) {
         fatal("Out of memory.");
     }
 
-    for (int i = 0; i < MAP_SIZE; i++) {
+    int i;
+    for (i = 0; i < MAP_SIZE; i++) {
         buckets[i] = NULL;
     }
 
