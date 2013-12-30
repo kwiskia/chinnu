@@ -89,12 +89,6 @@ void free_expr(Expression *expr) {
         if (expr->rexpr) free_expr(expr->rexpr);
         if (expr->llist) free_list(expr->llist);
 
-        free_expr_shallow(expr);
-    }
-}
-
-void free_expr_shallow(Expression *expr) {
-    if (expr) {
         if (expr->value) {
             if (expr->type == TYPE_VARREF || expr->type == TYPE_DECLARATION || expr->type == TYPE_STRING || expr->type == TYPE_FUNC) {
                 free(expr->value->s);
