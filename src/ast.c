@@ -89,17 +89,17 @@ void free_expr(Expression *expr) {
         if (expr->rexpr) free_expr(expr->rexpr);
         if (expr->llist) free_list(expr->llist);
 
+        if (expr->type == TYPE_DECLARATION || (expr->type == TYPE_FUNC && expr->value->s != NULL)) {
+            free(expr->symbol->name);
+            free(expr->symbol);
+        }
+
         if (expr->value) {
             if (expr->type == TYPE_VARREF || expr->type == TYPE_DECLARATION || expr->type == TYPE_STRING || expr->type == TYPE_FUNC) {
                 free(expr->value->s);
             }
 
             free(expr->value);
-        }
-
-        if (expr->type == TYPE_DECLARATION || (expr->type == TYPE_FUNC && expr->value)) {
-            free(expr->symbol->name);
-            free(expr->symbol);
         }
 
         free(expr);
