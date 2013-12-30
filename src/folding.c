@@ -128,6 +128,7 @@ Expression *fold_expr(Expression *expr) {
                     free_expr(expr->lexpr);
                 }
 
+                free_expr(expr->cond);
                 free_expr_shallow(expr);
                 return n;
             }
