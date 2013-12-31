@@ -157,10 +157,9 @@ void compile_expr(Expression *expr, Chunk *chunk, int dest) {
 
         case TYPE_DECLARATION:
             if (expr->rexpr) {
-                int index = get_local_index(chunk, expr->symbol);
-                compile_expr(expr->rexpr, chunk, index);
+                compile_expr(expr->rexpr, chunk, dest);
                 // TODO - peephole optimize
-                add_instruction(chunk, CREATE(OP_MOVE, dest, index, 0));
+                add_instruction(chunk, CREATE(OP_MOVE, get_local_index(chunk, expr->symbol), dest, 0));
             }
             break;
 
@@ -304,10 +303,9 @@ void compile_expr(Expression *expr, Chunk *chunk, int dest) {
         case TYPE_ASSIGN:
         {
             // TODO - upvars
-            int index = get_local_index(chunk, expr->lexpr->symbol);
-            compile_expr(expr->rexpr, chunk, index);
+            compile_expr(expr->rexpr, chunk, dest);
             // TODO - peephole optimize
-            add_instruction(chunk, CREATE(OP_MOVE, dest, index, 0));
+            add_instruction(chunk, CREATE(OP_MOVE, get_local_index(chunk, expr->lexpr->symbol), dest, 0));
         } break;
 
         case TYPE_ADD:
