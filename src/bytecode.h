@@ -39,7 +39,7 @@
 #define GET_B(i) ((i >> POS_B) & MAX_B)
 #define GET_C(i) ((i >> POS_C) & MAX_C)
 
-#define CREATE(op, a, b, c) ((op << POS_O) | (a << POS_A) | (b << POS_B) | (c << POS_C))
+#define CREATE(op, a, b, c) ((op << POS_O) | ((a) << POS_A) | ((b) << POS_B) | ((c) << POS_C))
 
 typedef enum {
     OP_MOVE,            // R(A) := RK(B)
@@ -50,7 +50,7 @@ typedef enum {
     OP_SUB,             // R(A) := RK(B) - RK(C)
     OP_MUL,             // R(A) := RK(B) * RK(C)
     OP_DIV,             // R(A) := RK(B) / RK(C)
-    OP_UNM,             // R(A) := -RK(B)
+    OP_NEG,             // R(A) := -RK(B)
     OP_NOT,             // R(A) := ~RK(B)
 
     OP_EQ,              // R(A) := RK(B) == RK(C)

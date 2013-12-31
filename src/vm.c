@@ -17,4 +17,347 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
 #include "vm.h"
+#include "chinnu.h"
+#include "bytecode.h"
+
+typedef struct Object Object;
+
+struct Object {
+    int type;
+    Val value;
+};
+
+typedef enum {
+    OBJECT_INT,
+    OBJECT_REAL,
+    OBJECT_BOOL,
+    OBJECT_NULL,
+    OBJECT_STRING
+} ObjectType;
+
+void execute(Chunk *chunk) {
+    int pc = 0;
+
+    // TODO - handle upvalues
+    Object **frame = malloc(sizeof(Object) * (chunk->scope->numlocals + chunk->numtemps + 1));
+
+    if (!frame) {
+        fatal("Out of memory.");
+    }
+
+    int i;
+    for (i = 0; i < chunk->scope->numlocals + chunk->numtemps + 1; i++) {
+        Object *object = malloc(sizeof(Object));
+        Val *value = malloc(sizeof(Val));
+
+        if (!object || !value) {
+            fatal("Out of memory.");
+        }
+
+        object->type = -1; // uninitialized
+        object->value = *value;
+        frame[i] = object;
+    }
+
+    while (pc < chunk->numinstructions) {
+        int instruction = chunk->instructions[pc];
+
+        int o = GET_O(instruction);
+        int a = GET_A(instruction);
+        int b = GET_B(instruction);
+        int c = GET_C(instruction);
+
+        switch (o) {
+            case OP_MOVE:
+                if (b < 256) {
+                    // TODO - clear old string?
+
+                    switch (frame[b]->type) {
+                        case OBJECT_INT:
+                            frame[a]->type = OBJECT_INT;
+                            frame[a]->value.i = frame[b]->value.i;
+                            break;
+
+                        case OBJECT_BOOL:
+                            frame[a]->type = OBJECT_BOOL;
+                            frame[a]->value.i = frame[b]->value.i;
+                            break;
+
+                        case OBJECT_REAL:
+                            frame[a]->type = OBJECT_REAL;
+                            frame[a]->value.d = frame[b]->value.d;
+                            break;
+
+                        case OBJECT_NULL:
+                            frame[a]->type = OBJECT_NULL;
+                            break;
+
+                        case OBJECT_STRING:
+                            frame[a]->type = OBJECT_STRING;
+                            frame[a]->value.s = frame[b]->value.s;
+                            break;
+                    }
+                } else {
+                    // TODO - clear old string?
+
+                    Constant *constant = chunk->constants[b - 256];
+
+                    switch (constant->type) {
+                        case CONST_INT:
+                            frame[a]->type = OBJECT_INT;
+                            frame[a]->value.i = constant->value->i;
+                            break;
+
+                        case CONST_BOOL:
+                            frame[a]->type = OBJECT_BOOL;
+                            frame[a]->value.i = constant->value->i;
+                            break;
+
+                        case CONST_REAL:
+                            frame[a]->type = OBJECT_REAL;
+                            frame[a]->value.d = constant->value->d;
+                            break;
+
+                        case CONST_NULL:
+                            frame[a]->type = OBJECT_NULL;
+                            break;
+
+                        case CONST_STRING:
+                            frame[a]->type = OBJECT_STRING;
+                            frame[a]->value.s = constant->value->s;
+                            break;
+                    }
+                }
+                break;
+
+            case OP_GETUPVAR:
+                fatal("Opcode OP_GETUPVAR not implemented.\n");
+                break;
+
+            case OP_SETUPVAR:
+                fatal("Opcode OP_SETUPVAR not implemented.\n");
+                break;
+
+            case OP_ADD:
+                // TODO - do with constants as well
+                if (frame[b]->type == OBJECT_INT && frame[c]->type == OBJECT_INT) {
+                    frame[a]->type = OBJECT_INT;
+                    frame[a]->value.i = frame[b]->value.i + frame[c]->value.i;
+                } else if (frame[b]->type == OBJECT_INT && frame[c]->type == OBJECT_REAL) {
+                    frame[a]->type = OBJECT_REAL;
+                    frame[a]->value.d = (double) frame[b]->value.i + frame[c]->value.d;
+                } else if (frame[b]->type == OBJECT_REAL && frame[c]->type == OBJECT_INT) {
+                    frame[a]->type = OBJECT_REAL;
+                    frame[a]->value.d = frame[b]->value.d + (double) frame[c]->value.i;
+                } else if (frame[b]->type == OBJECT_REAL && frame[c]->type == OBJECT_REAL) {
+                    frame[a]->type = OBJECT_REAL;
+                    frame[a]->value.d = frame[b]->value.d + frame[c]->value.d;
+                } else {
+                    fatal("Tried to add non-numbers.");
+                }
+                break;
+
+            case OP_SUB:
+                // TODO - do with constants as well
+                if (frame[b]->type == OBJECT_INT && frame[c]->type == OBJECT_INT) {
+                    frame[a]->type = OBJECT_INT;
+                    frame[a]->value.i = frame[b]->value.i - frame[c]->value.i;
+                } else if (frame[b]->type == OBJECT_INT && frame[c]->type == OBJECT_REAL) {
+                    frame[a]->type = OBJECT_REAL;
+                    frame[a]->value.d = (double) frame[b]->value.i - frame[c]->value.d;
+                } else if (frame[b]->type == OBJECT_REAL && frame[c]->type == OBJECT_INT) {
+                    frame[a]->type = OBJECT_REAL;
+                    frame[a]->value.d = frame[b]->value.d - (double) frame[c]->value.i;
+                } else if (frame[b]->type == OBJECT_REAL && frame[c]->type == OBJECT_REAL) {
+                    frame[a]->type = OBJECT_REAL;
+                    frame[a]->value.d = frame[b]->value.d - frame[c]->value.d;
+                } else {
+                    fatal("Tried to sub non-numbers.");
+                }
+                break;
+
+            case OP_MUL:
+                // TODO - do with constants as well
+                if (frame[b]->type == OBJECT_INT && frame[c]->type == OBJECT_INT) {
+                    frame[a]->type = OBJECT_INT;
+                    frame[a]->value.i = frame[b]->value.i * frame[c]->value.i;
+                } else if (frame[b]->type == OBJECT_INT && frame[c]->type == OBJECT_REAL) {
+                    frame[a]->type = OBJECT_REAL;
+                    frame[a]->value.d = (double) frame[b]->value.i * frame[c]->value.d;
+                } else if (frame[b]->type == OBJECT_REAL && frame[c]->type == OBJECT_INT) {
+                    frame[a]->type = OBJECT_REAL;
+                    frame[a]->value.d = frame[b]->value.d * (double) frame[c]->value.i;
+                } else if (frame[b]->type == OBJECT_REAL && frame[c]->type == OBJECT_REAL) {
+                    frame[a]->type = OBJECT_REAL;
+                    frame[a]->value.d = frame[b]->value.d * frame[c]->value.d;
+                } else {
+                    fatal("Tried to mul non-numbers.");
+                }
+                break;
+
+            case OP_DIV:
+                if (frame[c]->type == OBJECT_INT && frame[c]->value.i == 0) {
+                    fatal("Div by zero.");
+                }
+
+                if (frame[c]->type == OBJECT_REAL && frame[c]->value.d == 0) {
+                    fatal("Div by zero.");
+                }
+
+                // TODO - do with constants as well
+                if (frame[b]->type == OBJECT_INT && frame[c]->type == OBJECT_INT) {
+                    frame[a]->type = OBJECT_INT;
+                    frame[a]->value.i = frame[b]->value.i / frame[c]->value.i;
+                } else if (frame[b]->type == OBJECT_INT && frame[c]->type == OBJECT_REAL) {
+                    frame[a]->type = OBJECT_REAL;
+                    frame[a]->value.d = (double) frame[b]->value.i / frame[c]->value.d;
+                } else if (frame[b]->type == OBJECT_REAL && frame[c]->type == OBJECT_INT) {
+                    frame[a]->type = OBJECT_REAL;
+                    frame[a]->value.d = frame[b]->value.d / (double) frame[c]->value.i;
+                } else if (frame[b]->type == OBJECT_REAL && frame[c]->type == OBJECT_REAL) {
+                    frame[a]->type = OBJECT_REAL;
+                    frame[a]->value.d = frame[b]->value.d / frame[c]->value.d;
+                } else {
+                    fatal("Tried to div non-numbers.");
+                }
+                break;
+
+            case OP_NEG:
+                // TODO - do for constants as well
+                if (frame[a]->type == OBJECT_INT) {
+                    frame[a]->value.i = -frame[a]->value.i;
+                } else if (frame[a]->type == OBJECT_REAL) {
+                    frame[a]->value.d = -frame[a]->value.d;
+                } else {
+                    fatal("Tried to negate non-numeric type.");
+                }
+                break;
+
+            case OP_NOT:
+                if (frame[a]->type != OBJECT_BOOL) {
+                    fatal("Expected boolean type, not %d.", frame[a]->type);
+                }
+
+                frame[a]->value.i = frame[a]->value.i == 1 ? 0 : 1;
+                break;
+
+            case OP_EQ:
+                if (frame[b]->type != frame[c]->type) {
+                    frame[a]->value.i = 0;
+                } else {
+                    switch (frame[b]->type) {
+                        case OBJECT_INT:
+                        case OBJECT_BOOL:
+                            frame[a]->value.i = frame[b]->value.i == frame[c]->value.i;
+                            break;
+
+                        case OBJECT_NULL:
+                            frame[a]->value.i = 1;
+                            break;
+
+                        case OBJECT_REAL:
+                            frame[a]->value.d = frame[b]->value.d == frame[c]->value.d;
+                            break;
+
+                        case OBJECT_STRING:
+                            frame[a]->value.i = strcmp(frame[b]->value.s, frame[c]->value.s) == 0;
+                            break;
+                    }
+                }
+
+                frame[a]->type = OBJECT_BOOL;
+                break;
+
+            case OP_LT:
+                // TODO - do for constants as well
+                if (frame[b]->type == OBJECT_INT && frame[c]->type == OBJECT_INT) {
+                    frame[a]->value.i = frame[b]->value.i < frame[c]->value.i ? 1 : 0;
+                } else if (frame[b]->type == OBJECT_INT && frame[c]->type == OBJECT_REAL) {
+                    frame[a]->value.i = (double) frame[b]->value.i < frame[c]->value.d ? 1 : 0;
+                } else if (frame[b]->type == OBJECT_REAL && frame[c]->type == OBJECT_INT) {
+                    frame[a]->value.i = frame[b]->value.d < (double) frame[c]->value.i ? 1 : 0;
+                } else if (frame[b]->type == OBJECT_REAL && frame[c]->type == OBJECT_REAL) {
+                    frame[a]->value.i = frame[b]->value.d < frame[c]->value.d ? 1 : 0;
+                } else {
+                    fatal("Tried to compare non-numbers %d (%d) and %d (%d).", b, frame[b]->type, c, frame[c]->type);
+                }
+
+                frame[a]->type = OBJECT_BOOL;
+                break;
+
+            case OP_LE:
+                // TODO - do for constants as well
+                if (frame[b]->type == OBJECT_INT && frame[c]->type == OBJECT_INT) {
+                    frame[a]->value.i = frame[b]->value.i <= frame[c]->value.i ? 1 : 0;
+                } else if (frame[b]->type == OBJECT_INT && frame[c]->type == OBJECT_REAL) {
+                    frame[a]->value.i = (double) frame[b]->value.i <= frame[c]->value.d ? 1 : 0;
+                } else if (frame[b]->type == OBJECT_REAL && frame[c]->type == OBJECT_INT) {
+                    frame[a]->value.i = frame[b]->value.d <= (double) frame[c]->value.i ? 1 : 0;
+                } else if (frame[b]->type == OBJECT_REAL && frame[c]->type == OBJECT_REAL) {
+                    frame[a]->value.i = frame[b]->value.d <= frame[c]->value.d ? 1 : 0;
+                } else {
+                    fatal("Tried to compare non-numbers %d (%d) and %d (%d).", b, frame[b]->type, c, frame[c]->type);
+                }
+
+                frame[a]->type = OBJECT_BOOL;
+                break;
+
+            case OP_CLOSURE:
+                fatal("Opcode OP_CLOSURE not implemented.\n");
+                break;
+
+            case OP_CALL:
+                fatal("Opcode OP_CALL not implemented.\n");
+                break;
+
+            case OP_RETURN:
+                // HALT, for now
+                printf("Result: %d\n", frame[0]->value.i);
+                return;
+                break;
+
+            case OP_JUMP:
+                if (c) {
+                    pc -= b;
+                } else {
+                    pc += b;
+                }
+                break;
+
+            case OP_JUMP_TRUE:
+                if (frame[a]->type != OBJECT_BOOL) {
+                    fatal("Expected boolean type, not %d.", frame[a]->type);
+                }
+
+                if (frame[a]->value.i == 1) {
+                    if (c) {
+                        pc -= b;
+                    } else {
+                        pc += b;
+                    }
+                }
+                break;
+
+            case OP_JUMP_FALSE:
+                if (frame[a]->type != OBJECT_BOOL) {
+                    fatal("Expected boolean type, not %d.", frame[a]->type);
+                }
+
+                if (frame[a]->value.i == 0) {
+                    if (c) {
+                        pc -= b;
+                    } else {
+                        pc += b;
+                    }
+                }
+                break;
+        }
+
+        pc++;
+    }
+}

@@ -1,9 +1,12 @@
-function fac(n)
-    if n == 0 then
-        1
+var a = 156978;
+var b = 2098752;
+
+while a != b do
+    if a > b then
+        a = a - b
     else
-        fac(n - 1) * n
+        b = b - a
     end
 end;
 
-fac(5)
+a

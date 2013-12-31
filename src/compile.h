@@ -22,4 +22,32 @@
 #include "common.h"
 #include "ast.h"
 
-void compile(Expression *expr);
+typedef struct Chunk Chunk;
+typedef struct Constant Constant;
+
+struct Constant {
+    int type;
+    Val *value;
+};
+
+typedef enum {
+    CONST_INT,
+    CONST_REAL,
+    CONST_BOOL,
+    CONST_NULL,
+    CONST_STRING
+} ConstantType;
+
+struct Chunk {
+    Scope *scope;
+    Constant **constants;
+    int *instructions;
+
+    int numtemps;
+    int numconstants;
+    int maxconstants;
+    int numinstructions;
+    int maxinstructions;
+};
+
+Chunk *compile(Expression *expr);

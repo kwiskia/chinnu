@@ -25,6 +25,7 @@
 
 #include "chinnu.h"
 #include "symbol.h"
+#include "vm.h"
 #include "compile.h"
 
 extern FILE *yyin;
@@ -404,11 +405,17 @@ int main(int argc, char **argv) {
         fclose(fp);
 
         resolve(program);
-        compile(program);
+
+        if (numerrors > 0) {
+            exit(EXIT_FAILURE);
+        }
 
         if (debug_flag) {
             print_expr(program, 0);
         }
+
+        Chunk *chunk = compile(program);
+        execute(chunk);
 
         free_expr(program);
     }

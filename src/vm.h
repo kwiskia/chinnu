@@ -19,8 +19,6 @@
 
 #pragma once
 
-typedef struct Object Object;
+#include "compile.h"
 
-struct Object {
-    int type;
-};
+void execute(Chunk *chunk);
