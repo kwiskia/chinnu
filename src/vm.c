@@ -40,6 +40,14 @@ typedef enum {
     OBJECT_STRING
 } ObjectType;
 
+double cast_to_double(Object *object) {
+    if (object->type == OBJECT_INT) {
+        return (double) object->value.i;
+    }
+
+    return object->value.d;
+}
+
 void execute(Chunk *chunk) {
     int pc = 0;
 
@@ -144,68 +152,72 @@ void execute(Chunk *chunk) {
                 break;
 
             case OP_ADD:
+                if (frame[b]->type != OBJECT_INT && frame[b]->type != OBJECT_REAL) {
+                    fatal("Tried to add non-numbers.");
+                }
+
+                if (frame[c]->type != OBJECT_INT && frame[c]->type != OBJECT_REAL) {
+                    fatal("Tried to add non-numbers.");
+                }
+
                 // TODO - do with constants as well
                 if (frame[b]->type == OBJECT_INT && frame[c]->type == OBJECT_INT) {
                     frame[a]->type = OBJECT_INT;
                     frame[a]->value.i = frame[b]->value.i + frame[c]->value.i;
-                } else if (frame[b]->type == OBJECT_INT && frame[c]->type == OBJECT_REAL) {
-                    frame[a]->type = OBJECT_REAL;
-                    frame[a]->value.d = (double) frame[b]->value.i + frame[c]->value.d;
-                } else if (frame[b]->type == OBJECT_REAL && frame[c]->type == OBJECT_INT) {
-                    frame[a]->type = OBJECT_REAL;
-                    frame[a]->value.d = frame[b]->value.d + (double) frame[c]->value.i;
-                } else if (frame[b]->type == OBJECT_REAL && frame[c]->type == OBJECT_REAL) {
-                    frame[a]->type = OBJECT_REAL;
-                    frame[a]->value.d = frame[b]->value.d + frame[c]->value.d;
                 } else {
-                    fatal("Tried to add non-numbers.");
+                    frame[a]->type = OBJECT_REAL;
+                    frame[a]->value.d = cast_to_double(frame[b]) + cast_to_double(frame[c]);
                 }
                 break;
 
             case OP_SUB:
+                if (frame[b]->type != OBJECT_INT && frame[b]->type != OBJECT_REAL) {
+                    fatal("Tried to sub non-numbers.");
+                }
+
+                if (frame[c]->type != OBJECT_INT && frame[c]->type != OBJECT_REAL) {
+                    fatal("Tried to sub non-numbers.");
+                }
+
                 // TODO - do with constants as well
                 if (frame[b]->type == OBJECT_INT && frame[c]->type == OBJECT_INT) {
                     frame[a]->type = OBJECT_INT;
                     frame[a]->value.i = frame[b]->value.i - frame[c]->value.i;
-                } else if (frame[b]->type == OBJECT_INT && frame[c]->type == OBJECT_REAL) {
-                    frame[a]->type = OBJECT_REAL;
-                    frame[a]->value.d = (double) frame[b]->value.i - frame[c]->value.d;
-                } else if (frame[b]->type == OBJECT_REAL && frame[c]->type == OBJECT_INT) {
-                    frame[a]->type = OBJECT_REAL;
-                    frame[a]->value.d = frame[b]->value.d - (double) frame[c]->value.i;
-                } else if (frame[b]->type == OBJECT_REAL && frame[c]->type == OBJECT_REAL) {
-                    frame[a]->type = OBJECT_REAL;
-                    frame[a]->value.d = frame[b]->value.d - frame[c]->value.d;
                 } else {
-                    fatal("Tried to sub non-numbers.");
+                    frame[a]->type = OBJECT_REAL;
+                    frame[a]->value.d = cast_to_double(frame[b]) - cast_to_double(frame[c]);
                 }
                 break;
 
             case OP_MUL:
+                if (frame[b]->type != OBJECT_INT && frame[b]->type != OBJECT_REAL) {
+                    fatal("Tried to mul non-numbers.");
+                }
+
+                if (frame[c]->type != OBJECT_INT && frame[c]->type != OBJECT_REAL) {
+                    fatal("Tried to mul non-numbers.");
+                }
+
                 // TODO - do with constants as well
                 if (frame[b]->type == OBJECT_INT && frame[c]->type == OBJECT_INT) {
                     frame[a]->type = OBJECT_INT;
                     frame[a]->value.i = frame[b]->value.i * frame[c]->value.i;
-                } else if (frame[b]->type == OBJECT_INT && frame[c]->type == OBJECT_REAL) {
-                    frame[a]->type = OBJECT_REAL;
-                    frame[a]->value.d = (double) frame[b]->value.i * frame[c]->value.d;
-                } else if (frame[b]->type == OBJECT_REAL && frame[c]->type == OBJECT_INT) {
-                    frame[a]->type = OBJECT_REAL;
-                    frame[a]->value.d = frame[b]->value.d * (double) frame[c]->value.i;
-                } else if (frame[b]->type == OBJECT_REAL && frame[c]->type == OBJECT_REAL) {
-                    frame[a]->type = OBJECT_REAL;
-                    frame[a]->value.d = frame[b]->value.d * frame[c]->value.d;
                 } else {
-                    fatal("Tried to mul non-numbers.");
+                    frame[a]->type = OBJECT_REAL;
+                    frame[a]->value.d = cast_to_double(frame[b]) * cast_to_double(frame[c]);
                 }
                 break;
 
             case OP_DIV:
-                if (frame[c]->type == OBJECT_INT && frame[c]->value.i == 0) {
-                    fatal("Div by zero.");
+                if (frame[b]->type != OBJECT_INT && frame[b]->type != OBJECT_REAL) {
+                    fatal("Tried to div non-numbers.");
                 }
 
-                if (frame[c]->type == OBJECT_REAL && frame[c]->value.d == 0) {
+                if (frame[c]->type != OBJECT_INT && frame[c]->type != OBJECT_REAL) {
+                    fatal("Tried to div non-numbers.");
+                }
+
+                if (cast_to_double(frame[c]) == 0) {
                     fatal("Div by zero.");
                 }
 
@@ -213,17 +225,9 @@ void execute(Chunk *chunk) {
                 if (frame[b]->type == OBJECT_INT && frame[c]->type == OBJECT_INT) {
                     frame[a]->type = OBJECT_INT;
                     frame[a]->value.i = frame[b]->value.i / frame[c]->value.i;
-                } else if (frame[b]->type == OBJECT_INT && frame[c]->type == OBJECT_REAL) {
-                    frame[a]->type = OBJECT_REAL;
-                    frame[a]->value.d = (double) frame[b]->value.i / frame[c]->value.d;
-                } else if (frame[b]->type == OBJECT_REAL && frame[c]->type == OBJECT_INT) {
-                    frame[a]->type = OBJECT_REAL;
-                    frame[a]->value.d = frame[b]->value.d / (double) frame[c]->value.i;
-                } else if (frame[b]->type == OBJECT_REAL && frame[c]->type == OBJECT_REAL) {
-                    frame[a]->type = OBJECT_REAL;
-                    frame[a]->value.d = frame[b]->value.d / frame[c]->value.d;
                 } else {
-                    fatal("Tried to div non-numbers.");
+                    frame[a]->type = OBJECT_REAL;
+                    frame[a]->value.d = cast_to_double(frame[b]) / cast_to_double(frame[c]);
                 }
                 break;
 
@@ -274,37 +278,41 @@ void execute(Chunk *chunk) {
                 break;
 
             case OP_LT:
-                // TODO - do for constants as well
-                if (frame[b]->type == OBJECT_INT && frame[c]->type == OBJECT_INT) {
-                    frame[a]->value.i = frame[b]->value.i < frame[c]->value.i ? 1 : 0;
-                } else if (frame[b]->type == OBJECT_INT && frame[c]->type == OBJECT_REAL) {
-                    frame[a]->value.i = (double) frame[b]->value.i < frame[c]->value.d ? 1 : 0;
-                } else if (frame[b]->type == OBJECT_REAL && frame[c]->type == OBJECT_INT) {
-                    frame[a]->value.i = frame[b]->value.d < (double) frame[c]->value.i ? 1 : 0;
-                } else if (frame[b]->type == OBJECT_REAL && frame[c]->type == OBJECT_REAL) {
-                    frame[a]->value.i = frame[b]->value.d < frame[c]->value.d ? 1 : 0;
-                } else {
-                    fatal("Tried to compare non-numbers %d (%d) and %d (%d).", b, frame[b]->type, c, frame[c]->type);
+                if (frame[b]->type != OBJECT_INT && frame[b]->type != OBJECT_REAL) {
+                    fatal("Tried to compare non-numbers.");
                 }
 
-                frame[a]->type = OBJECT_BOOL;
+                if (frame[c]->type != OBJECT_INT && frame[c]->type != OBJECT_REAL) {
+                    fatal("Tried to compare non-numbers.");
+                }
+
+                // TODO - do with constants as well
+                if (frame[b]->type == OBJECT_INT && frame[c]->type == OBJECT_INT) {
+                    frame[a]->type = OBJECT_BOOL;
+                    frame[a]->value.i = frame[b]->value.i < frame[c]->value.i;
+                } else {
+                    frame[a]->type = OBJECT_BOOL;
+                    frame[a]->value.d = cast_to_double(frame[b]) < cast_to_double(frame[c]);
+                }
                 break;
 
             case OP_LE:
-                // TODO - do for constants as well
-                if (frame[b]->type == OBJECT_INT && frame[c]->type == OBJECT_INT) {
-                    frame[a]->value.i = frame[b]->value.i <= frame[c]->value.i ? 1 : 0;
-                } else if (frame[b]->type == OBJECT_INT && frame[c]->type == OBJECT_REAL) {
-                    frame[a]->value.i = (double) frame[b]->value.i <= frame[c]->value.d ? 1 : 0;
-                } else if (frame[b]->type == OBJECT_REAL && frame[c]->type == OBJECT_INT) {
-                    frame[a]->value.i = frame[b]->value.d <= (double) frame[c]->value.i ? 1 : 0;
-                } else if (frame[b]->type == OBJECT_REAL && frame[c]->type == OBJECT_REAL) {
-                    frame[a]->value.i = frame[b]->value.d <= frame[c]->value.d ? 1 : 0;
-                } else {
-                    fatal("Tried to compare non-numbers %d (%d) and %d (%d).", b, frame[b]->type, c, frame[c]->type);
+                if (frame[b]->type != OBJECT_INT && frame[b]->type != OBJECT_REAL) {
+                    fatal("Tried to compare non-numbers.");
                 }
 
-                frame[a]->type = OBJECT_BOOL;
+                if (frame[c]->type != OBJECT_INT && frame[c]->type != OBJECT_REAL) {
+                    fatal("Tried to compare non-numbers.");
+                }
+
+                // TODO - do with constants as well
+                if (frame[b]->type == OBJECT_INT && frame[c]->type == OBJECT_INT) {
+                    frame[a]->type = OBJECT_BOOL;
+                    frame[a]->value.i = frame[b]->value.i <= frame[c]->value.i;
+                } else {
+                    frame[a]->type = OBJECT_BOOL;
+                    frame[a]->value.d = cast_to_double(frame[b]) <= cast_to_double(frame[c]);
+                }
                 break;
 
             case OP_CLOSURE:
