@@ -32,104 +32,6 @@ extern FILE *yyin;
 extern int yyparse();
 extern void yylex_destroy();
 
-/* for debugging */
-
-/* forward */
-void print_list(ExpressionList *list, int indent);
-
-void print_scope(Scope *scope, int indent) {
-    int i;
-    for (i = 0; i < scope->numlocals; i++) {
-        int j;
-        for (j = 0; j < indent; j++) {
-            printf("\t");
-        }
-
-        printf("Local %s at slot %d\n", scope->locals[i]->symbol->name, i);
-    }
-
-    for (i = 0; i < scope->numupvars; i++) {
-        int j;
-        for (j = 0; j < indent; j++) {
-            printf("\t");
-        }
-
-        printf("Upvar %s at slot %d (in parent slot %d (%d))\n", scope->upvars[i]->symbol->name, i, scope->upvars[i]->refslot, scope->upvars[i]->reftype);
-    }
-
-    for (i = 0; i < scope->numchildren; i++) {
-        print_scope(scope->children[i], indent + 1);
-    }
-}
-
-void print_expr(Expression *expr, int indent) {
-    if (expr) {
-        int i;
-        for (i = 0; i < indent; i++) {
-            printf("\t");
-        }
-
-        switch (expr->type) {
-            case TYPE_VARREF:
-                printf("[Varref: %s (#%d)]\n", expr->symbol->name, expr->symbol->id);
-                break;
-
-            case TYPE_FUNC:
-                if (expr->value->s) {
-                    printf("[Function: %s (#%d)]\n", expr->symbol->name, expr->symbol->id);
-                } else {
-                    printf("[Anonymous Function]\n");
-                }
-                break;
-
-            case TYPE_DECLARATION:
-                printf("[Declaration: %s (#%d)]\n", expr->symbol->name, expr->symbol->id);
-                break;
-
-            case TYPE_INT:
-                printf("[Int: %d]\n", expr->value->i);
-                break;
-
-            case TYPE_REAL:
-                printf("[Real: %.2f]\n", expr->value->d);
-                break;
-
-            case TYPE_BOOL:
-                printf("[Bool: %d]\n", expr->value->i);
-                break;
-
-            case TYPE_NULL:
-                printf("[NUL]\n");
-                break;
-
-            case TYPE_STRING:
-                printf("[String: %s]\n", expr->value->s);
-                break;
-
-            default:
-                printf("[%s]\n", expression_type_names[expr->type]);
-        }
-
-        if (expr->scope) {
-            print_scope(expr->scope, indent);
-        }
-
-        if (expr->cond) print_expr(expr->cond, indent + 1);
-        if (expr->lexpr) print_expr(expr->lexpr, indent + 1);
-        if (expr->rexpr) print_expr(expr->rexpr, indent + 1);
-        if (expr->llist) print_list(expr->llist, indent + 1);
-    }
-}
-
-void print_list(ExpressionList *list, int indent) {
-    if (list) {
-        ExpressionNode *head;
-        for (head = list->head; head != NULL; head = head->next) {
-            print_expr(head->expr, indent);
-        }
-    }
-}
-
 void fatal(const char *fmt, ...) {
     va_list args;
     va_start(args, fmt);
@@ -304,7 +206,6 @@ void vmessage(SourcePos pos, const char *fmt, va_list args) {
 void show_usage(char *program) {
     printf("Usage: %s [switches] ... [files] ...\n", program);
     printf("  -w<type>      display warnings\n");
-    printf("  -d --debug    display generated AST\n");
     printf("  -h --help     display usage and exit\n");
     printf("  -v --version  display version and exit\n");
 }
@@ -313,16 +214,13 @@ void show_version(char *program) {
     printf("%s version %s.\n", program, CHINNU_VERSION);
 }
 
-static int debug_flag;
 static int help_flag;
 static int version_flag;
 
 static struct option options[] = {
-    {"debug",   no_argument,       &debug_flag,   1},
     {"help",    no_argument,       &help_flag,    1},
     {"version", no_argument,       &version_flag, 1},
     {"w",       required_argument, 0,             'w'},
-    {"d",       no_argument,       0,             'd'},
     {"h",       no_argument,       0,             'h'},
     {"v",       no_argument,       0,             'v'},
     {0,         0,                 0,             0}
@@ -332,7 +230,7 @@ int main(int argc, char **argv) {
     int c;
     int i = 0;
 
-    while ((c = getopt_long(argc, argv, "w:dhv", options, &i)) != -1) {
+    while ((c = getopt_long(argc, argv, "w:hv", options, &i)) != -1) {
         switch (c) {
             case 'w':
             {
@@ -351,10 +249,6 @@ int main(int argc, char **argv) {
                     warning_flags[WARNING_UNREACHABLE] = 1;
                 }
             } break;
-
-            case 'd':
-                debug_flag = 1;
-                break;
 
             case 'h':
                 help_flag = 1;
@@ -408,10 +302,6 @@ int main(int argc, char **argv) {
 
         if (numerrors > 0) {
             exit(EXIT_FAILURE);
-        }
-
-        if (debug_flag) {
-            print_expr(program, 0);
         }
 
         Chunk *chunk = compile(program);
