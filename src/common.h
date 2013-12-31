@@ -22,7 +22,7 @@
 typedef struct Symbol Symbol;
 typedef struct Scope Scope;
 
-typedef struct Up Up;
+typedef struct Upval Upval;
 typedef struct Proto Proto;
 typedef struct Frame Frame;
 typedef struct State State;

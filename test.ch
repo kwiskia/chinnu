@@ -1,16 +1,14 @@
-function gdc(a, b)
-    var c = a;
-    var d = b;
+function count()
+    var c = 0;
 
-    while c != d do
-        if c > d then
-            c = c - d
-        else
-            d = d - c
-        end
-    end;
-
-    c
+    function ()
+        c = c + 1
+    end
 end;
 
-gdc(17 * 24, 17 * 25)
+var c = (count());
+c(); # 1
+c(); # 2
+c(); # 3
+c(); # 4
+c()  # 5

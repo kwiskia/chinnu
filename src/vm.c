@@ -60,34 +60,68 @@ void copy_object(Object *a, Object *b) {
             a->type = OBJECT_STRING;
             a->value.s = b->value.s;
             break;
+
+        case OBJECT_CLOSURE:
+            a->type = OBJECT_CLOSURE;
+            a->value.p = b->value.p;
+            break;
     }
+}
+
+Upval *make_upval(State *state, int slot) {
+    Upval *upval = malloc(sizeof(Upval));
+    UpvalNode *node = malloc(sizeof(UpvalNode));
+
+    if (!upval || !node) {
+        fatal("Out of memory.");
+    }
+
+    upval->ref.frame = state->current;
+    upval->ref.slot = slot;
+    upval->refcount = 1;
+    upval->open = 1;
+
+    node->upval = upval;
+
+    if (state->head) {
+        state->head->prev = node;
+    }
+
+    node->prev = NULL;
+    node->next = state->head;
+    state->head = node;
+
+    return upval;
+}
+
+void free_upval(Upval *upval) {
+    if (upval->open == 0) {
+        free(upval->o);
+    }
+
+    free(upval);
 }
 
 Proto *make_proto(Chunk *chunk) {
     Proto *proto = malloc(sizeof(Proto));
-    Up **upvars = malloc(sizeof(Up) * chunk->scope->numupvars);
+    Upval **upvals = malloc(sizeof(Upval) * chunk->scope->numupvars);
 
-    if (!proto || !upvars) {
+    if (!proto || !upvals) {
         fatal("Out of memory.");
     }
 
     int i;
     for (i = 0; i < chunk->scope->numupvars; i++) {
-        Up *upvar = malloc(sizeof(Up));
-
-        if (!upvar) {
-            fatal("Out of memory.");
-        }
-
-        upvars[i] = upvar;
+        upvals[i] = NULL;
     }
 
     proto->chunk = chunk;
-    proto->upvars = upvars;
+    proto->upvals = upvals;
     return proto;
 }
 
 Frame *make_frame(Frame *parent, Proto *proto) {
+    // move this to code gen, not responsibility of the vm [?]
     int numregs = proto->chunk->scope->numlocals + proto->chunk->numtemps + 1;
 
     Frame *frame = malloc(sizeof(Frame));
@@ -126,6 +160,7 @@ State *make_state(Frame *root) {
     }
 
     state->current = root;
+    state->head = NULL;
     return state;
 }
 
@@ -180,12 +215,30 @@ Object *execute_function(State *state) {
                 break;
 
             case OP_GETUPVAR:
-                fatal("Opcode OP_GETUPVAR not implemented.\n");
-                break;
+            {
+                Upval *upval = proto->upvals[b];
+
+                if (!upval->open) {
+                    // upval is closed
+                    copy_object(frame->registers[a], upval->o);
+                } else {
+                    // still on stack
+                    copy_object(frame->registers[a], upval->ref.frame->registers[upval->ref.slot]);
+                }
+            } break;
 
             case OP_SETUPVAR:
-                fatal("Opcode OP_SETUPVAR not implemented.\n");
-                break;
+            {
+                Upval *upval = proto->upvals[b];
+
+                if (!upval->open) {
+                    // upval is closed
+                    copy_object(upval->o, frame->registers[a]);
+                } else {
+                    // still on stack
+                    copy_object(upval->ref.frame->registers[upval->ref.slot], frame->registers[a]);
+                }
+            } break;
 
             case OP_ADD:
                 if (frame->registers[b]->type != OBJECT_INT && frame->registers[b]->type != OBJECT_REAL) {
@@ -353,16 +406,35 @@ Object *execute_function(State *state) {
 
             case OP_CLOSURE:
             {
-                // TODO - upvars
+                Proto *child = make_proto(chunk->children[b]);
+
+                int i;
+                for (i = 0; i < chunk->children[b]->scope->numupvars; i++) {
+                    int inst = chunk->instructions[++frame->pc];
+
+                    int oc = GET_O(inst);
+                    int ac = GET_A(inst);
+                    int bc = GET_B(inst);
+                    int cc = GET_C(inst);
+
+                    if (oc == OP_MOVE) {
+                        // first upval for this variable
+                        child->upvals[ac] = make_upval(state, bc);
+                    } else {
+                        // share upval
+                        child->upvals[ac] = proto->upvals[bc];
+                        child->upvals[ac]->refcount++;
+                    }
+                }
 
                 frame->registers[a]->type = OBJECT_CLOSURE;
-                frame->registers[a]->value.p = make_proto(chunk->children[b]);
+                frame->registers[a]->value.p = child;
             } break;
 
             case OP_CALL:
             {
                 if (frame->registers[b]->type != OBJECT_CLOSURE) {
-                    fatal("Tried to call non-closure.");
+                    fatal("Tried to call non-closure of type %d (value %d).", frame->registers[b]->type, frame->registers[b]->value.i);
                 }
 
                 // TODO - safety issue (see compile.c for notes)
@@ -377,7 +449,7 @@ Object *execute_function(State *state) {
 
                 state->current = subframe;
                 Object *ret = execute_function(state);
-                state->current = state->current->parent;
+                state->current = frame;
 
                 copy_object(frame->registers[a], ret);
             } break;
@@ -393,27 +465,27 @@ Object *execute_function(State *state) {
 
                     switch (constant->type) {
                         case CONST_INT:
-                            frame->registers[a]->type = OBJECT_INT;
-                            frame->registers[a]->value.i = constant->value->i;
+                            frame->registers[0]->type = OBJECT_INT;
+                            frame->registers[0]->value.i = constant->value->i;
                             break;
 
                         case CONST_BOOL:
-                            frame->registers[a]->type = OBJECT_BOOL;
-                            frame->registers[a]->value.i = constant->value->i;
+                            frame->registers[0]->type = OBJECT_BOOL;
+                            frame->registers[0]->value.i = constant->value->i;
                             break;
 
                         case CONST_REAL:
-                            frame->registers[a]->type = OBJECT_REAL;
-                            frame->registers[a]->value.d = constant->value->d;
+                            frame->registers[0]->type = OBJECT_REAL;
+                            frame->registers[0]->value.d = constant->value->d;
                             break;
 
                         case CONST_NULL:
-                            frame->registers[a]->type = OBJECT_NULL;
+                            frame->registers[0]->type = OBJECT_NULL;
                             break;
 
                         case CONST_STRING:
-                            frame->registers[a]->type = OBJECT_STRING;
-                            frame->registers[a]->value.s = constant->value->s;
+                            frame->registers[0]->type = OBJECT_STRING;
+                            frame->registers[0]->value.s = constant->value->s;
                             break;
                     }
                 }
@@ -461,9 +533,50 @@ Object *execute_function(State *state) {
         frame->pc++;
     }
 
-exit:
-    printf("Returning %d\n", frame->registers[0]->value.i);
-    return frame->registers[0];
+    exit: {
+        /* TODO - do this when the prototype is garbage-collected */
+        // int i;
+        // for (i = 0; i < chunk->scope->numupvars; i++) {
+        //     if (--proto->upvals[i]->refcount == 0) {
+        //         printf("Freeing upval\n");
+        //         fflush(stdout);
+
+        //         free_upval(proto->upvals[i]);
+        //     }
+        // }
+
+        UpvalNode *head;
+        for (head = state->head; head != NULL; ) {
+            Upval *u = head->upval;
+
+            if (u->ref.frame == frame) {
+                if (u->refcount == 0) {
+                    free_upval(u);
+                } else {
+                    u->open = 0;
+                    u->o = frame->registers[u->ref.slot];
+                }
+
+                if (state->head == head) {
+                    state->head = head->next;
+                } else {
+                    head->next->prev = head->prev;
+                    head->prev->next = head->next;
+                }
+
+                UpvalNode *temp = head;
+                head = head->next;
+                free(temp);
+            } else {
+                head = head->next;
+            }
+        }
+
+        // TODO - free registers
+
+        printf("Returning %d\n", frame->registers[0]->value.i);
+        return frame->registers[0];
+    }
 }
 
 Object *execute(Chunk *chunk) {

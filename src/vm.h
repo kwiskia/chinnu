@@ -21,14 +21,23 @@
 
 #include "compile.h"
 
-struct Up {
-    int refslot;
-    int reftype;
+struct Upval {
+    int refcount;
+    int open;
+    union {
+        struct {
+            int slot;
+            Frame *frame;
+        } ref;
+        Object *o;
+    };
 };
+
+// TODO - rename to closure
 
 struct Proto {
     Chunk *chunk;
-    Up **upvars;
+    Upval **upvals;
 };
 
 struct Frame {
@@ -39,8 +48,17 @@ struct Frame {
     int pc;
 };
 
+typedef struct UpvalNode UpvalNode;
+
+struct UpvalNode {
+    Upval *upval;
+    UpvalNode *next;
+    UpvalNode *prev;
+};
+
 struct State {
     Frame *current;
+    UpvalNode *head;
 };
 
 struct Object {

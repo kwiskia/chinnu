@@ -126,6 +126,17 @@ int get_local_index(Chunk *chunk, Symbol *symbol) {
     return -1;
 }
 
+int get_upvar_index(Chunk *chunk, Symbol *symbol) {
+    int i;
+    for (i = 0; i < chunk->scope->numupvars; i++) {
+        if (chunk->scope->upvars[i]->symbol == symbol) {
+            return i;
+        }
+    }
+
+    return -1;
+}
+
 static int temp = 0;
 static int maxt = 0;
 
@@ -165,8 +176,6 @@ void compile_expr(Expression *expr, Chunk *chunk, int dest) {
 
         case TYPE_FUNC:
         {
-            // TODO - copy upvalues
-
             int temp1 = temp;
             int temp2 = maxt;
 
@@ -183,6 +192,18 @@ void compile_expr(Expression *expr, Chunk *chunk, int dest) {
 
             int index = add_func_child(chunk, child);
             add_instruction(chunk, CREATE(OP_CLOSURE, dest, index, 0));
+
+            int i;
+            for (i = 0; i < child->scope->numupvars; i++) {
+                int index = get_local_index(chunk, child->scope->upvars[i]->symbol);
+
+                if (index != -1) {
+                    add_instruction(chunk, CREATE(OP_MOVE, i, index, 0));
+                } else {
+                    index = get_upvar_index(chunk, child->scope->upvars[i]->symbol);
+                    add_instruction(chunk, CREATE(OP_GETUPVAR, i, index, 0));
+                }
+            }
 
             if (expr->symbol) {
                 int index = get_local_index(chunk, expr->symbol);
@@ -226,9 +247,16 @@ void compile_expr(Expression *expr, Chunk *chunk, int dest) {
         } break;
 
         case TYPE_VARREF:
-            // TODO - upvars
-            add_instruction(chunk, CREATE(OP_MOVE, dest, get_local_index(chunk, expr->symbol), 0));
-            break;
+        {
+            int index = get_local_index(chunk, expr->symbol);
+
+            if (index != -1) {
+                add_instruction(chunk, CREATE(OP_MOVE, dest, index, 0));
+            } else {
+                index = get_upvar_index(chunk, expr->symbol);
+                add_instruction(chunk, CREATE(OP_GETUPVAR, dest, index, 0));
+            }
+        } break;
 
         /* control flow */
         case TYPE_IF:
@@ -302,10 +330,17 @@ void compile_expr(Expression *expr, Chunk *chunk, int dest) {
         /* binary cases */
         case TYPE_ASSIGN:
         {
-            // TODO - upvars
             compile_expr(expr->rexpr, chunk, dest);
-            // TODO - peephole optimize
-            add_instruction(chunk, CREATE(OP_MOVE, get_local_index(chunk, expr->lexpr->symbol), dest, 0));
+
+            int index = get_local_index(chunk, expr->lexpr->symbol);
+
+            if (index != -1) {
+                // TODO - peephole optimize
+                add_instruction(chunk, CREATE(OP_MOVE, index, dest, 0));
+            } else {
+                index = get_upvar_index(chunk, expr->lexpr->symbol);
+                add_instruction(chunk, CREATE(OP_SETUPVAR, dest, index, 0));
+            }
         } break;
 
         case TYPE_ADD:
