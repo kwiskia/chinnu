@@ -47,7 +47,7 @@ struct SymbolTable {
 };
 
 Local *make_local(Symbol *symbol) {
-    Local *local = malloc(sizeof(Local));
+    Local *local = malloc(sizeof *local);
 
     if (!local) {
         fatal("Out of memory.");
@@ -58,7 +58,7 @@ Local *make_local(Symbol *symbol) {
 }
 
 Upvar *make_upvar(Symbol *symbol) {
-    Upvar *upvar = malloc(sizeof(Upvar));
+    Upvar *upvar = malloc(sizeof *upvar);
 
     if (!upvar) {
         fatal("Out of memory.");
@@ -69,10 +69,10 @@ Upvar *make_upvar(Symbol *symbol) {
 }
 
 Scope *make_scope(Expression *expr) {
-    Scope *scope = malloc(sizeof(Scope));
-    Local **locals = malloc(sizeof(Local *) * 8);
-    Upvar **upvars = malloc(sizeof(Upvar *) * 8);
-    Scope **children = malloc(sizeof(Scope *) * 4);
+    Scope *scope = malloc(sizeof *scope);
+    Local **locals = malloc(8 * sizeof **locals);
+    Upvar **upvars = malloc(8 * sizeof **upvars);
+    Scope **children = malloc(4 * sizeof **children);
 
     if (!scope || !locals || !upvars || !children) {
         fatal("Out of memory.");
@@ -114,7 +114,7 @@ int add_local(Scope *scope, Local *local) {
     if (scope->numlocals == scope->maxlocals) {
         scope->maxlocals *= 2;
 
-        Local **resize = realloc(scope->locals, sizeof(Local *) * scope->maxlocals);
+        Local **resize = realloc(scope->locals, scope->maxlocals * sizeof **resize);
 
         if (!resize) {
             fatal("Out of memory.");
@@ -131,7 +131,7 @@ int add_upvar(Scope *scope, Upvar *upvar) {
     if (scope->numupvars == scope->maxupvars) {
         scope->maxupvars *= 2;
 
-        Upvar **resize = realloc(scope->upvars, sizeof(Upvar *) * scope->maxupvars);
+        Upvar **resize = realloc(scope->upvars, scope->maxupvars * sizeof **resize);
 
         if (!resize) {
             fatal("Out of memory.");
@@ -148,7 +148,7 @@ int add_child(Scope *scope, Scope *child) {
     if (scope->numchildren == scope->maxchildren) {
         scope->maxchildren *= 2;
 
-        Scope **resize = realloc(scope->children, sizeof(Scope *) * scope->maxchildren);
+        Scope **resize = realloc(scope->children, scope->maxchildren * sizeof **resize);
 
         if (!resize) {
             fatal("Out of memory.");
@@ -210,7 +210,7 @@ int register_upvar(Scope *scope, Symbol *symbol) {
 static int symbol_id = 0;
 
 Symbol *make_symbol(char *name, int level, Expression *declaration) {
-    Symbol *symbol = malloc(sizeof(Symbol));
+    Symbol *symbol = malloc(sizeof *symbol);
 
     if (!symbol) {
         fatal("Out of memory.");
@@ -240,7 +240,7 @@ void add_symbol(SymbolTable *table, Symbol *symbol) {
         fatal("Empty contour.");
     }
 
-    HashItem *item = malloc(sizeof(HashItem));
+    HashItem *item = malloc(sizeof *item);
     HashItem **head = &table->top->buckets[hash(symbol->name)];
 
     if (!item) {
@@ -280,8 +280,8 @@ Symbol *find_symbol(SymbolTable *table, char *name) {
 }
 
 void enter_contour(SymbolTable *table) {
-    Contour *contour = malloc(sizeof(Contour));
-    HashItem **buckets = malloc(sizeof(HashItem) * MAP_SIZE);
+    Contour *contour = malloc(sizeof *contour);
+    HashItem **buckets = malloc(MAP_SIZE * sizeof **buckets);
 
     if (!contour || !buckets) {
         fatal("Out of memory.");
@@ -510,7 +510,7 @@ void resolve_list(SymbolTable *table, ExpressionList *list) {
 }
 
 void resolve(Expression *expr) {
-    SymbolTable *table = malloc(sizeof(SymbolTable));
+    SymbolTable *table = malloc(sizeof *table);
 
     if (!table) {
         fatal("Out of memory.");

@@ -56,7 +56,7 @@ const char *const expression_type_names[] = {
 };
 
 Expression *allocexpr() {
-    Expression *expr = malloc(sizeof(Expression));
+    Expression *expr = malloc(sizeof *expr);
 
     if (!expr) {
         fatal("Out of memory.");
@@ -75,7 +75,7 @@ Expression *allocexpr() {
 }
 
 Val *allocval() {
-    Val *val = malloc(sizeof(Val));
+    Val *val = malloc(sizeof *val);
 
     if (!val) {
         fatal("Out of memory.");
@@ -128,7 +128,7 @@ void free_list(ExpressionList *list) {
 }
 
 ExpressionList *make_list() {
-    ExpressionList *list = malloc(sizeof(ExpressionList));
+    ExpressionList *list = malloc(sizeof *list);
 
     if (!list) {
         fatal("Out of memory.");
@@ -146,7 +146,7 @@ ExpressionList *list1(Expression *expr) {
 }
 
 ExpressionList *expression_list_append(ExpressionList *list, Expression *expr) {
-    ExpressionNode *node = malloc(sizeof(ExpressionNode));
+    ExpressionNode *node = malloc(sizeof *node);
 
     if (!node) {
         fatal("Out of memory.");

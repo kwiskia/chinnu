@@ -69,8 +69,8 @@ void copy_object(Object *a, Object *b) {
 }
 
 Upval *make_upval(State *state, int slot) {
-    Upval *upval = malloc(sizeof(Upval));
-    UpvalNode *node = malloc(sizeof(UpvalNode));
+    Upval *upval = malloc(sizeof *upval);
+    UpvalNode *node = malloc(sizeof *node);
 
     if (!upval || !node) {
         fatal("Out of memory.");
@@ -103,8 +103,8 @@ void free_upval(Upval *upval) {
 }
 
 Closure *make_closure(Chunk *chunk) {
-    Closure *closure = malloc(sizeof(Closure));
-    Upval **upvals = malloc(sizeof(Upval) * chunk->scope->numupvars);
+    Closure *closure = malloc(sizeof *closure);
+    Upval **upvals = malloc(chunk->scope->numupvars * sizeof **upvals);
 
     if (!closure || !upvals) {
         fatal("Out of memory.");
@@ -124,8 +124,8 @@ Frame *make_frame(Frame *parent, Closure *closure) {
     // move this to code gen, not responsibility of the vm [?]
     int numregs = closure->chunk->scope->numlocals + closure->chunk->numtemps + 1;
 
-    Frame *frame = malloc(sizeof(Frame));
-    Object **registers = malloc(sizeof(Object) * numregs);
+    Frame *frame = malloc(sizeof *frame);
+    Object **registers = malloc(numregs * sizeof **registers);
 
     if (!frame || !registers) {
         fatal("Out of memory.");
@@ -133,8 +133,8 @@ Frame *make_frame(Frame *parent, Closure *closure) {
 
     int i;
     for (i = 0; i < numregs; i++) {
-        Object *object = malloc(sizeof(Object));
-        Val *value = malloc(sizeof(Val));
+        Object *object = malloc(sizeof *object);
+        Val *value = malloc(sizeof *value);
 
         if (!object || !value) {
             fatal("Out of memory.");
@@ -153,7 +153,7 @@ Frame *make_frame(Frame *parent, Closure *closure) {
 }
 
 State *make_state(Frame *root) {
-    State *state = malloc(sizeof(State));
+    State *state = malloc(sizeof *state);
 
     if (!state) {
         fatal("Out of memory.");

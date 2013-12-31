@@ -25,7 +25,7 @@
 #include "bytecode.h"
 
 Constant *make_constant(int type, Val *value) {
-    Constant *constant = malloc(sizeof(Constant));
+    Constant *constant = malloc(sizeof *constant);
 
     if (!constant) {
         fatal("Out of memory.");
@@ -37,10 +37,10 @@ Constant *make_constant(int type, Val *value) {
 }
 
 Chunk *make_chunk(Scope *scope) {
-    Chunk *chunk = malloc(sizeof(Chunk));
-    Constant **constants = malloc(sizeof(Constant *) * 4);
-    int *instructions = malloc(sizeof(int) * 32);
-    Chunk **children = malloc(sizeof(Chunk *) * 2);
+    Chunk *chunk = malloc(sizeof *chunk);
+    Constant **constants = malloc(4 * sizeof **constants);
+    int *instructions = malloc(32 * sizeof *instructions);
+    Chunk **children = malloc(2 * sizeof **children);
 
     if (!chunk || !constants || !instructions || !children) {
         fatal("Out of memory.");
@@ -68,7 +68,7 @@ int add_constant(Chunk *chunk, Constant *constant) {
     if (chunk->numconstants == chunk->maxconstants) {
         chunk->maxconstants *= 2;
 
-        Constant **resize = realloc(chunk->constants, sizeof(Constant *) * chunk->maxconstants);
+        Constant **resize = realloc(chunk->constants, chunk->maxconstants * sizeof **resize);
 
         if (!resize) {
             fatal("Out of memory.");
@@ -85,7 +85,7 @@ int add_func_child(Chunk *chunk, Chunk *child) {
     if (chunk->numchildren == chunk->maxchildren) {
         chunk->maxchildren *= 2;
 
-        Chunk **resize = realloc(chunk->children, sizeof(Chunk *) * chunk->maxchildren);
+        Chunk **resize = realloc(chunk->children, chunk->maxchildren * sizeof **resize);
 
         if (!resize) {
             fatal("Out of memory.");
@@ -102,7 +102,7 @@ int add_instruction(Chunk *chunk, int instruction) {
     if (chunk->numinstructions == chunk->maxinstructions) {
         chunk->maxinstructions *= 2;
 
-        int *resize = realloc(chunk->instructions, sizeof(int) * chunk->maxinstructions);
+        int *resize = realloc(chunk->instructions, chunk->maxinstructions * sizeof *resize);
 
         if (!resize) {
             fatal("Out of memory.");
@@ -484,8 +484,8 @@ void compile_expr(Expression *expr, Chunk *chunk, int dest) {
         {
             // TODO - constant management
 
-            Val *tvalue = malloc(sizeof(Val));
-            Val *fvalue = malloc(sizeof(Val));
+            Val *tvalue = malloc(sizeof *tvalue);
+            Val *fvalue = malloc(sizeof *fvalue);
 
             if (!tvalue || !fvalue) {
                 fatal("Out of memory.");
@@ -533,8 +533,8 @@ void compile_expr(Expression *expr, Chunk *chunk, int dest) {
         {
             // TODO - constant management
 
-            Val *tvalue = malloc(sizeof(Val));
-            Val *fvalue = malloc(sizeof(Val));
+            Val *tvalue = malloc(sizeof *tvalue);
+            Val *fvalue = malloc(sizeof *fvalue);
 
             if (!tvalue || !fvalue) {
                 fatal("Out of memory.");
