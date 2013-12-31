@@ -58,10 +58,6 @@ struct Scope {
     int numparams;
     int numupvars;
     int numchildren;
-
-    int maxlocals;
-    int maxupvars;
-    int maxchildren;
 };
 
 void free_scope(Scope *scope);

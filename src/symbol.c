@@ -68,11 +68,15 @@ Upvar *make_upvar(Symbol *symbol) {
     return upvar;
 }
 
+#define UPVAR_CHUNK_SIZE 8
+#define LOCAL_CHUNK_SIZE 8
+#define SCOPE_CHUNK_SIZE 8
+
 Scope *make_scope(Expression *expr) {
     Scope *scope = malloc(sizeof *scope);
-    Local **locals = malloc(8 * sizeof **locals);
-    Upvar **upvars = malloc(8 * sizeof **upvars);
-    Scope **children = malloc(4 * sizeof **children);
+    Local **locals = malloc(UPVAR_CHUNK_SIZE * sizeof **locals);
+    Upvar **upvars = malloc(LOCAL_CHUNK_SIZE * sizeof **upvars);
+    Scope **children = malloc(SCOPE_CHUNK_SIZE * sizeof **children);
 
     if (!scope || !locals || !upvars || !children) {
         fatal("Out of memory.");
@@ -87,9 +91,6 @@ Scope *make_scope(Expression *expr) {
     scope->numlocals = 0;
     scope->numupvars = 0;
     scope->numchildren = 0;
-    scope->maxlocals = 8;
-    scope->maxupvars = 8;
-    scope->maxchildren = 4;
 
     return scope;
 }
@@ -111,10 +112,8 @@ void free_scope(Scope *scope) {
 }
 
 int add_local(Scope *scope, Local *local) {
-    if (scope->numlocals == scope->maxlocals) {
-        scope->maxlocals *= 2;
-
-        Local **resize = realloc(scope->locals, scope->maxlocals * sizeof **resize);
+    if (scope->numlocals % LOCAL_CHUNK_SIZE == 0) {
+        Local **resize = realloc(scope->locals, (scope->numlocals + LOCAL_CHUNK_SIZE) * sizeof **resize);
 
         if (!resize) {
             fatal("Out of memory.");
@@ -128,10 +127,8 @@ int add_local(Scope *scope, Local *local) {
 }
 
 int add_upvar(Scope *scope, Upvar *upvar) {
-    if (scope->numupvars == scope->maxupvars) {
-        scope->maxupvars *= 2;
-
-        Upvar **resize = realloc(scope->upvars, scope->maxupvars * sizeof **resize);
+    if (scope->numupvars % UPVAR_CHUNK_SIZE == 0) {
+        Upvar **resize = realloc(scope->upvars, (scope->numupvars + UPVAR_CHUNK_SIZE) * sizeof **resize);
 
         if (!resize) {
             fatal("Out of memory.");
@@ -145,10 +142,8 @@ int add_upvar(Scope *scope, Upvar *upvar) {
 }
 
 int add_child(Scope *scope, Scope *child) {
-    if (scope->numchildren == scope->maxchildren) {
-        scope->maxchildren *= 2;
-
-        Scope **resize = realloc(scope->children, scope->maxchildren * sizeof **resize);
+    if (scope->numchildren % SCOPE_CHUNK_SIZE == 0) {
+        Scope **resize = realloc(scope->children, (scope->numchildren + SCOPE_CHUNK_SIZE) * sizeof **resize);
 
         if (!resize) {
             fatal("Out of memory.");

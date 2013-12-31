@@ -43,11 +43,8 @@ struct Chunk {
 
     int numtemps;
     int numconstants;
-    int maxconstants;
     int numinstructions;
-    int maxinstructions;
     int numchildren;
-    int maxchildren;
 };
 
 Chunk *compile(Expression *expr);

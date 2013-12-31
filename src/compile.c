@@ -36,11 +36,15 @@ Constant *make_constant(int type, Val *value) {
     return constant;
 }
 
+#define CONSTANT_CHUNK_SIZE 4
+#define INSTRUCTION_CHUNK_SIZE 32
+#define CHUNK_CHUNK_SIZE 2
+
 Chunk *make_chunk(Scope *scope) {
     Chunk *chunk = malloc(sizeof *chunk);
-    Constant **constants = malloc(4 * sizeof **constants);
-    int *instructions = malloc(32 * sizeof *instructions);
-    Chunk **children = malloc(2 * sizeof **children);
+    Constant **constants = malloc(CONSTANT_CHUNK_SIZE * sizeof **constants);
+    int *instructions = malloc(INSTRUCTION_CHUNK_SIZE * sizeof *instructions);
+    Chunk **children = malloc(CHUNK_CHUNK_SIZE * sizeof **children);
 
     if (!chunk || !constants || !instructions || !children) {
         fatal("Out of memory.");
@@ -53,11 +57,8 @@ Chunk *make_chunk(Scope *scope) {
 
     chunk->numtemps = 0;
     chunk->numconstants = 0;
-    chunk->maxconstants = 4;
     chunk->numinstructions = 0;
-    chunk->maxinstructions = 32;
     chunk->numchildren = 0;
-    chunk->maxchildren = 2;
 
     return chunk;
 }
@@ -65,10 +66,8 @@ Chunk *make_chunk(Scope *scope) {
 int add_constant(Chunk *chunk, Constant *constant) {
     // TODO - return index of duplicate constant
 
-    if (chunk->numconstants == chunk->maxconstants) {
-        chunk->maxconstants *= 2;
-
-        Constant **resize = realloc(chunk->constants, chunk->maxconstants * sizeof **resize);
+    if (chunk->numconstants % CONSTANT_CHUNK_SIZE == 0) {
+        Constant **resize = realloc(chunk->constants, (chunk->numconstants + CONSTANT_CHUNK_SIZE) * sizeof **resize);
 
         if (!resize) {
             fatal("Out of memory.");
@@ -82,10 +81,8 @@ int add_constant(Chunk *chunk, Constant *constant) {
 }
 
 int add_func_child(Chunk *chunk, Chunk *child) {
-    if (chunk->numchildren == chunk->maxchildren) {
-        chunk->maxchildren *= 2;
-
-        Chunk **resize = realloc(chunk->children, chunk->maxchildren * sizeof **resize);
+    if (chunk->numchildren % CHUNK_CHUNK_SIZE == 0) {
+        Chunk **resize = realloc(chunk->children, (chunk->numchildren + CHUNK_CHUNK_SIZE) * sizeof **resize);
 
         if (!resize) {
             fatal("Out of memory.");
@@ -99,10 +96,8 @@ int add_func_child(Chunk *chunk, Chunk *child) {
 }
 
 int add_instruction(Chunk *chunk, int instruction) {
-    if (chunk->numinstructions == chunk->maxinstructions) {
-        chunk->maxinstructions *= 2;
-
-        int *resize = realloc(chunk->instructions, chunk->maxinstructions * sizeof *resize);
+    if (chunk->numinstructions % INSTRUCTION_CHUNK_SIZE == 0) {
+        int *resize = realloc(chunk->instructions, (chunk->numinstructions + INSTRUCTION_CHUNK_SIZE) * sizeof *resize);
 
         if (!resize) {
             fatal("Out of memory.");
