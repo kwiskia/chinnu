@@ -21,8 +21,8 @@
 
 const char *const opcode_names[] = {
     "MOVE",
-    "GETUPVAL",
-    "SETUPVAL",
+    "GETUPVAR",
+    "SETUPVAR",
     "ADD",
     "SUB",
     "MUL",
