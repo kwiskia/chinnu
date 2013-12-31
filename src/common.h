@@ -22,6 +22,9 @@
 typedef struct Symbol Symbol;
 typedef struct Scope Scope;
 
+typedef struct Chunk Chunk;
+typedef struct Constant Constant;
+
 typedef struct Val Val;
 typedef struct Expression Expression;
 typedef struct ExpressionNode ExpressionNode;

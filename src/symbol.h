@@ -55,6 +55,7 @@ struct Scope {
     Scope **children;
 
     int numlocals;
+    int numparams;
     int numupvars;
     int numchildren;
 

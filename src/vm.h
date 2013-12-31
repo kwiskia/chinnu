@@ -21,4 +21,20 @@
 
 #include "compile.h"
 
-void execute(Chunk *chunk);
+typedef struct Object Object;
+
+struct Object {
+    int type;
+    Val value;
+};
+
+typedef enum {
+    OBJECT_INT,
+    OBJECT_REAL,
+    OBJECT_BOOL,
+    OBJECT_NULL,
+    OBJECT_STRING,
+    OBJECT_CLOSURE
+} ObjectType;
+
+Object *execute(Chunk *chunk);

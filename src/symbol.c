@@ -83,6 +83,7 @@ Scope *make_scope(Expression *expr) {
     scope->locals = locals;
     scope->upvars = upvars;
     scope->children = children;
+    scope->numparams = 0;
     scope->numlocals = 0;
     scope->numupvars = 0;
     scope->numchildren = 0;
@@ -385,6 +386,11 @@ void resolve_expr(SymbolTable *table, Expression *expr) {
             add_child(temp, scope);
 
             table->scope = scope;
+
+            ExpressionNode *head;
+            for (head = expr->llist->head; head != NULL; head = head->next) {
+                scope->numparams++;
+            }
 
             table->level++;
             enter_contour(table);

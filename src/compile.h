@@ -22,9 +22,6 @@
 #include "common.h"
 #include "ast.h"
 
-typedef struct Chunk Chunk;
-typedef struct Constant Constant;
-
 struct Constant {
     int type;
     Val *value;
@@ -42,12 +39,15 @@ struct Chunk {
     Scope *scope;
     Constant **constants;
     int *instructions;
+    Chunk **children;
 
     int numtemps;
     int numconstants;
     int maxconstants;
     int numinstructions;
     int maxinstructions;
+    int numchildren;
+    int maxchildren;
 };
 
 Chunk *compile(Expression *expr);

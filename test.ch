@@ -1,12 +1,16 @@
-var a = 156978;
-var b = 2098752;
+function gdc(a, b)
+    var c = a;
+    var d = b;
 
-while a != b do
-    if a > b then
-        a = a - b
-    else
-        b = b - a
-    end
+    while c != d do
+        if c > d then
+            c = c - d
+        else
+            d = d - c
+        end
+    end;
+
+    c
 end;
 
-a
+gdc(17 * 24, 17 * 25)

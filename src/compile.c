@@ -40,20 +40,24 @@ Chunk *make_chunk(Scope *scope) {
     Chunk *chunk = malloc(sizeof(Chunk));
     Constant **constants = malloc(sizeof(Constant *) * 4);
     int *instructions = malloc(sizeof(int) * 32);
+    Chunk **children = malloc(sizeof(Chunk *) * 2);
 
-    if (!chunk || !constants || !instructions) {
+    if (!chunk || !constants || !instructions || !children) {
         fatal("Out of memory.");
     }
 
     chunk->scope = scope;
     chunk->constants = constants;
     chunk->instructions = instructions;
+    chunk->children = children;
 
     chunk->numtemps = 0;
     chunk->numconstants = 0;
     chunk->maxconstants = 4;
     chunk->numinstructions = 0;
     chunk->maxinstructions = 32;
+    chunk->numchildren = 0;
+    chunk->maxchildren = 2;
 
     return chunk;
 }
@@ -75,6 +79,23 @@ int add_constant(Chunk *chunk, Constant *constant) {
 
     chunk->constants[chunk->numconstants] = constant;
     return chunk->numconstants++;
+}
+
+int add_func_child(Chunk *chunk, Chunk *child) {
+    if (chunk->numchildren == chunk->maxchildren) {
+        chunk->maxchildren *= 2;
+
+        Chunk **resize = realloc(chunk->children, sizeof(Chunk *) * chunk->maxchildren);
+
+        if (!resize) {
+            fatal("Out of memory.");
+        }
+
+        chunk->children = resize;
+    }
+
+    chunk->children[chunk->numchildren] = child;
+    return chunk->numchildren++;
 }
 
 int add_instruction(Chunk *chunk, int instruction) {
@@ -144,12 +165,66 @@ void compile_expr(Expression *expr, Chunk *chunk, int dest) {
             break;
 
         case TYPE_FUNC:
-            fatal("Func Unimplemented.\n");
-            break;
+        {
+            // TODO - copy upvalues
+
+            int temp1 = temp;
+            int temp2 = maxt;
+
+            temp = 0;
+            maxt = 0;
+
+            Chunk *child = make_chunk(expr->scope);
+            compile_expr(expr->rexpr, child, 0);
+
+            child->numtemps = maxt;
+
+            temp = temp1;
+            maxt = temp2;
+
+            int index = add_func_child(chunk, child);
+            add_instruction(chunk, CREATE(OP_CLOSURE, dest, index, 0));
+
+            if (expr->symbol) {
+                int index = get_local_index(chunk, expr->symbol);
+                add_instruction(chunk, CREATE(OP_MOVE, index, dest, 0));
+            }
+        } break;
 
         case TYPE_CALL:
-            fatal("Call Unimplemented.\n");
-            break;
+        {
+            // compile receiver
+            compile_expr(expr->lexpr, chunk, dest);
+
+            /**
+             * TODO
+             * How to pass params safely? Currently, if you pass the wrong
+             * number of params you will either waste temporaries (okay), or
+             * the receiver will read into your local space (bad), or segfault
+             * (also bad). Not sure the correct thing to do in this case.
+             */
+
+            if (expr->llist->head == NULL) {
+                add_instruction(chunk, CREATE(OP_CALL, dest, dest, 0));
+            } else {
+                int backup = temp;
+                int f = get_temp_index(chunk);
+                int t = f;
+
+                ExpressionNode *head;
+                for (head = expr->llist->head; head != NULL; head = head->next) {
+                    _mktemp();
+                    compile_expr(head->expr, chunk, t);
+
+                    if (head->next != NULL) {
+                        t = get_temp_index(chunk);
+                    }
+                }
+
+                temp = backup;
+                add_instruction(chunk, CREATE(OP_CALL, dest, dest, f));
+            }
+        } break;
 
         case TYPE_VARREF:
             // TODO - upvars

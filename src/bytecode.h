@@ -58,7 +58,7 @@ typedef enum {
     OP_LE,              // R(A) := RK(B) <= RK(C)
 
     OP_CLOSURE,         // R(A) := Proto[B]
-    OP_CALL,            // [???]
+    OP_CALL,            // R(A) := R(B)(R(C), R(C+1), ...)
     OP_RETURN,          // return RK(B)
 
     OP_JUMP,            // PC := PC + (R(C) ? -B : B)

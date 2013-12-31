@@ -70,6 +70,7 @@ struct Val {
         int i;
         double d;
         char *s;
+        Chunk *c;
     };
 };
 

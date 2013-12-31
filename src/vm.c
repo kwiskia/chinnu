@@ -25,21 +25,6 @@
 #include "chinnu.h"
 #include "bytecode.h"
 
-typedef struct Object Object;
-
-struct Object {
-    int type;
-    Val value;
-};
-
-typedef enum {
-    OBJECT_INT,
-    OBJECT_REAL,
-    OBJECT_BOOL,
-    OBJECT_NULL,
-    OBJECT_STRING
-} ObjectType;
-
 double cast_to_double(Object *object) {
     if (object->type == OBJECT_INT) {
         return (double) object->value.i;
@@ -48,9 +33,7 @@ double cast_to_double(Object *object) {
     return object->value.d;
 }
 
-void execute(Chunk *chunk) {
-    int pc = 0;
-
+Object **prepare_frame(Chunk *chunk) {
     // TODO - handle upvalues
     Object **frame = malloc(sizeof(Object) * (chunk->scope->numlocals + chunk->numtemps + 1));
 
@@ -71,6 +54,12 @@ void execute(Chunk *chunk) {
         object->value = *value;
         frame[i] = object;
     }
+
+    return frame;
+}
+
+Object *execute_function(Chunk *chunk, Object **frame) {
+    int pc = 0;
 
     while (pc < chunk->numinstructions) {
         int instruction = chunk->instructions[pc];
@@ -316,18 +305,143 @@ void execute(Chunk *chunk) {
                 break;
 
             case OP_CLOSURE:
-                fatal("Opcode OP_CLOSURE not implemented.\n");
+                frame[a]->type = OBJECT_CLOSURE;
+                frame[a]->value.c = chunk->children[b];
                 break;
 
             case OP_CALL:
-                fatal("Opcode OP_CALL not implemented.\n");
+                if (frame[b]->type != OBJECT_CLOSURE) {
+                    fatal("Tried to call non-closure.");
+                }
+
+                // TODO - safety issue (see compile.c for notes)
+
+                Chunk *child = frame[b]->value.c;
+
+                Object **subframe = prepare_frame(child);
+
+                int i;
+                for (i = 0; i < child->scope->numparams; i++) {
+                    switch (frame[c + i]->type) {
+                        case OBJECT_INT:
+                            subframe[i + 1]->type = OBJECT_INT;
+                            subframe[i + 1]->value.i = frame[c + i]->value.i;
+                            break;
+
+                        case OBJECT_BOOL:
+                            subframe[i + 1]->type = OBJECT_BOOL;
+                            subframe[i + 1]->value.i = frame[c + i]->value.i;
+                            break;
+
+                        case OBJECT_REAL:
+                            subframe[i + 1]->type = OBJECT_REAL;
+                            subframe[i + 1]->value.d = frame[c + i]->value.d;
+                            break;
+
+                        case OBJECT_NULL:
+                            subframe[i + 1]->type = OBJECT_NULL;
+                            break;
+
+                        case OBJECT_STRING:
+                            subframe[i + 1]->type = OBJECT_STRING;
+                            subframe[i + 1]->value.s = frame[c + i]->value.s;
+                            break;
+                    }
+                }
+
+                Object *ret = execute_function(child, subframe);
+
+                switch (ret->type) {
+                    case OBJECT_INT:
+                        frame[a]->type = OBJECT_INT;
+                        frame[a]->value.i = ret->value.i;
+                        break;
+
+                    case OBJECT_BOOL:
+                        frame[a]->type = OBJECT_BOOL;
+                        frame[a]->value.i = ret->value.i;
+                        break;
+
+                    case OBJECT_REAL:
+                        frame[a]->type = OBJECT_REAL;
+                        frame[a]->value.d = ret->value.d;
+                        break;
+
+                    case OBJECT_NULL:
+                        frame[a]->type = OBJECT_NULL;
+                        break;
+
+                    case OBJECT_STRING:
+                        frame[a]->type = OBJECT_STRING;
+                        frame[a]->value.s = ret->value.s;
+                        break;
+                }
                 break;
 
             case OP_RETURN:
-                // HALT, for now
-                printf("Result: %d\n", frame[0]->value.i);
-                return;
-                break;
+            {
+                if (b < 256) {
+                    // TODO - clear old string?
+
+                    switch (frame[b]->type) {
+                        case OBJECT_INT:
+                            frame[a]->type = OBJECT_INT;
+                            frame[a]->value.i = frame[b]->value.i;
+                            break;
+
+                        case OBJECT_BOOL:
+                            frame[a]->type = OBJECT_BOOL;
+                            frame[a]->value.i = frame[b]->value.i;
+                            break;
+
+                        case OBJECT_REAL:
+                            frame[a]->type = OBJECT_REAL;
+                            frame[a]->value.d = frame[b]->value.d;
+                            break;
+
+                        case OBJECT_NULL:
+                            frame[a]->type = OBJECT_NULL;
+                            break;
+
+                        case OBJECT_STRING:
+                            frame[a]->type = OBJECT_STRING;
+                            frame[a]->value.s = frame[b]->value.s;
+                            break;
+                    }
+                } else {
+                    // TODO - clear old string?
+
+                    Constant *constant = chunk->constants[b - 256];
+
+                    switch (constant->type) {
+                        case CONST_INT:
+                            frame[a]->type = OBJECT_INT;
+                            frame[a]->value.i = constant->value->i;
+                            break;
+
+                        case CONST_BOOL:
+                            frame[a]->type = OBJECT_BOOL;
+                            frame[a]->value.i = constant->value->i;
+                            break;
+
+                        case CONST_REAL:
+                            frame[a]->type = OBJECT_REAL;
+                            frame[a]->value.d = constant->value->d;
+                            break;
+
+                        case CONST_NULL:
+                            frame[a]->type = OBJECT_NULL;
+                            break;
+
+                        case CONST_STRING:
+                            frame[a]->type = OBJECT_STRING;
+                            frame[a]->value.s = constant->value->s;
+                            break;
+                    }
+                }
+
+                goto exit;
+            } break;
 
             case OP_JUMP:
                 if (c) {
@@ -368,4 +482,12 @@ void execute(Chunk *chunk) {
 
         pc++;
     }
+
+exit:
+    printf("Returning %d\n", frame[0]->value.i);
+    return frame[0];
+}
+
+Object *execute(Chunk *chunk) {
+    return execute_function(chunk, prepare_frame(chunk));
 }
