@@ -21,7 +21,27 @@
 
 #include "compile.h"
 
-typedef struct Object Object;
+struct Up {
+    int refslot;
+    int reftype;
+};
+
+struct Proto {
+    Chunk *chunk;
+    Up **upvars;
+};
+
+struct Frame {
+    Frame *parent;
+
+    Proto *proto;
+    Object **registers;
+    int pc;
+};
+
+struct State {
+    Frame *current;
+};
 
 struct Object {
     int type;

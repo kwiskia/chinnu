@@ -63,16 +63,42 @@ void copy_object(Object *a, Object *b) {
     }
 }
 
-Object **make_frame(Chunk *chunk) {
-    // TODO - handle upvalues
-    Object **frame = malloc(sizeof(Object) * (chunk->scope->numlocals + chunk->numtemps + 1));
+Proto *make_proto(Chunk *chunk) {
+    Proto *proto = malloc(sizeof(Proto));
+    Up **upvars = malloc(sizeof(Up) * chunk->scope->numupvars);
 
-    if (!frame) {
+    if (!proto || !upvars) {
         fatal("Out of memory.");
     }
 
     int i;
-    for (i = 0; i < chunk->scope->numlocals + chunk->numtemps + 1; i++) {
+    for (i = 0; i < chunk->scope->numupvars; i++) {
+        Up *upvar = malloc(sizeof(Up));
+
+        if (!upvar) {
+            fatal("Out of memory.");
+        }
+
+        upvars[i] = upvar;
+    }
+
+    proto->chunk = chunk;
+    proto->upvars = upvars;
+    return proto;
+}
+
+Frame *make_frame(Frame *parent, Proto *proto) {
+    int numregs = proto->chunk->scope->numlocals + proto->chunk->numtemps + 1;
+
+    Frame *frame = malloc(sizeof(Frame));
+    Object **registers = malloc(sizeof(Object) * numregs);
+
+    if (!frame || !registers) {
+        fatal("Out of memory.");
+    }
+
+    int i;
+    for (i = 0; i < numregs; i++) {
         Object *object = malloc(sizeof(Object));
         Val *value = malloc(sizeof(Val));
 
@@ -82,17 +108,34 @@ Object **make_frame(Chunk *chunk) {
 
         object->type = -1; // uninitialized
         object->value = *value;
-        frame[i] = object;
+        registers[i] = object;
     }
 
+    frame->pc = 0;
+    frame->parent = parent;
+    frame->proto = proto;
+    frame->registers = registers;
     return frame;
 }
 
-Object *execute_function(Chunk *chunk, Object **frame) {
-    int pc = 0;
+State *make_state(Frame *root) {
+    State *state = malloc(sizeof(State));
 
-    while (pc < chunk->numinstructions) {
-        int instruction = chunk->instructions[pc];
+    if (!state) {
+        fatal("Out of memory.");
+    }
+
+    state->current = root;
+    return state;
+}
+
+Object *execute_function(State *state) {
+    Frame *frame = state->current;
+    Proto *proto = frame->proto;
+    Chunk *chunk = proto->chunk;
+
+    while (frame->pc < chunk->numinstructions) {
+        int instruction = chunk->instructions[frame->pc];
 
         int o = GET_O(instruction);
         int a = GET_A(instruction);
@@ -102,7 +145,7 @@ Object *execute_function(Chunk *chunk, Object **frame) {
         switch (o) {
             case OP_MOVE:
                 if (b < 256) {
-                    copy_object(frame[a], frame[b]);
+                    copy_object(frame->registers[a], frame->registers[b]);
                 } else {
                     // TODO - clear old string?
 
@@ -110,27 +153,27 @@ Object *execute_function(Chunk *chunk, Object **frame) {
 
                     switch (constant->type) {
                         case CONST_INT:
-                            frame[a]->type = OBJECT_INT;
-                            frame[a]->value.i = constant->value->i;
+                            frame->registers[a]->type = OBJECT_INT;
+                            frame->registers[a]->value.i = constant->value->i;
                             break;
 
                         case CONST_BOOL:
-                            frame[a]->type = OBJECT_BOOL;
-                            frame[a]->value.i = constant->value->i;
+                            frame->registers[a]->type = OBJECT_BOOL;
+                            frame->registers[a]->value.i = constant->value->i;
                             break;
 
                         case CONST_REAL:
-                            frame[a]->type = OBJECT_REAL;
-                            frame[a]->value.d = constant->value->d;
+                            frame->registers[a]->type = OBJECT_REAL;
+                            frame->registers[a]->value.d = constant->value->d;
                             break;
 
                         case CONST_NULL:
-                            frame[a]->type = OBJECT_NULL;
+                            frame->registers[a]->type = OBJECT_NULL;
                             break;
 
                         case CONST_STRING:
-                            frame[a]->type = OBJECT_STRING;
-                            frame[a]->value.s = constant->value->s;
+                            frame->registers[a]->type = OBJECT_STRING;
+                            frame->registers[a]->value.s = constant->value->s;
                             break;
                     }
                 }
@@ -145,201 +188,204 @@ Object *execute_function(Chunk *chunk, Object **frame) {
                 break;
 
             case OP_ADD:
-                if (frame[b]->type != OBJECT_INT && frame[b]->type != OBJECT_REAL) {
+                if (frame->registers[b]->type != OBJECT_INT && frame->registers[b]->type != OBJECT_REAL) {
                     fatal("Tried to add non-numbers.");
                 }
 
-                if (frame[c]->type != OBJECT_INT && frame[c]->type != OBJECT_REAL) {
+                if (frame->registers[c]->type != OBJECT_INT && frame->registers[c]->type != OBJECT_REAL) {
                     fatal("Tried to add non-numbers.");
                 }
 
                 // TODO - do with constants as well
-                if (frame[b]->type == OBJECT_INT && frame[c]->type == OBJECT_INT) {
-                    frame[a]->type = OBJECT_INT;
-                    frame[a]->value.i = frame[b]->value.i + frame[c]->value.i;
+                if (frame->registers[b]->type == OBJECT_INT && frame->registers[c]->type == OBJECT_INT) {
+                    frame->registers[a]->type = OBJECT_INT;
+                    frame->registers[a]->value.i = frame->registers[b]->value.i + frame->registers[c]->value.i;
                 } else {
-                    frame[a]->type = OBJECT_REAL;
-                    frame[a]->value.d = cast_to_double(frame[b]) + cast_to_double(frame[c]);
+                    frame->registers[a]->type = OBJECT_REAL;
+                    frame->registers[a]->value.d = cast_to_double(frame->registers[b]) + cast_to_double(frame->registers[c]);
                 }
                 break;
 
             case OP_SUB:
-                if (frame[b]->type != OBJECT_INT && frame[b]->type != OBJECT_REAL) {
+                if (frame->registers[b]->type != OBJECT_INT && frame->registers[b]->type != OBJECT_REAL) {
                     fatal("Tried to sub non-numbers.");
                 }
 
-                if (frame[c]->type != OBJECT_INT && frame[c]->type != OBJECT_REAL) {
+                if (frame->registers[c]->type != OBJECT_INT && frame->registers[c]->type != OBJECT_REAL) {
                     fatal("Tried to sub non-numbers.");
                 }
 
                 // TODO - do with constants as well
-                if (frame[b]->type == OBJECT_INT && frame[c]->type == OBJECT_INT) {
-                    frame[a]->type = OBJECT_INT;
-                    frame[a]->value.i = frame[b]->value.i - frame[c]->value.i;
+                if (frame->registers[b]->type == OBJECT_INT && frame->registers[c]->type == OBJECT_INT) {
+                    frame->registers[a]->type = OBJECT_INT;
+                    frame->registers[a]->value.i = frame->registers[b]->value.i - frame->registers[c]->value.i;
                 } else {
-                    frame[a]->type = OBJECT_REAL;
-                    frame[a]->value.d = cast_to_double(frame[b]) - cast_to_double(frame[c]);
+                    frame->registers[a]->type = OBJECT_REAL;
+                    frame->registers[a]->value.d = cast_to_double(frame->registers[b]) - cast_to_double(frame->registers[c]);
                 }
                 break;
 
             case OP_MUL:
-                if (frame[b]->type != OBJECT_INT && frame[b]->type != OBJECT_REAL) {
+                if (frame->registers[b]->type != OBJECT_INT && frame->registers[b]->type != OBJECT_REAL) {
                     fatal("Tried to mul non-numbers.");
                 }
 
-                if (frame[c]->type != OBJECT_INT && frame[c]->type != OBJECT_REAL) {
+                if (frame->registers[c]->type != OBJECT_INT && frame->registers[c]->type != OBJECT_REAL) {
                     fatal("Tried to mul non-numbers.");
                 }
 
                 // TODO - do with constants as well
-                if (frame[b]->type == OBJECT_INT && frame[c]->type == OBJECT_INT) {
-                    frame[a]->type = OBJECT_INT;
-                    frame[a]->value.i = frame[b]->value.i * frame[c]->value.i;
+                if (frame->registers[b]->type == OBJECT_INT && frame->registers[c]->type == OBJECT_INT) {
+                    frame->registers[a]->type = OBJECT_INT;
+                    frame->registers[a]->value.i = frame->registers[b]->value.i * frame->registers[c]->value.i;
                 } else {
-                    frame[a]->type = OBJECT_REAL;
-                    frame[a]->value.d = cast_to_double(frame[b]) * cast_to_double(frame[c]);
+                    frame->registers[a]->type = OBJECT_REAL;
+                    frame->registers[a]->value.d = cast_to_double(frame->registers[b]) * cast_to_double(frame->registers[c]);
                 }
                 break;
 
             case OP_DIV:
-                if (frame[b]->type != OBJECT_INT && frame[b]->type != OBJECT_REAL) {
+                if (frame->registers[b]->type != OBJECT_INT && frame->registers[b]->type != OBJECT_REAL) {
                     fatal("Tried to div non-numbers.");
                 }
 
-                if (frame[c]->type != OBJECT_INT && frame[c]->type != OBJECT_REAL) {
+                if (frame->registers[c]->type != OBJECT_INT && frame->registers[c]->type != OBJECT_REAL) {
                     fatal("Tried to div non-numbers.");
                 }
 
-                if (cast_to_double(frame[c]) == 0) {
+                if (cast_to_double(frame->registers[c]) == 0) {
                     fatal("Div by zero.");
                 }
 
                 // TODO - do with constants as well
-                if (frame[b]->type == OBJECT_INT && frame[c]->type == OBJECT_INT) {
-                    frame[a]->type = OBJECT_INT;
-                    frame[a]->value.i = frame[b]->value.i / frame[c]->value.i;
+                if (frame->registers[b]->type == OBJECT_INT && frame->registers[c]->type == OBJECT_INT) {
+                    frame->registers[a]->type = OBJECT_INT;
+                    frame->registers[a]->value.i = frame->registers[b]->value.i / frame->registers[c]->value.i;
                 } else {
-                    frame[a]->type = OBJECT_REAL;
-                    frame[a]->value.d = cast_to_double(frame[b]) / cast_to_double(frame[c]);
+                    frame->registers[a]->type = OBJECT_REAL;
+                    frame->registers[a]->value.d = cast_to_double(frame->registers[b]) / cast_to_double(frame->registers[c]);
                 }
                 break;
 
             case OP_NEG:
                 // TODO - do for constants as well
-                if (frame[a]->type == OBJECT_INT) {
-                    frame[a]->value.i = -frame[a]->value.i;
-                } else if (frame[a]->type == OBJECT_REAL) {
-                    frame[a]->value.d = -frame[a]->value.d;
+                if (frame->registers[a]->type == OBJECT_INT) {
+                    frame->registers[a]->value.i = -frame->registers[a]->value.i;
+                } else if (frame->registers[a]->type == OBJECT_REAL) {
+                    frame->registers[a]->value.d = -frame->registers[a]->value.d;
                 } else {
                     fatal("Tried to negate non-numeric type.");
                 }
                 break;
 
             case OP_NOT:
-                if (frame[a]->type != OBJECT_BOOL) {
-                    fatal("Expected boolean type, not %d.", frame[a]->type);
+                if (frame->registers[a]->type != OBJECT_BOOL) {
+                    fatal("Expected boolean type, not %d.", frame->registers[a]->type);
                 }
 
-                frame[a]->value.i = frame[a]->value.i == 1 ? 0 : 1;
+                frame->registers[a]->value.i = frame->registers[a]->value.i == 1 ? 0 : 1;
                 break;
 
             case OP_EQ:
-                if (frame[b]->type != frame[c]->type) {
-                    frame[a]->value.i = 0;
+                if (frame->registers[b]->type != frame->registers[c]->type) {
+                    frame->registers[a]->value.i = 0;
                 } else {
-                    switch (frame[b]->type) {
+                    switch (frame->registers[b]->type) {
                         case OBJECT_INT:
                         case OBJECT_BOOL:
-                            frame[a]->value.i = frame[b]->value.i == frame[c]->value.i;
+                            frame->registers[a]->value.i = frame->registers[b]->value.i == frame->registers[c]->value.i;
                             break;
 
                         case OBJECT_NULL:
-                            frame[a]->value.i = 1;
+                            frame->registers[a]->value.i = 1;
                             break;
 
                         case OBJECT_REAL:
-                            frame[a]->value.d = frame[b]->value.d == frame[c]->value.d;
+                            frame->registers[a]->value.d = frame->registers[b]->value.d == frame->registers[c]->value.d;
                             break;
 
                         case OBJECT_STRING:
-                            frame[a]->value.i = strcmp(frame[b]->value.s, frame[c]->value.s) == 0;
+                            frame->registers[a]->value.i = strcmp(frame->registers[b]->value.s, frame->registers[c]->value.s) == 0;
                             break;
                     }
                 }
 
-                frame[a]->type = OBJECT_BOOL;
+                frame->registers[a]->type = OBJECT_BOOL;
                 break;
 
             case OP_LT:
-                if (frame[b]->type != OBJECT_INT && frame[b]->type != OBJECT_REAL) {
+                if (frame->registers[b]->type != OBJECT_INT && frame->registers[b]->type != OBJECT_REAL) {
                     fatal("Tried to compare non-numbers.");
                 }
 
-                if (frame[c]->type != OBJECT_INT && frame[c]->type != OBJECT_REAL) {
+                if (frame->registers[c]->type != OBJECT_INT && frame->registers[c]->type != OBJECT_REAL) {
                     fatal("Tried to compare non-numbers.");
                 }
 
                 // TODO - do with constants as well
-                if (frame[b]->type == OBJECT_INT && frame[c]->type == OBJECT_INT) {
-                    frame[a]->type = OBJECT_BOOL;
-                    frame[a]->value.i = frame[b]->value.i < frame[c]->value.i;
+                if (frame->registers[b]->type == OBJECT_INT && frame->registers[c]->type == OBJECT_INT) {
+                    frame->registers[a]->type = OBJECT_BOOL;
+                    frame->registers[a]->value.i = frame->registers[b]->value.i < frame->registers[c]->value.i;
                 } else {
-                    frame[a]->type = OBJECT_BOOL;
-                    frame[a]->value.d = cast_to_double(frame[b]) < cast_to_double(frame[c]);
+                    frame->registers[a]->type = OBJECT_BOOL;
+                    frame->registers[a]->value.d = cast_to_double(frame->registers[b]) < cast_to_double(frame->registers[c]);
                 }
                 break;
 
             case OP_LE:
-                if (frame[b]->type != OBJECT_INT && frame[b]->type != OBJECT_REAL) {
+                if (frame->registers[b]->type != OBJECT_INT && frame->registers[b]->type != OBJECT_REAL) {
                     fatal("Tried to compare non-numbers.");
                 }
 
-                if (frame[c]->type != OBJECT_INT && frame[c]->type != OBJECT_REAL) {
+                if (frame->registers[c]->type != OBJECT_INT && frame->registers[c]->type != OBJECT_REAL) {
                     fatal("Tried to compare non-numbers.");
                 }
 
                 // TODO - do with constants as well
-                if (frame[b]->type == OBJECT_INT && frame[c]->type == OBJECT_INT) {
-                    frame[a]->type = OBJECT_BOOL;
-                    frame[a]->value.i = frame[b]->value.i <= frame[c]->value.i;
+                if (frame->registers[b]->type == OBJECT_INT && frame->registers[c]->type == OBJECT_INT) {
+                    frame->registers[a]->type = OBJECT_BOOL;
+                    frame->registers[a]->value.i = frame->registers[b]->value.i <= frame->registers[c]->value.i;
                 } else {
-                    frame[a]->type = OBJECT_BOOL;
-                    frame[a]->value.d = cast_to_double(frame[b]) <= cast_to_double(frame[c]);
+                    frame->registers[a]->type = OBJECT_BOOL;
+                    frame->registers[a]->value.d = cast_to_double(frame->registers[b]) <= cast_to_double(frame->registers[c]);
                 }
                 break;
 
             case OP_CLOSURE:
             {
-                frame[a]->type = OBJECT_CLOSURE;
-                frame[a]->value.c = chunk->children[b];
+                // TODO - upvars
+
+                frame->registers[a]->type = OBJECT_CLOSURE;
+                frame->registers[a]->value.p = make_proto(chunk->children[b]);
             } break;
 
             case OP_CALL:
             {
-                if (frame[b]->type != OBJECT_CLOSURE) {
+                if (frame->registers[b]->type != OBJECT_CLOSURE) {
                     fatal("Tried to call non-closure.");
                 }
 
                 // TODO - safety issue (see compile.c for notes)
 
-                Chunk *child = frame[b]->value.c;
-
-                Object **subframe = make_frame(child);
+                Proto *child = frame->registers[b]->value.p;
+                Frame *subframe = make_frame(frame, child);
 
                 int i;
-                for (i = 0; i < child->scope->numparams; i++) {
-                    copy_object(subframe[i + 1], frame[c + i]);
+                for (i = 0; i < child->chunk->scope->numparams; i++) {
+                    copy_object(subframe->registers[i + 1], frame->registers[c + i]);
                 }
 
-                Object *ret = execute_function(child, subframe);
+                state->current = subframe;
+                Object *ret = execute_function(state);
+                state->current = state->current->parent;
 
-                copy_object(frame[a], ret);
+                copy_object(frame->registers[a], ret);
             } break;
 
             case OP_RETURN:
             {
                 if (b < 256) {
-                    copy_object(frame[0], frame[b]);
+                    copy_object(frame->registers[0], frame->registers[b]);
                 } else {
                     // TODO - clear old string?
 
@@ -347,27 +393,27 @@ Object *execute_function(Chunk *chunk, Object **frame) {
 
                     switch (constant->type) {
                         case CONST_INT:
-                            frame[a]->type = OBJECT_INT;
-                            frame[a]->value.i = constant->value->i;
+                            frame->registers[a]->type = OBJECT_INT;
+                            frame->registers[a]->value.i = constant->value->i;
                             break;
 
                         case CONST_BOOL:
-                            frame[a]->type = OBJECT_BOOL;
-                            frame[a]->value.i = constant->value->i;
+                            frame->registers[a]->type = OBJECT_BOOL;
+                            frame->registers[a]->value.i = constant->value->i;
                             break;
 
                         case CONST_REAL:
-                            frame[a]->type = OBJECT_REAL;
-                            frame[a]->value.d = constant->value->d;
+                            frame->registers[a]->type = OBJECT_REAL;
+                            frame->registers[a]->value.d = constant->value->d;
                             break;
 
                         case CONST_NULL:
-                            frame[a]->type = OBJECT_NULL;
+                            frame->registers[a]->type = OBJECT_NULL;
                             break;
 
                         case CONST_STRING:
-                            frame[a]->type = OBJECT_STRING;
-                            frame[a]->value.s = constant->value->s;
+                            frame->registers[a]->type = OBJECT_STRING;
+                            frame->registers[a]->value.s = constant->value->s;
                             break;
                     }
                 }
@@ -377,49 +423,49 @@ Object *execute_function(Chunk *chunk, Object **frame) {
 
             case OP_JUMP:
                 if (c) {
-                    pc -= b;
+                    frame->pc -= b;
                 } else {
-                    pc += b;
+                    frame->pc += b;
                 }
                 break;
 
             case OP_JUMP_TRUE:
-                if (frame[a]->type != OBJECT_BOOL) {
-                    fatal("Expected boolean type, not %d.", frame[a]->type);
+                if (frame->registers[a]->type != OBJECT_BOOL) {
+                    fatal("Expected boolean type, not %d.", frame->registers[a]->type);
                 }
 
-                if (frame[a]->value.i == 1) {
+                if (frame->registers[a]->value.i == 1) {
                     if (c) {
-                        pc -= b;
+                        frame->pc -= b;
                     } else {
-                        pc += b;
+                        frame->pc += b;
                     }
                 }
                 break;
 
             case OP_JUMP_FALSE:
-                if (frame[a]->type != OBJECT_BOOL) {
-                    fatal("Expected boolean type, not %d.", frame[a]->type);
+                if (frame->registers[a]->type != OBJECT_BOOL) {
+                    fatal("Expected boolean type, not %d.", frame->registers[a]->type);
                 }
 
-                if (frame[a]->value.i == 0) {
+                if (frame->registers[a]->value.i == 0) {
                     if (c) {
-                        pc -= b;
+                        frame->pc -= b;
                     } else {
-                        pc += b;
+                        frame->pc += b;
                     }
                 }
                 break;
         }
 
-        pc++;
+        frame->pc++;
     }
 
 exit:
-    printf("Returning %d\n", frame[0]->value.i);
-    return frame[0];
+    printf("Returning %d\n", frame->registers[0]->value.i);
+    return frame->registers[0];
 }
 
 Object *execute(Chunk *chunk) {
-    return execute_function(chunk, make_frame(chunk));
+    return execute_function(make_state(make_frame(NULL, make_proto(chunk))));
 }
