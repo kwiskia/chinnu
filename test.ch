@@ -6,7 +6,7 @@ function count()
     end
 end;
 
-var c = (count());
+var c = count();
 c(); # 1
 c(); # 2
 c(); # 3

@@ -77,8 +77,8 @@ void yyerror(const char *fmt, ...);
 
 %token IF THEN ELIF ELSE WHILE DO END FUN VAR VAL TRUE FALSE NIL
 
-%left '('
 %right '='
+%left '('
 %left AND OR
 %nonassoc EQEQ NEQ '<' LEQ '>' GEQ
 %left '+' '-'
