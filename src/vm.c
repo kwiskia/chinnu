@@ -33,7 +33,37 @@ double cast_to_double(Object *object) {
     return object->value.d;
 }
 
-Object **prepare_frame(Chunk *chunk) {
+void copy_object(Object *a, Object *b) {
+    // TODO - clear old string?
+
+    switch (b->type) {
+        case OBJECT_INT:
+            a->type = OBJECT_INT;
+            a->value.i = b->value.i;
+            break;
+
+        case OBJECT_BOOL:
+            a->type = OBJECT_BOOL;
+            a->value.i = b->value.i;
+            break;
+
+        case OBJECT_REAL:
+            a->type = OBJECT_REAL;
+            a->value.d = b->value.d;
+            break;
+
+        case OBJECT_NULL:
+            a->type = OBJECT_NULL;
+            break;
+
+        case OBJECT_STRING:
+            a->type = OBJECT_STRING;
+            a->value.s = b->value.s;
+            break;
+    }
+}
+
+Object **make_frame(Chunk *chunk) {
     // TODO - handle upvalues
     Object **frame = malloc(sizeof(Object) * (chunk->scope->numlocals + chunk->numtemps + 1));
 
@@ -72,33 +102,7 @@ Object *execute_function(Chunk *chunk, Object **frame) {
         switch (o) {
             case OP_MOVE:
                 if (b < 256) {
-                    // TODO - clear old string?
-
-                    switch (frame[b]->type) {
-                        case OBJECT_INT:
-                            frame[a]->type = OBJECT_INT;
-                            frame[a]->value.i = frame[b]->value.i;
-                            break;
-
-                        case OBJECT_BOOL:
-                            frame[a]->type = OBJECT_BOOL;
-                            frame[a]->value.i = frame[b]->value.i;
-                            break;
-
-                        case OBJECT_REAL:
-                            frame[a]->type = OBJECT_REAL;
-                            frame[a]->value.d = frame[b]->value.d;
-                            break;
-
-                        case OBJECT_NULL:
-                            frame[a]->type = OBJECT_NULL;
-                            break;
-
-                        case OBJECT_STRING:
-                            frame[a]->type = OBJECT_STRING;
-                            frame[a]->value.s = frame[b]->value.s;
-                            break;
-                    }
+                    copy_object(frame[a], frame[b]);
                 } else {
                     // TODO - clear old string?
 
@@ -305,11 +309,13 @@ Object *execute_function(Chunk *chunk, Object **frame) {
                 break;
 
             case OP_CLOSURE:
+            {
                 frame[a]->type = OBJECT_CLOSURE;
                 frame[a]->value.c = chunk->children[b];
-                break;
+            } break;
 
             case OP_CALL:
+            {
                 if (frame[b]->type != OBJECT_CLOSURE) {
                     fatal("Tried to call non-closure.");
                 }
@@ -318,96 +324,22 @@ Object *execute_function(Chunk *chunk, Object **frame) {
 
                 Chunk *child = frame[b]->value.c;
 
-                Object **subframe = prepare_frame(child);
+                Object **subframe = make_frame(child);
 
                 int i;
                 for (i = 0; i < child->scope->numparams; i++) {
-                    switch (frame[c + i]->type) {
-                        case OBJECT_INT:
-                            subframe[i + 1]->type = OBJECT_INT;
-                            subframe[i + 1]->value.i = frame[c + i]->value.i;
-                            break;
-
-                        case OBJECT_BOOL:
-                            subframe[i + 1]->type = OBJECT_BOOL;
-                            subframe[i + 1]->value.i = frame[c + i]->value.i;
-                            break;
-
-                        case OBJECT_REAL:
-                            subframe[i + 1]->type = OBJECT_REAL;
-                            subframe[i + 1]->value.d = frame[c + i]->value.d;
-                            break;
-
-                        case OBJECT_NULL:
-                            subframe[i + 1]->type = OBJECT_NULL;
-                            break;
-
-                        case OBJECT_STRING:
-                            subframe[i + 1]->type = OBJECT_STRING;
-                            subframe[i + 1]->value.s = frame[c + i]->value.s;
-                            break;
-                    }
+                    copy_object(subframe[i + 1], frame[c + i]);
                 }
 
                 Object *ret = execute_function(child, subframe);
 
-                switch (ret->type) {
-                    case OBJECT_INT:
-                        frame[a]->type = OBJECT_INT;
-                        frame[a]->value.i = ret->value.i;
-                        break;
-
-                    case OBJECT_BOOL:
-                        frame[a]->type = OBJECT_BOOL;
-                        frame[a]->value.i = ret->value.i;
-                        break;
-
-                    case OBJECT_REAL:
-                        frame[a]->type = OBJECT_REAL;
-                        frame[a]->value.d = ret->value.d;
-                        break;
-
-                    case OBJECT_NULL:
-                        frame[a]->type = OBJECT_NULL;
-                        break;
-
-                    case OBJECT_STRING:
-                        frame[a]->type = OBJECT_STRING;
-                        frame[a]->value.s = ret->value.s;
-                        break;
-                }
-                break;
+                copy_object(frame[a], ret);
+            } break;
 
             case OP_RETURN:
             {
                 if (b < 256) {
-                    // TODO - clear old string?
-
-                    switch (frame[b]->type) {
-                        case OBJECT_INT:
-                            frame[a]->type = OBJECT_INT;
-                            frame[a]->value.i = frame[b]->value.i;
-                            break;
-
-                        case OBJECT_BOOL:
-                            frame[a]->type = OBJECT_BOOL;
-                            frame[a]->value.i = frame[b]->value.i;
-                            break;
-
-                        case OBJECT_REAL:
-                            frame[a]->type = OBJECT_REAL;
-                            frame[a]->value.d = frame[b]->value.d;
-                            break;
-
-                        case OBJECT_NULL:
-                            frame[a]->type = OBJECT_NULL;
-                            break;
-
-                        case OBJECT_STRING:
-                            frame[a]->type = OBJECT_STRING;
-                            frame[a]->value.s = frame[b]->value.s;
-                            break;
-                    }
+                    copy_object(frame[0], frame[b]);
                 } else {
                     // TODO - clear old string?
 
@@ -489,5 +421,5 @@ exit:
 }
 
 Object *execute(Chunk *chunk) {
-    return execute_function(chunk, prepare_frame(chunk));
+    return execute_function(chunk, make_frame(chunk));
 }
