@@ -23,7 +23,7 @@ typedef struct Symbol Symbol;
 typedef struct Scope Scope;
 
 typedef struct Upval Upval;
-typedef struct Proto Proto;
+typedef struct Closure Closure;
 typedef struct Frame Frame;
 typedef struct State State;
 typedef struct Object Object;

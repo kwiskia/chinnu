@@ -70,7 +70,7 @@ struct Val {
         int i;
         double d;
         char *s;
-        Proto *p;
+        Closure *c;
     };
 };
 

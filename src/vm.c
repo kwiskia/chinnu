@@ -63,7 +63,7 @@ void copy_object(Object *a, Object *b) {
 
         case OBJECT_CLOSURE:
             a->type = OBJECT_CLOSURE;
-            a->value.p = b->value.p;
+            a->value.c = b->value.c;
             break;
     }
 }
@@ -102,11 +102,11 @@ void free_upval(Upval *upval) {
     free(upval);
 }
 
-Proto *make_proto(Chunk *chunk) {
-    Proto *proto = malloc(sizeof(Proto));
+Closure *make_closure(Chunk *chunk) {
+    Closure *closure = malloc(sizeof(Closure));
     Upval **upvals = malloc(sizeof(Upval) * chunk->scope->numupvars);
 
-    if (!proto || !upvals) {
+    if (!closure || !upvals) {
         fatal("Out of memory.");
     }
 
@@ -115,14 +115,14 @@ Proto *make_proto(Chunk *chunk) {
         upvals[i] = NULL;
     }
 
-    proto->chunk = chunk;
-    proto->upvals = upvals;
-    return proto;
+    closure->chunk = chunk;
+    closure->upvals = upvals;
+    return closure;
 }
 
-Frame *make_frame(Frame *parent, Proto *proto) {
+Frame *make_frame(Frame *parent, Closure *closure) {
     // move this to code gen, not responsibility of the vm [?]
-    int numregs = proto->chunk->scope->numlocals + proto->chunk->numtemps + 1;
+    int numregs = closure->chunk->scope->numlocals + closure->chunk->numtemps + 1;
 
     Frame *frame = malloc(sizeof(Frame));
     Object **registers = malloc(sizeof(Object) * numregs);
@@ -147,7 +147,7 @@ Frame *make_frame(Frame *parent, Proto *proto) {
 
     frame->pc = 0;
     frame->parent = parent;
-    frame->proto = proto;
+    frame->closure = closure;
     frame->registers = registers;
     return frame;
 }
@@ -166,8 +166,8 @@ State *make_state(Frame *root) {
 
 Object *execute_function(State *state) {
     Frame *frame = state->current;
-    Proto *proto = frame->proto;
-    Chunk *chunk = proto->chunk;
+    Closure *closure = frame->closure;
+    Chunk *chunk = closure->chunk;
 
     while (frame->pc < chunk->numinstructions) {
         int instruction = chunk->instructions[frame->pc];
@@ -216,7 +216,7 @@ Object *execute_function(State *state) {
 
             case OP_GETUPVAR:
             {
-                Upval *upval = proto->upvals[b];
+                Upval *upval = closure->upvals[b];
 
                 if (!upval->open) {
                     // upval is closed
@@ -229,7 +229,7 @@ Object *execute_function(State *state) {
 
             case OP_SETUPVAR:
             {
-                Upval *upval = proto->upvals[b];
+                Upval *upval = closure->upvals[b];
 
                 if (!upval->open) {
                     // upval is closed
@@ -406,7 +406,7 @@ Object *execute_function(State *state) {
 
             case OP_CLOSURE:
             {
-                Proto *child = make_proto(chunk->children[b]);
+                Closure *child = make_closure(chunk->children[b]);
 
                 int i;
                 for (i = 0; i < chunk->children[b]->scope->numupvars; i++) {
@@ -422,13 +422,13 @@ Object *execute_function(State *state) {
                         child->upvals[ac] = make_upval(state, bc);
                     } else {
                         // share upval
-                        child->upvals[ac] = proto->upvals[bc];
+                        child->upvals[ac] = closure->upvals[bc];
                         child->upvals[ac]->refcount++;
                     }
                 }
 
                 frame->registers[a]->type = OBJECT_CLOSURE;
-                frame->registers[a]->value.p = child;
+                frame->registers[a]->value.c = child;
             } break;
 
             case OP_CALL:
@@ -439,7 +439,7 @@ Object *execute_function(State *state) {
 
                 // TODO - safety issue (see compile.c for notes)
 
-                Proto *child = frame->registers[b]->value.p;
+                Closure *child = frame->registers[b]->value.c;
                 Frame *subframe = make_frame(frame, child);
 
                 int i;
@@ -537,11 +537,11 @@ Object *execute_function(State *state) {
         /* TODO - do this when the prototype is garbage-collected */
         // int i;
         // for (i = 0; i < chunk->scope->numupvars; i++) {
-        //     if (--proto->upvals[i]->refcount == 0) {
+        //     if (--closure->upvals[i]->refcount == 0) {
         //         printf("Freeing upval\n");
         //         fflush(stdout);
 
-        //         free_upval(proto->upvals[i]);
+        //         free_upval(closure->upvals[i]);
         //     }
         // }
 
@@ -580,5 +580,5 @@ Object *execute_function(State *state) {
 }
 
 Object *execute(Chunk *chunk) {
-    return execute_function(make_state(make_frame(NULL, make_proto(chunk))));
+    return execute_function(make_state(make_frame(NULL, make_closure(chunk))));
 }

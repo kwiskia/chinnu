@@ -33,9 +33,7 @@ struct Upval {
     };
 };
 
-// TODO - rename to closure
-
-struct Proto {
+struct Closure {
     Chunk *chunk;
     Upval **upvals;
 };
@@ -43,7 +41,7 @@ struct Proto {
 struct Frame {
     Frame *parent;
 
-    Proto *proto;
+    Closure *closure;
     Object **registers;
     int pc;
 };
