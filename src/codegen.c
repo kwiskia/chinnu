@@ -188,6 +188,7 @@ int compile_expr(Expression *expr, Chunk *chunk, Scope *scope, int dest, int tem
         {
             Chunk *child = make_chunk();
             int max = compile_expr(expr->rexpr, child, expr->scope, 0, 0);
+            add_instruction(child, CREATE(OP_RETURN, 0, 0, 0));
 
             child->numtemps = max;
             child->numlocals = expr->scope->numlocals;
