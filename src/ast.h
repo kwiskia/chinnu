@@ -65,13 +65,11 @@ struct SourcePos {
     char *filename;
 };
 
-struct Val {
-    union {
-        int i;
-        double d;
-        char *s;
-        Closure *c;
-    };
+union Val {
+    int i;
+    double d;
+    char *s;
+    Closure *c;
 };
 
 struct Expression {
