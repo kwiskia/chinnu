@@ -161,8 +161,6 @@ int register_upvar(Scope *scope, Symbol *symbol) {
     return add_upvar(scope, symbol);
 }
 
-static int symbol_id = 0;
-
 Symbol *make_symbol(char *name, int level, Expression *declaration) {
     Symbol *symbol = malloc(sizeof *symbol);
 
@@ -170,7 +168,6 @@ Symbol *make_symbol(char *name, int level, Expression *declaration) {
         fatal("Out of memory.");
     }
 
-    symbol->id = symbol_id++;
     symbol->level = level;
     symbol->name = strdup(name);
     symbol->declaration = declaration;
