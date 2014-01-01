@@ -22,6 +22,7 @@
 #include <stdio.h>
 #include "semant.h"
 
+#define MAGIC_BYTE 0x43484E55
 #define CHINNU_VERSION "0.0.1"
 
 Expression *program;

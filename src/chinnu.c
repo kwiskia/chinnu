@@ -295,6 +295,9 @@ void save(Chunk *chunk, char *filename) {
         fatal("Could not open bytecode cache file.");
     }
 
+    int n = MAGIC_BYTE;
+    fwrite(&n, sizeof(int), 1, fp);
+
     dosave(chunk, fp);
     fclose(fp);
 }
@@ -381,6 +384,13 @@ Chunk *load(char *filename) {
 
     if (!fp) {
         fatal("Could not open bytecode cache file.");
+    }
+
+    int n;
+    fread(&n, sizeof(int), 1, fp);
+
+    if (n != MAGIC_BYTE) {
+        fatal("Corrupt cache file.");
     }
 
     Chunk *c = doload(fp);
