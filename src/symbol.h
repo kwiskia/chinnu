@@ -19,7 +19,6 @@
 
 #pragma once
 
-#include "common.h"
 #include "ast.h"
 
 struct Symbol {

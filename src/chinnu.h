@@ -19,9 +19,7 @@
 
 #pragma once
 
-#include <stdarg.h>
-
-#include "common.h"
+#include <stdio.h>
 #include "symbol.h"
 
 #define CHINNU_VERSION "0.0.1"

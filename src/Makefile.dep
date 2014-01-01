@@ -1,7 +1,7 @@
-ast.o: ast.c ast.h common.h symbol.h chinnu.h
+ast.o: ast.c ast.h common.h chinnu.h symbol.h
 bytecode.o: bytecode.c bytecode.h
-chinnu.o: chinnu.c chinnu.h common.h symbol.h ast.h vm.h compile.h
-compile.o: compile.c chinnu.h common.h symbol.h ast.h compile.h \
+chinnu.o: chinnu.c chinnu.h symbol.h ast.h common.h vm.h compile.h
+compile.o: compile.c chinnu.h symbol.h ast.h common.h compile.h \
   bytecode.h
-symbol.o: symbol.c chinnu.h common.h symbol.h ast.h
-vm.o: vm.c vm.h compile.h common.h ast.h symbol.h chinnu.h bytecode.h
+symbol.o: symbol.c chinnu.h symbol.h ast.h common.h
+vm.o: vm.c vm.h compile.h ast.h common.h chinnu.h symbol.h bytecode.h

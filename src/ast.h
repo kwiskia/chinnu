@@ -20,7 +20,6 @@
 #pragma once
 
 #include "common.h"
-#include "symbol.h"
 
 typedef union Val Val;
 typedef struct ExpressionNode ExpressionNode;

@@ -17,16 +17,13 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
 #include <string.h>
 #include <getopt.h>
 
 #include "chinnu.h"
-#include "symbol.h"
 #include "vm.h"
-#include "compile.h"
 
 extern FILE *yyin;
 extern int yyparse();
