@@ -224,7 +224,8 @@ State *make_state(Frame *root) {
     return state;
 }
 
-Object *execute_function(State *state) {
+void execute_function(State *state) {
+restart: {
     Frame *frame = state->current;
     Closure *closure = frame->closure;
     Chunk *chunk = closure->chunk;
@@ -508,10 +509,7 @@ Object *execute_function(State *state) {
                 }
 
                 state->current = subframe;
-                Object *ret = execute_function(state);
-                state->current = frame;
-
-                copy_object(frame->registers[a], ret);
+                goto restart;
             } break;
 
             case OP_RETURN:
@@ -550,7 +548,46 @@ Object *execute_function(State *state) {
                     }
                 }
 
-                goto exit;
+                UpvalNode *head;
+                for (head = state->head; head != NULL; ) {
+                    Upval *u = head->upval;
+
+                    if (u->ref.frame == frame) {
+                        if (u->refcount == 0) {
+                            free_upval(u);
+                        } else {
+                            u->open = 0;
+                            u->o = frame->registers[u->ref.slot];
+                        }
+
+                        if (state->head == head) {
+                            state->head = head->next;
+                        } else {
+                            head->next->prev = head->prev;
+                            head->prev->next = head->next;
+                        }
+
+                        UpvalNode *temp = head;
+                        head = head->next;
+                        free(temp);
+                    } else {
+                        head = head->next;
+                    }
+                }
+
+                // TODO - free registers
+
+                if (state->current->parent != NULL) {
+                    Frame *p = state->current->parent;
+                    copy_object(p->registers[GET_A(p->closure->chunk->instructions[p->pc++])], frame->registers[0]);
+
+                    printf("Returning %d\n", frame->registers[0]->value.i);
+
+                    state->current = p;
+                    goto restart;
+                } else {
+                    return;
+                }
             } break;
 
             case OP_JUMP:
@@ -593,50 +630,8 @@ Object *execute_function(State *state) {
         frame->pc++;
     }
 
-    exit: {
-        /* TODO - do this when the prototype is garbage-collected */
-        // int i;
-        // for (i = 0; i < chunk->numupvars; i++) {
-        //     if (--closure->upvals[i]->refcount == 0) {
-        //         printf("Freeing upval\n");
-        //         fflush(stdout);
-
-        //         free_upval(closure->upvals[i]);
-        //     }
-        // }
-
-        UpvalNode *head;
-        for (head = state->head; head != NULL; ) {
-            Upval *u = head->upval;
-
-            if (u->ref.frame == frame) {
-                if (u->refcount == 0) {
-                    free_upval(u);
-                } else {
-                    u->open = 0;
-                    u->o = frame->registers[u->ref.slot];
-                }
-
-                if (state->head == head) {
-                    state->head = head->next;
-                } else {
-                    head->next->prev = head->prev;
-                    head->prev->next = head->next;
-                }
-
-                UpvalNode *temp = head;
-                head = head->next;
-                free(temp);
-            } else {
-                head = head->next;
-            }
-        }
-
-        // TODO - free registers
-
-        printf("Returning %d\n", frame->registers[0]->value.i);
-        return frame->registers[0];
-    }
+    fatal("VM left instruction-space.");
+}
 }
 
 void execute(Chunk *chunk) {
