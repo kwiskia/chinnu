@@ -501,6 +501,7 @@ int main(int argc, char **argv) {
         }
 
         execute(chunk);
+        free_chunk(chunk);
     }
 
     return EXIT_SUCCESS;

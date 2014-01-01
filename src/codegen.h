@@ -52,4 +52,6 @@ struct Chunk {
     int numparams;
 };
 
+void free_chunk(Chunk *chunk);
+
 Chunk *compile(Expression *expr);

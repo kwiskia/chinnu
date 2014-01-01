@@ -64,6 +64,27 @@ Chunk *make_chunk() {
     return chunk;
 }
 
+void free_chunk(Chunk *chunk) {
+    int i;
+    for (i = 0; i < chunk->numconstants; i++) {
+        if (chunk->constants[i]->type == CONST_STRING) {
+            free(chunk->constants[i]->value->s);
+        }
+
+        free(chunk->constants[i]->value);
+        free(chunk->constants[i]);
+    }
+
+    for (i = 0; i < chunk->numchildren; i++) {
+        free_chunk(chunk->children[i]);
+    }
+
+    free(chunk->constants);
+    free(chunk->instructions);
+    free(chunk->children);
+    free(chunk);
+}
+
 int add_constant(Chunk *chunk, Constant *constant) {
     // TODO - return index of duplicate constant
 
