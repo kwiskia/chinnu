@@ -46,36 +46,14 @@ struct SymbolTable {
     Scope *scope;
 };
 
-Local *make_local(Symbol *symbol) {
-    Local *local = malloc(sizeof *local);
-
-    if (!local) {
-        fatal("Out of memory.");
-    }
-
-    local->symbol = symbol;
-    return local;
-}
-
-Upvar *make_upvar(Symbol *symbol) {
-    Upvar *upvar = malloc(sizeof *upvar);
-
-    if (!upvar) {
-        fatal("Out of memory.");
-    }
-
-    upvar->symbol = symbol;
-    return upvar;
-}
-
 #define UPVAR_CHUNK_SIZE 8
 #define LOCAL_CHUNK_SIZE 8
 #define SCOPE_CHUNK_SIZE 8
 
 Scope *make_scope(Expression *expr) {
     Scope *scope = malloc(sizeof *scope);
-    Local **locals = malloc(UPVAR_CHUNK_SIZE * sizeof **locals);
-    Upvar **upvars = malloc(LOCAL_CHUNK_SIZE * sizeof **upvars);
+    Symbol **locals = malloc(UPVAR_CHUNK_SIZE * sizeof **locals);
+    Symbol **upvars = malloc(LOCAL_CHUNK_SIZE * sizeof **upvars);
     Scope **children = malloc(SCOPE_CHUNK_SIZE * sizeof **children);
 
     if (!scope || !locals || !upvars || !children) {
@@ -96,24 +74,15 @@ Scope *make_scope(Expression *expr) {
 }
 
 void free_scope(Scope *scope) {
-    int i;
-    for (i = 0; i < scope->numlocals; i++) {
-        free(scope->locals[i]);
-    }
-
-    for (i = 0; i < scope->numupvars; i++) {
-        free(scope->upvars[i]);
-    }
-
     free(scope->locals);
     free(scope->upvars);
     free(scope->children);
     free(scope);
 }
 
-int add_local(Scope *scope, Local *local) {
+int add_local(Scope *scope, Symbol *local) {
     if (scope->numlocals % LOCAL_CHUNK_SIZE == 0) {
-        Local **resize = realloc(scope->locals, (scope->numlocals + LOCAL_CHUNK_SIZE) * sizeof **resize);
+        Symbol **resize = realloc(scope->locals, (scope->numlocals + LOCAL_CHUNK_SIZE) * sizeof **resize);
 
         if (!resize) {
             fatal("Out of memory.");
@@ -126,9 +95,9 @@ int add_local(Scope *scope, Local *local) {
     return scope->numlocals++;
 }
 
-int add_upvar(Scope *scope, Upvar *upvar) {
+int add_upvar(Scope *scope, Symbol *upvar) {
     if (scope->numupvars % UPVAR_CHUNK_SIZE == 0) {
-        Upvar **resize = realloc(scope->upvars, (scope->numupvars + UPVAR_CHUNK_SIZE) * sizeof **resize);
+        Symbol **resize = realloc(scope->upvars, (scope->numupvars + UPVAR_CHUNK_SIZE) * sizeof **resize);
 
         if (!resize) {
             fatal("Out of memory.");
@@ -159,7 +128,7 @@ int add_child(Scope *scope, Scope *child) {
 int local_index(Scope *scope, Symbol *symbol) {
     int i;
     for (i = 0; i < scope->numlocals; i++) {
-        if (scope->locals[i]->symbol == symbol) {
+        if (scope->locals[i] == symbol) {
             return i;
         }
     }
@@ -170,7 +139,7 @@ int local_index(Scope *scope, Symbol *symbol) {
 int upvar_index(Scope *scope, Symbol *symbol) {
     int i;
     for (i = 0; i < scope->numupvars; i++) {
-        if (scope->upvars[i]->symbol == symbol) {
+        if (scope->upvars[i] == symbol) {
             return i;
         }
     }
@@ -185,21 +154,11 @@ int register_upvar(Scope *scope, Symbol *symbol) {
         return index;
     }
 
-    index = local_index(scope->parent, symbol);
-
-    Upvar *upvar = make_upvar(symbol);
-
-    if (index != -1) {
-        upvar->refslot = index;
-        upvar->reftype = PARENT_LOCAL;
-    } else {
-        index = register_upvar(scope->parent, symbol);
-
-        upvar->refslot = index;
-        upvar->reftype = PARENT_UPVAR;
+    if (local_index(scope->parent, symbol) == -1) {
+        register_upvar(scope->parent, symbol);
     }
 
-    return add_upvar(scope, upvar);
+    return add_upvar(scope, symbol);
 }
 
 static int symbol_id = 0;
@@ -348,7 +307,7 @@ void resolve_expr(SymbolTable *table, Expression *expr) {
             expr->symbol = symbol;
 
             add_symbol(table, symbol);
-            add_local(table->scope, make_local(symbol));
+            add_local(table->scope, symbol);
         } break;
 
         case TYPE_FUNC:
@@ -370,7 +329,7 @@ void resolve_expr(SymbolTable *table, Expression *expr) {
                 expr->symbol = symbol;
 
                 add_symbol(table, symbol);
-                add_local(table->scope, make_local(symbol));
+                add_local(table->scope, symbol);
             }
 
             Scope *temp = table->scope;

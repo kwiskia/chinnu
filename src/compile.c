@@ -113,7 +113,7 @@ int add_instruction(Chunk *chunk, int instruction) {
 int get_local_index(Scope *scope, Symbol *symbol) {
     int i;
     for (i = 0; i < scope->numlocals; i++) {
-        if (scope->locals[i]->symbol == symbol) {
+        if (scope->locals[i] == symbol) {
             return i + 1;
         }
     }
@@ -124,7 +124,7 @@ int get_local_index(Scope *scope, Symbol *symbol) {
 int get_upvar_index(Scope *scope, Symbol *symbol) {
     int i;
     for (i = 0; i < scope->numupvars; i++) {
-        if (scope->upvars[i]->symbol == symbol) {
+        if (scope->upvars[i] == symbol) {
             return i;
         }
     }
@@ -193,12 +193,12 @@ void compile_expr(Expression *expr, Chunk *chunk, Scope *scope, int dest) {
 
             int i;
             for (i = 0; i < expr->scope->numupvars; i++) {
-                int index = get_local_index(scope, expr->scope->upvars[i]->symbol);
+                int index = get_local_index(scope, expr->scope->upvars[i]);
 
                 if (index != -1) {
                     add_instruction(chunk, CREATE(OP_MOVE, i, index, 0));
                 } else {
-                    index = get_upvar_index(scope, expr->scope->upvars[i]->symbol);
+                    index = get_upvar_index(scope, expr->scope->upvars[i]);
                     add_instruction(chunk, CREATE(OP_GETUPVAR, i, index, 0));
                 }
             }
