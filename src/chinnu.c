@@ -226,6 +226,193 @@ static struct option options[] = {
     {0,         0,                 0,             0}
 };
 
+char *get_cache_name(char *name) {
+    char *cache = malloc((strlen(name) + 2) * sizeof *cache);
+
+    if (!cache) {
+        fatal("Out of memory.");
+    }
+
+    strcpy(cache, name);
+    strcat(cache, ".b");
+
+    return cache;
+}
+
+void dosave(Chunk *chunk, FILE *fp) {
+    // TODO - may be wasteful, check size limits
+    fwrite(&chunk->numtemps, sizeof(int), 1, fp);
+    fwrite(&chunk->numconstants, sizeof(int), 1, fp);
+    fwrite(&chunk->numinstructions, sizeof(int), 1, fp);
+    fwrite(&chunk->numchildren, sizeof(int), 1, fp);
+    fwrite(&chunk->numlocals, sizeof(int), 1, fp);
+    fwrite(&chunk->numupvars, sizeof(int), 1, fp);
+    fwrite(&chunk->numparams, sizeof(int), 1, fp);
+
+    int i;
+    for (i = 0; i < chunk->numinstructions; i++) {
+        fwrite(&(chunk->instructions[i]), sizeof(int), 1, fp);
+    }
+
+    for (i = 0; i < chunk->numconstants; i++) {
+        // TODO - wasteful, doesn't need nearly 32 bits
+        fwrite(&(chunk->constants[i]->type), sizeof(int), 1, fp);
+
+        switch (chunk->constants[i]->type) {
+            case CONST_INT:
+            case CONST_BOOL:
+                fwrite(&(chunk->constants[i]->value->i), sizeof(int), 1, fp);
+                break;
+
+            case CONST_REAL:
+                fwrite(&(chunk->constants[i]->value->d), sizeof(double), 1, fp);
+                break;
+
+            case CONST_NULL:
+                break;
+
+            case CONST_STRING:
+            {
+                int n = strlen(chunk->constants[i]->value->s);
+                fwrite(&n, sizeof(int), 1, fp);
+                fwrite(&(chunk->constants[i]->value->s), sizeof(char), n, fp);
+            } break;
+        }
+    }
+
+    for (i = 0; i < chunk->numchildren; i++) {
+        dosave(chunk->children[i], fp);
+    }
+}
+
+void save(Chunk *chunk, char *filename) {
+    FILE *fp = fopen(filename, "wb");
+
+    if (!fp) {
+        fatal("Could not open bytecode cache file.");
+    }
+
+    dosave(chunk, fp);
+    fclose(fp);
+}
+
+Chunk *doload(FILE *fp) {
+    Chunk *chunk = malloc(sizeof *chunk);
+
+    if (!chunk) {
+        fatal("Out of memory.");
+    }
+
+    fread(&chunk->numtemps, sizeof(int), 1, fp);
+    fread(&chunk->numconstants, sizeof(int), 1, fp);
+    fread(&chunk->numinstructions, sizeof(int), 1, fp);
+    fread(&chunk->numchildren, sizeof(int), 1, fp);
+    fread(&chunk->numlocals, sizeof(int), 1, fp);
+    fread(&chunk->numupvars, sizeof(int), 1, fp);
+    fread(&chunk->numparams, sizeof(int), 1, fp);
+
+    Constant **constants = malloc(chunk->numconstants * sizeof **constants);
+    int *instructions = malloc(chunk->numinstructions * sizeof *instructions);
+    Chunk **children = malloc(chunk->numchildren * sizeof **children);
+
+    if (!constants || !instructions || !children) {
+        fatal("Out of memory.");
+    }
+
+    chunk->constants = constants;
+    chunk->instructions = instructions;
+    chunk->children = children;
+
+    int i;
+    for (i = 0; i < chunk->numinstructions; i++) {
+        fread(&(chunk->instructions[i]), sizeof(int), 1, fp);
+    }
+
+    for (i = 0; i < chunk->numconstants; i++) {
+        int type;
+        fread(&type, sizeof(int), 1, fp);
+
+        Constant *c = malloc(sizeof *c);
+        Val *v = malloc(sizeof *v);
+
+        if (!c || !v) {
+            fatal("Out of memory.");
+        }
+
+        c->type = type;
+        c->value = v;
+
+        switch (type) {
+            case CONST_INT:
+            case CONST_BOOL:
+                fread(&(v->i), sizeof(int), 1, fp);
+                break;
+
+            case CONST_REAL:
+                fread(&(v->d), sizeof(double), 1, fp);
+                break;
+
+            case CONST_NULL:
+                break;
+
+            case CONST_STRING:
+            {
+                int n;
+                fread(&n, sizeof(int), 1, fp);
+                fread(&(v->s), sizeof(char), n, fp);
+            } break;
+        }
+
+        chunk->constants[i] = c;
+    }
+
+    for (i = 0; i < chunk->numchildren; i++) {
+        chunk->children[i] = doload(fp);
+    }
+
+    return chunk;
+}
+
+Chunk *load(char *filename) {
+    FILE *fp = fopen(filename, "rb");
+
+    if (!fp) {
+        fatal("Could not open bytecode cache file.");
+    }
+
+    Chunk *c = doload(fp);
+    fclose(fp);
+    return c;
+}
+
+Chunk *make(char *file) {
+    // TODO - make non-global
+    filename = file;
+
+    FILE *fp = fopen(file, "r");
+
+    if (!fp) {
+        printf("Could not open input file '%s'.\n", file);
+        exit(EXIT_FAILURE);
+    }
+
+    yyin = fp;
+    yyparse();
+    yylex_destroy();
+    fclose(fp);
+
+    resolve(program);
+
+    if (numerrors > 0) {
+        exit(EXIT_FAILURE);
+    }
+
+    Chunk *chunk = compile(program);
+    free_expr(program);
+
+    return chunk;
+}
+
 int main(int argc, char **argv) {
     int c;
     int i = 0;
@@ -284,30 +471,22 @@ int main(int argc, char **argv) {
     }
 
     for ( ; optind < argc; optind++) {
-        filename = argv[optind];
+        Chunk *chunk;
 
-        FILE *fp = fopen(filename, "r");
+        char *cache = get_cache_name(argv[optind]);
 
-        if (!fp) {
-            printf("Could not open input file '%s'.\n", filename);
-            return EXIT_FAILURE;
+        if (access(cache, F_OK) != -1) {
+            // TODO - check for modifications of source file
+            // TODO - add magic constant and version to check for
+            // interpreter compatibility issues.
+
+            chunk = load(cache);
+        } else {
+            chunk = make(argv[optind]);
+            save(chunk, cache);
         }
 
-        yyin = fp;
-        yyparse();
-        yylex_destroy();
-        fclose(fp);
-
-        resolve(program);
-
-        if (numerrors > 0) {
-            exit(EXIT_FAILURE);
-        }
-
-        Chunk *chunk = compile(program);
         execute(chunk);
-
-        free_expr(program);
     }
 
     return EXIT_SUCCESS;
