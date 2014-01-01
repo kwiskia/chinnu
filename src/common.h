@@ -22,12 +22,6 @@
 typedef struct Symbol Symbol;
 typedef struct Scope Scope;
 
-typedef struct Upval Upval;
-typedef struct Closure Closure;
-typedef struct Frame Frame;
-typedef struct State State;
-typedef struct Object Object;
-
 typedef struct Chunk Chunk;
 typedef struct Constant Constant;
 

@@ -25,6 +25,12 @@
 #include "chinnu.h"
 #include "bytecode.h"
 
+typedef struct Upval Upval;
+typedef struct Closure Closure;
+typedef struct Frame Frame;
+typedef struct State State;
+typedef struct Object Object;
+
 struct Upval {
     int refcount;
     int open;
