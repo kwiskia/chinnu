@@ -19,13 +19,6 @@
 
 #pragma once
 
-typedef struct Symbol Symbol;
 typedef struct Scope Scope;
-
-typedef struct Chunk Chunk;
-typedef struct Constant Constant;
-
-typedef union Val Val;
+typedef struct Symbol Symbol;
 typedef struct Expression Expression;
-typedef struct ExpressionNode ExpressionNode;
-typedef struct ExpressionList ExpressionList;

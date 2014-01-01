@@ -22,6 +22,10 @@
 #include "common.h"
 #include "symbol.h"
 
+typedef union Val Val;
+typedef struct ExpressionNode ExpressionNode;
+typedef struct ExpressionList ExpressionList;
+
 typedef enum {
     TYPE_IF, // cond, lexpr, rexpr
     TYPE_WHILE, // cond, lexpr

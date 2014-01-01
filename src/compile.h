@@ -22,6 +22,9 @@
 #include "common.h"
 #include "ast.h"
 
+typedef struct Chunk Chunk;
+typedef struct Constant Constant;
+
 struct Constant {
     int type;
     Val *value;
