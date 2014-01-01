@@ -40,7 +40,7 @@ Constant *make_constant(int type, Val *value) {
 #define INSTRUCTION_CHUNK_SIZE 32
 #define CHUNK_CHUNK_SIZE 2
 
-Chunk *make_chunk(Scope *scope) {
+Chunk *make_chunk() {
     Chunk *chunk = malloc(sizeof *chunk);
     Constant **constants = malloc(CONSTANT_CHUNK_SIZE * sizeof **constants);
     int *instructions = malloc(INSTRUCTION_CHUNK_SIZE * sizeof *instructions);
@@ -50,7 +50,6 @@ Chunk *make_chunk(Scope *scope) {
         fatal("Out of memory.");
     }
 
-    chunk->scope = scope;
     chunk->constants = constants;
     chunk->instructions = instructions;
     chunk->children = children;
@@ -110,10 +109,10 @@ int add_instruction(Chunk *chunk, int instruction) {
     return chunk->numinstructions++;
 }
 
-int get_local_index(Chunk *chunk, Symbol *symbol) {
+int get_local_index(Scope *scope, Symbol *symbol) {
     int i;
-    for (i = 0; i < chunk->scope->numlocals; i++) {
-        if (chunk->scope->locals[i]->symbol == symbol) {
+    for (i = 0; i < scope->numlocals; i++) {
+        if (scope->locals[i]->symbol == symbol) {
             return i + 1;
         }
     }
@@ -121,10 +120,10 @@ int get_local_index(Chunk *chunk, Symbol *symbol) {
     return -1;
 }
 
-int get_upvar_index(Chunk *chunk, Symbol *symbol) {
+int get_upvar_index(Scope *scope, Symbol *symbol) {
     int i;
-    for (i = 0; i < chunk->scope->numupvars; i++) {
-        if (chunk->scope->upvars[i]->symbol == symbol) {
+    for (i = 0; i < scope->numupvars; i++) {
+        if (scope->upvars[i]->symbol == symbol) {
             return i;
         }
     }
@@ -147,25 +146,25 @@ void _rmtemp() {
     temp--;
 }
 
-int get_temp_index(Chunk *chunk) {
-    return chunk->scope->numlocals + temp + 1;
+int get_temp_index(Scope *scope) {
+    return scope->numlocals + temp + 1;
 }
 
 /* forward */
-void compile_list(ExpressionList *list, Chunk *chunk, int dest);
+void compile_list(ExpressionList *list, Chunk *chunk, Scope *scope, int dest);
 
-void compile_expr(Expression *expr, Chunk *chunk, int dest) {
+void compile_expr(Expression *expr, Chunk *chunk, Scope *scope, int dest) {
     switch (expr->type) {
         case TYPE_MODULE:
-            compile_expr(expr->lexpr, chunk, dest);
+            compile_expr(expr->lexpr, chunk, scope, dest);
             add_instruction(chunk, CREATE(OP_RETURN, 0, 0, 0));
             break;
 
         case TYPE_DECLARATION:
             if (expr->rexpr) {
-                compile_expr(expr->rexpr, chunk, dest);
+                compile_expr(expr->rexpr, chunk, scope, dest);
                 // TODO - peephole optimize
-                add_instruction(chunk, CREATE(OP_MOVE, get_local_index(chunk, expr->symbol), dest, 0));
+                add_instruction(chunk, CREATE(OP_MOVE, get_local_index(scope, expr->symbol), dest, 0));
             }
             break;
 
@@ -177,10 +176,13 @@ void compile_expr(Expression *expr, Chunk *chunk, int dest) {
             temp = 0;
             maxt = 0;
 
-            Chunk *child = make_chunk(expr->scope);
-            compile_expr(expr->rexpr, child, 0);
+            Chunk *child = make_chunk();
+            compile_expr(expr->rexpr, child, expr->scope, 0);
 
             child->numtemps = maxt;
+            child->numlocals = expr->scope->numlocals;
+            child->numupvars = expr->scope->numupvars;
+            child->numparams = expr->scope->numparams;
 
             temp = temp1;
             maxt = temp2;
@@ -189,19 +191,19 @@ void compile_expr(Expression *expr, Chunk *chunk, int dest) {
             add_instruction(chunk, CREATE(OP_CLOSURE, dest, index, 0));
 
             int i;
-            for (i = 0; i < child->scope->numupvars; i++) {
-                int index = get_local_index(chunk, child->scope->upvars[i]->symbol);
+            for (i = 0; i < expr->scope->numupvars; i++) {
+                int index = get_local_index(scope, expr->scope->upvars[i]->symbol);
 
                 if (index != -1) {
                     add_instruction(chunk, CREATE(OP_MOVE, i, index, 0));
                 } else {
-                    index = get_upvar_index(chunk, child->scope->upvars[i]->symbol);
+                    index = get_upvar_index(scope, expr->scope->upvars[i]->symbol);
                     add_instruction(chunk, CREATE(OP_GETUPVAR, i, index, 0));
                 }
             }
 
             if (expr->symbol) {
-                int index = get_local_index(chunk, expr->symbol);
+                int index = get_local_index(scope, expr->symbol);
                 add_instruction(chunk, CREATE(OP_MOVE, index, dest, 0));
             }
         } break;
@@ -209,7 +211,7 @@ void compile_expr(Expression *expr, Chunk *chunk, int dest) {
         case TYPE_CALL:
         {
             // compile receiver
-            compile_expr(expr->lexpr, chunk, dest);
+            compile_expr(expr->lexpr, chunk, scope, dest);
 
             /**
              * TODO
@@ -223,16 +225,16 @@ void compile_expr(Expression *expr, Chunk *chunk, int dest) {
                 add_instruction(chunk, CREATE(OP_CALL, dest, dest, 0));
             } else {
                 int backup = temp;
-                int f = get_temp_index(chunk);
+                int f = get_temp_index(scope);
                 int t = f;
 
                 ExpressionNode *head;
                 for (head = expr->llist->head; head != NULL; head = head->next) {
                     _mktemp();
-                    compile_expr(head->expr, chunk, t);
+                    compile_expr(head->expr, chunk, scope, t);
 
                     if (head->next != NULL) {
-                        t = get_temp_index(chunk);
+                        t = get_temp_index(scope);
                     }
                 }
 
@@ -243,12 +245,12 @@ void compile_expr(Expression *expr, Chunk *chunk, int dest) {
 
         case TYPE_VARREF:
         {
-            int index = get_local_index(chunk, expr->symbol);
+            int index = get_local_index(scope, expr->symbol);
 
             if (index != -1) {
                 add_instruction(chunk, CREATE(OP_MOVE, dest, index, 0));
             } else {
-                index = get_upvar_index(chunk, expr->symbol);
+                index = get_upvar_index(scope, expr->symbol);
                 add_instruction(chunk, CREATE(OP_GETUPVAR, dest, index, 0));
             }
         } break;
@@ -264,19 +266,19 @@ void compile_expr(Expression *expr, Chunk *chunk, int dest) {
             // [nm]
 
             // condition
-            compile_expr(expr->cond, chunk, dest);
+            compile_expr(expr->cond, chunk, scope, dest);
 
             // dummy jump 1
             int t1 = add_instruction(chunk, 0);
 
             // true branch
-            compile_expr(expr->lexpr, chunk, dest);
+            compile_expr(expr->lexpr, chunk, scope, dest);
 
             // dummy jump 2
             int t2 = add_instruction(chunk, 0);
 
             if (expr->rexpr) {
-                compile_expr(expr->rexpr, chunk, dest);
+                compile_expr(expr->rexpr, chunk, scope, dest);
             } else {
                 int index = add_constant(chunk, make_constant(CONST_NULL, expr->value));
                 add_instruction(chunk, CREATE(OP_MOVE, dest, index + 256, 0));
@@ -300,13 +302,13 @@ void compile_expr(Expression *expr, Chunk *chunk, int dest) {
             // [t3] null
 
             int t0 = chunk->numinstructions;
-            compile_expr(expr->cond, chunk, dest);
+            compile_expr(expr->cond, chunk, scope, dest);
 
             // dummy jump 1
             int t1 = add_instruction(chunk, 0);
 
             // compile body
-            compile_expr(expr->lexpr, chunk, dest);
+            compile_expr(expr->lexpr, chunk, scope, dest);
 
             // dummy jump 2
             int t2 = add_instruction(chunk, 0);
@@ -325,26 +327,26 @@ void compile_expr(Expression *expr, Chunk *chunk, int dest) {
         /* binary cases */
         case TYPE_ASSIGN:
         {
-            compile_expr(expr->rexpr, chunk, dest);
+            compile_expr(expr->rexpr, chunk, scope, dest);
 
-            int index = get_local_index(chunk, expr->lexpr->symbol);
+            int index = get_local_index(scope, expr->lexpr->symbol);
 
             if (index != -1) {
                 // TODO - peephole optimize
                 add_instruction(chunk, CREATE(OP_MOVE, index, dest, 0));
             } else {
-                index = get_upvar_index(chunk, expr->lexpr->symbol);
+                index = get_upvar_index(scope, expr->lexpr->symbol);
                 add_instruction(chunk, CREATE(OP_SETUPVAR, dest, index, 0));
             }
         } break;
 
         case TYPE_ADD:
         {
-            compile_expr(expr->lexpr, chunk, dest);
+            compile_expr(expr->lexpr, chunk, scope, dest);
 
-            int t = get_temp_index(chunk);
+            int t = get_temp_index(scope);
             _mktemp();
-            compile_expr(expr->rexpr, chunk, t);
+            compile_expr(expr->rexpr, chunk, scope, t);
             _rmtemp();
 
             // TODO - binops with constants without load
@@ -353,11 +355,11 @@ void compile_expr(Expression *expr, Chunk *chunk, int dest) {
 
         case TYPE_SUB:
         {
-            compile_expr(expr->lexpr, chunk, dest);
+            compile_expr(expr->lexpr, chunk, scope, dest);
 
-            int t = get_temp_index(chunk);
+            int t = get_temp_index(scope);
             _mktemp();
-            compile_expr(expr->rexpr, chunk, t);
+            compile_expr(expr->rexpr, chunk, scope, t);
             _rmtemp();
 
             // TODO - binops with constants without load
@@ -366,11 +368,11 @@ void compile_expr(Expression *expr, Chunk *chunk, int dest) {
 
         case TYPE_MUL:
         {
-            compile_expr(expr->lexpr, chunk, dest);
+            compile_expr(expr->lexpr, chunk, scope, dest);
 
-            int t = get_temp_index(chunk);
+            int t = get_temp_index(scope);
             _mktemp();
-            compile_expr(expr->rexpr, chunk, t);
+            compile_expr(expr->rexpr, chunk, scope, t);
             _rmtemp();
 
             // TODO - binops with constants without load
@@ -379,11 +381,11 @@ void compile_expr(Expression *expr, Chunk *chunk, int dest) {
 
         case TYPE_DIV:
         {
-            compile_expr(expr->lexpr, chunk, dest);
+            compile_expr(expr->lexpr, chunk, scope, dest);
 
-            int t = get_temp_index(chunk);
+            int t = get_temp_index(scope);
             _mktemp();
-            compile_expr(expr->rexpr, chunk, t);
+            compile_expr(expr->rexpr, chunk, scope, t);
             _rmtemp();
 
             // TODO - binops with constants without load
@@ -398,11 +400,11 @@ void compile_expr(Expression *expr, Chunk *chunk, int dest) {
 
         case TYPE_EQEQ:
         {
-            compile_expr(expr->lexpr, chunk, dest);
+            compile_expr(expr->lexpr, chunk, scope, dest);
 
-            int t = get_temp_index(chunk);
+            int t = get_temp_index(scope);
             _mktemp();
-            compile_expr(expr->rexpr, chunk, t);
+            compile_expr(expr->rexpr, chunk, scope, t);
             _rmtemp();
 
             // TODO - binops with constants without load
@@ -411,11 +413,11 @@ void compile_expr(Expression *expr, Chunk *chunk, int dest) {
 
         case TYPE_NEQ:
         {
-            compile_expr(expr->lexpr, chunk, dest);
+            compile_expr(expr->lexpr, chunk, scope, dest);
 
-            int t = get_temp_index(chunk);
+            int t = get_temp_index(scope);
             _mktemp();
-            compile_expr(expr->rexpr, chunk, t);
+            compile_expr(expr->rexpr, chunk, scope, t);
             _rmtemp();
 
             // TODO - binops with constants without load
@@ -425,11 +427,11 @@ void compile_expr(Expression *expr, Chunk *chunk, int dest) {
 
         case TYPE_LT:
         {
-            compile_expr(expr->lexpr, chunk, dest);
+            compile_expr(expr->lexpr, chunk, scope, dest);
 
-            int t = get_temp_index(chunk);
+            int t = get_temp_index(scope);
             _mktemp();
-            compile_expr(expr->rexpr, chunk, t);
+            compile_expr(expr->rexpr, chunk, scope, t);
             _rmtemp();
 
             // TODO - binops with constants without load
@@ -438,11 +440,11 @@ void compile_expr(Expression *expr, Chunk *chunk, int dest) {
 
         case TYPE_LEQ:
         {
-            compile_expr(expr->lexpr, chunk, dest);
+            compile_expr(expr->lexpr, chunk, scope, dest);
 
-            int t = get_temp_index(chunk);
+            int t = get_temp_index(scope);
             _mktemp();
-            compile_expr(expr->rexpr, chunk, t);
+            compile_expr(expr->rexpr, chunk, scope, t);
             _rmtemp();
 
             // TODO - binops with constants without load
@@ -451,11 +453,11 @@ void compile_expr(Expression *expr, Chunk *chunk, int dest) {
 
         case TYPE_GT:
         {
-            compile_expr(expr->lexpr, chunk, dest);
+            compile_expr(expr->lexpr, chunk, scope, dest);
 
-            int t = get_temp_index(chunk);
+            int t = get_temp_index(scope);
             _mktemp();
-            compile_expr(expr->rexpr, chunk, t);
+            compile_expr(expr->rexpr, chunk, scope, t);
             _rmtemp();
 
             // TODO - binops with constants without load
@@ -464,11 +466,11 @@ void compile_expr(Expression *expr, Chunk *chunk, int dest) {
 
         case TYPE_GEQ:
         {
-            compile_expr(expr->lexpr, chunk, dest);
+            compile_expr(expr->lexpr, chunk, scope, dest);
 
-            int t = get_temp_index(chunk);
+            int t = get_temp_index(scope);
             _mktemp();
-            compile_expr(expr->rexpr, chunk, t);
+            compile_expr(expr->rexpr, chunk, scope, t);
             _rmtemp();
 
             // TODO - binops with constants without load
@@ -500,13 +502,13 @@ void compile_expr(Expression *expr, Chunk *chunk, int dest) {
             // [t3] load false
 
             // lexpr
-            compile_expr(expr->lexpr, chunk, dest);
+            compile_expr(expr->lexpr, chunk, scope, dest);
 
             // dummy jump
             int t1 = add_instruction(chunk, 0);
 
             // rexpr
-            compile_expr(expr->rexpr, chunk, dest);
+            compile_expr(expr->rexpr, chunk, scope, dest);
 
             // dummy jump
             int t2 = add_instruction(chunk, 0);
@@ -549,13 +551,13 @@ void compile_expr(Expression *expr, Chunk *chunk, int dest) {
             // [t3] load true
 
             // lexpr
-            compile_expr(expr->lexpr, chunk, dest);
+            compile_expr(expr->lexpr, chunk, scope, dest);
 
             // dummy jump
             int t1 = add_instruction(chunk, 0);
 
             // rexpr
-            compile_expr(expr->rexpr, chunk, dest);
+            compile_expr(expr->rexpr, chunk, scope, dest);
 
             // dummy jump
             int t2 = add_instruction(chunk, 0);
@@ -575,12 +577,12 @@ void compile_expr(Expression *expr, Chunk *chunk, int dest) {
 
         /* unary cases */
         case TYPE_NEG:
-            compile_expr(expr->lexpr, chunk, dest);
+            compile_expr(expr->lexpr, chunk, scope, dest);
             add_instruction(chunk, CREATE(OP_NEG, dest, dest, 0));
             break;
 
         case TYPE_NOT:
-            compile_expr(expr->lexpr, chunk, dest);
+            compile_expr(expr->lexpr, chunk, scope, dest);
             add_instruction(chunk, CREATE(OP_NOT, dest, dest, 0));
             break;
 
@@ -616,22 +618,25 @@ void compile_expr(Expression *expr, Chunk *chunk, int dest) {
         } break;
 
         case TYPE_BLOCK:
-            compile_list(expr->llist, chunk, dest);
+            compile_list(expr->llist, chunk, scope, dest);
             break;
     }
 }
 
-void compile_list(ExpressionList *list, Chunk *chunk, int dest) {
+void compile_list(ExpressionList *list, Chunk *chunk, Scope *scope, int dest) {
     ExpressionNode *head;
     for (head = list->head; head != NULL; head = head->next) {
-        compile_expr(head->expr, chunk, dest);
+        compile_expr(head->expr, chunk, scope, dest);
     }
 }
 
 Chunk *compile(Expression *expr) {
-    Chunk *chunk = make_chunk(expr->scope);
-    compile_expr(expr, chunk, 0);
+    Chunk *chunk = make_chunk();
+    compile_expr(expr, chunk, expr->scope, 0);
 
     chunk->numtemps = maxt;
+    chunk->numlocals = expr->scope->numlocals;
+    chunk->numupvars = expr->scope->numupvars;
+    chunk->numparams = expr->scope->numparams;
     return chunk;
 }

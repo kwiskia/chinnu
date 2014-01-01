@@ -36,7 +36,6 @@ typedef enum {
 } ConstantType;
 
 struct Chunk {
-    Scope *scope;
     Constant **constants;
     int *instructions;
     Chunk **children;
@@ -45,6 +44,10 @@ struct Chunk {
     int numconstants;
     int numinstructions;
     int numchildren;
+
+    int numlocals;
+    int numupvars;
+    int numparams;
 };
 
 Chunk *compile(Expression *expr);

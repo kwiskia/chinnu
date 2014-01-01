@@ -104,14 +104,14 @@ void free_upval(Upval *upval) {
 
 Closure *make_closure(Chunk *chunk) {
     Closure *closure = malloc(sizeof *closure);
-    Upval **upvals = malloc(chunk->scope->numupvars * sizeof **upvals);
+    Upval **upvals = malloc(chunk->numupvars * sizeof **upvals);
 
     if (!closure || !upvals) {
         fatal("Out of memory.");
     }
 
     int i;
-    for (i = 0; i < chunk->scope->numupvars; i++) {
+    for (i = 0; i < chunk->numupvars; i++) {
         upvals[i] = NULL;
     }
 
@@ -122,7 +122,7 @@ Closure *make_closure(Chunk *chunk) {
 
 Frame *make_frame(Frame *parent, Closure *closure) {
     // move this to code gen, not responsibility of the vm [?]
-    int numregs = closure->chunk->scope->numlocals + closure->chunk->numtemps + 1;
+    int numregs = closure->chunk->numlocals + closure->chunk->numtemps + 1;
 
     Frame *frame = malloc(sizeof *frame);
     Object **registers = malloc(numregs * sizeof **registers);
@@ -409,7 +409,7 @@ Object *execute_function(State *state) {
                 Closure *child = make_closure(chunk->children[b]);
 
                 int i;
-                for (i = 0; i < chunk->children[b]->scope->numupvars; i++) {
+                for (i = 0; i < chunk->children[b]->numupvars; i++) {
                     int inst = chunk->instructions[++frame->pc];
 
                     int oc = GET_O(inst);
@@ -443,7 +443,7 @@ Object *execute_function(State *state) {
                 Frame *subframe = make_frame(frame, child);
 
                 int i;
-                for (i = 0; i < child->chunk->scope->numparams; i++) {
+                for (i = 0; i < child->chunk->numparams; i++) {
                     copy_object(subframe->registers[i + 1], frame->registers[c + i]);
                 }
 
@@ -536,7 +536,7 @@ Object *execute_function(State *state) {
     exit: {
         /* TODO - do this when the prototype is garbage-collected */
         // int i;
-        // for (i = 0; i < chunk->scope->numupvars; i++) {
+        // for (i = 0; i < chunk->numupvars; i++) {
         //     if (--closure->upvals[i]->refcount == 0) {
         //         printf("Freeing upval\n");
         //         fflush(stdout);
