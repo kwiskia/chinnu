@@ -206,6 +206,8 @@ void vmessage(SourcePos pos, const char *fmt, va_list args) {
 void show_usage(char *program) {
     printf("Usage: %s [switches] ... [files] ...\n", program);
     printf("  -w<type>      display warnings\n");
+    printf("  -o            optimize before running\n");
+    printf("  -b            ignore bytecode cache\n");
     printf("  -h --help     display usage and exit\n");
     printf("  -v --version  display version and exit\n");
 }
@@ -214,13 +216,17 @@ void show_version(char *program) {
     printf("%s version %s.\n", program, CHINNU_VERSION);
 }
 
-static int help_flag;
-static int version_flag;
+static int help_flag = 0;
+static int version_flag = 0;
+static int optimize_flag = 0;
+static int cache_flag = 1;
 
 static struct option options[] = {
     {"help",    no_argument,       &help_flag,    1},
     {"version", no_argument,       &version_flag, 1},
     {"w",       required_argument, 0,             'w'},
+    {"o",       no_argument,       0,             'o'},
+    {"b",       no_argument,       0,             'b'},
     {"h",       no_argument,       0,             'h'},
     {"v",       no_argument,       0,             'v'},
     {0,         0,                 0,             0}
@@ -417,7 +423,7 @@ int main(int argc, char **argv) {
     int c;
     int i = 0;
 
-    while ((c = getopt_long(argc, argv, "w:hv", options, &i)) != -1) {
+    while ((c = getopt_long(argc, argv, "w:obhv", options, &i)) != -1) {
         switch (c) {
             case 'w':
             {
@@ -436,6 +442,14 @@ int main(int argc, char **argv) {
                     warning_flags[WARNING_UNREACHABLE] = 1;
                 }
             } break;
+
+            case 'o':
+                optimize_flag = 1;
+                break;
+
+            case 'b':
+                cache_flag = 0;
+                break;
 
             case 'h':
                 help_flag = 1;
@@ -475,7 +489,7 @@ int main(int argc, char **argv) {
 
         char *cache = get_cache_name(argv[optind]);
 
-        if (access(cache, F_OK) != -1) {
+        if (cache_flag == 1 && access(cache, F_OK) != -1) {
             // TODO - check for modifications of source file
             // TODO - add magic constant and version to check for
             // interpreter compatibility issues.
@@ -483,7 +497,10 @@ int main(int argc, char **argv) {
             chunk = load(cache);
         } else {
             chunk = make(argv[optind]);
-            save(chunk, cache);
+
+            if (cache_flag == 1) {
+                save(chunk, cache);
+            }
         }
 
         execute(chunk);
