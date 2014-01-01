@@ -21,4 +21,4 @@
 
 #include "compile.h"
 
-Object *execute(Chunk *chunk);
+void execute(Chunk *chunk);

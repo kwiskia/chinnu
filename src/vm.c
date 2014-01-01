@@ -631,6 +631,6 @@ Object *execute_function(State *state) {
     }
 }
 
-Object *execute(Chunk *chunk) {
-    return execute_function(make_state(make_frame(NULL, make_closure(chunk))));
+void execute(Chunk *chunk) {
+    execute_function(make_state(make_frame(NULL, make_closure(chunk))));
 }
