@@ -69,7 +69,6 @@ union Val {
     int i;
     double d;
     char *s;
-    Closure *c;
 };
 
 struct Expression {

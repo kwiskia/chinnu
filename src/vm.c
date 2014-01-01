@@ -65,7 +65,12 @@ struct State {
 
 struct Object {
     int type;
-    Val value;
+    union {
+        int i;
+        double d;
+        char *s;
+        Closure *c;
+    } value;
 };
 
 typedef enum {
