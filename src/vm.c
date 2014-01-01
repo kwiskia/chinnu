@@ -25,6 +25,58 @@
 #include "chinnu.h"
 #include "bytecode.h"
 
+struct Upval {
+    int refcount;
+    int open;
+    union {
+        struct {
+            int slot;
+            Frame *frame;
+        } ref;
+        Object *o;
+    };
+};
+
+struct Closure {
+    Chunk *chunk;
+    Upval **upvals;
+};
+
+struct Frame {
+    Frame *parent;
+
+    Closure *closure;
+    Object **registers;
+    int pc;
+};
+
+typedef struct UpvalNode UpvalNode;
+
+struct UpvalNode {
+    Upval *upval;
+    UpvalNode *next;
+    UpvalNode *prev;
+};
+
+struct State {
+    Frame *current;
+    UpvalNode *head;
+};
+
+struct Object {
+    int type;
+    Val value;
+};
+
+typedef enum {
+    OBJECT_INT,
+    OBJECT_REAL,
+    OBJECT_BOOL,
+    OBJECT_NULL,
+    OBJECT_STRING,
+    OBJECT_CLOSURE
+} ObjectType;
+
 double cast_to_double(Object *object) {
     if (object->type == OBJECT_INT) {
         return (double) object->value.i;
