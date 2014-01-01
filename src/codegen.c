@@ -24,6 +24,8 @@
 #include "codegen.h"
 #include "bytecode.h"
 
+#define MAX(a, b) ((a > b) ? a : b)
+
 Constant *make_constant(int type, Val *value) {
     Constant *constant = malloc(sizeof *constant);
 
@@ -216,14 +218,9 @@ int compile_expr(Expression *expr, Chunk *chunk, Scope *scope, int dest, int tem
                 ExpressionNode *head;
                 for (head = expr->llist->head; head != NULL; head = head->next) {
                     int n = compile_expr(head->expr, chunk, scope, t, ++temp);
+                    max = MAX(n, max);
 
-                    if (n > max) {
-                        max = n;
-                    }
-
-                    if (head->next != NULL) {
-                        t = get_temp_index(scope, temp);
-                    }
+                    t = get_temp_index(scope, temp);
                 }
 
                 add_instruction(chunk, CREATE(OP_CALL, dest, dest, f));
@@ -284,11 +281,7 @@ int compile_expr(Expression *expr, Chunk *chunk, Scope *scope, int dest, int tem
             // fill in 2nd jump
             chunk->instructions[t2] = CREATE(OP_JUMP, 0, nm - t2 - 1, 0);
 
-            if (max1 > max2) {
-                return max3 > max1 ? max3 : max1;
-            } else {
-                return max3 > max2 ? max3 : max2;
-            }
+            return MAX(max1, MAX(max2, max3));
         } break;
 
         case TYPE_WHILE:
@@ -321,7 +314,7 @@ int compile_expr(Expression *expr, Chunk *chunk, Scope *scope, int dest, int tem
             // fill in 2nd jump
             chunk->instructions[t2] = CREATE(OP_JUMP, 0, t3 - t0, 1);
 
-            return max1 > max2 ? max1 : max2;
+            return MAX(max1, max2);
         }
 
         /* binary cases */
@@ -352,7 +345,7 @@ int compile_expr(Expression *expr, Chunk *chunk, Scope *scope, int dest, int tem
             // TODO - binops with constants without load
             add_instruction(chunk, CREATE(OP_ADD, dest, dest, t));
 
-            return max1 > max2 ? max1 : max2;
+            return MAX(max1, max2);
         }
 
         case TYPE_SUB:
@@ -365,7 +358,7 @@ int compile_expr(Expression *expr, Chunk *chunk, Scope *scope, int dest, int tem
             // TODO - binops with constants without load
             add_instruction(chunk, CREATE(OP_SUB, dest, dest, t));
 
-            return max1 > max2 ? max1 : max2;
+            return MAX(max1, max2);
         }
 
         case TYPE_MUL:
@@ -378,7 +371,7 @@ int compile_expr(Expression *expr, Chunk *chunk, Scope *scope, int dest, int tem
             // TODO - binops with constants without load
             add_instruction(chunk, CREATE(OP_MUL, dest, dest, t));
 
-            return max1 > max2 ? max1 : max2;
+            return MAX(max1, max2);
         }
 
         case TYPE_DIV:
@@ -391,7 +384,7 @@ int compile_expr(Expression *expr, Chunk *chunk, Scope *scope, int dest, int tem
             // TODO - binops with constants without load
             add_instruction(chunk, CREATE(OP_DIV, dest, dest, t));
 
-            return max1 > max2 ? max1 : max2;
+            return MAX(max1, max2);
         }
 
         /**
@@ -410,7 +403,7 @@ int compile_expr(Expression *expr, Chunk *chunk, Scope *scope, int dest, int tem
             // TODO - binops with constants without load
             add_instruction(chunk, CREATE(OP_EQ, dest, dest, t));
 
-            return max1 > max2 ? max1 : max2;
+            return MAX(max1, max2);
         }
 
         case TYPE_NEQ:
@@ -424,7 +417,7 @@ int compile_expr(Expression *expr, Chunk *chunk, Scope *scope, int dest, int tem
             add_instruction(chunk, CREATE(OP_EQ, dest, dest, t));
             add_instruction(chunk, CREATE(OP_NOT, dest, dest, 0));
 
-            return max1 > max2 ? max1 : max2;
+            return MAX(max1, max2);
         }
 
         case TYPE_LT:
@@ -437,7 +430,7 @@ int compile_expr(Expression *expr, Chunk *chunk, Scope *scope, int dest, int tem
             // TODO - binops with constants without load
             add_instruction(chunk, CREATE(OP_LT, dest, dest, t));
 
-            return max1 > max2 ? max1 : max2;
+            return MAX(max1, max2);
         }
 
         case TYPE_LEQ:
@@ -450,7 +443,7 @@ int compile_expr(Expression *expr, Chunk *chunk, Scope *scope, int dest, int tem
             // TODO - binops with constants without load
             add_instruction(chunk, CREATE(OP_LE, dest, dest, t));
 
-            return max1 > max2 ? max1 : max2;
+            return MAX(max1, max2);
         }
 
         case TYPE_GT:
@@ -463,7 +456,7 @@ int compile_expr(Expression *expr, Chunk *chunk, Scope *scope, int dest, int tem
             // TODO - binops with constants without load
             add_instruction(chunk, CREATE(OP_LT, dest, t, dest));
 
-            return max1 > max2 ? max1 : max2;
+            return MAX(max1, max2);
         }
 
         case TYPE_GEQ:
@@ -476,7 +469,7 @@ int compile_expr(Expression *expr, Chunk *chunk, Scope *scope, int dest, int tem
             // TODO - binops with constants without load
             add_instruction(chunk, CREATE(OP_LE, dest, t, dest));
 
-            return max1 > max2 ? max1 : max2;
+            return MAX(max1, max2);
         }
 
         case TYPE_AND:
@@ -527,7 +520,7 @@ int compile_expr(Expression *expr, Chunk *chunk, Scope *scope, int dest, int tem
             // fill in 2nd jump
             chunk->instructions[t2] = CREATE(OP_JUMP_FALSE, dest, t3 - t2 - 1, 0);
 
-            return max1 > max2 ? max1 : max2;
+            return MAX(max1, max2);
         }
 
         case TYPE_OR:
@@ -578,7 +571,7 @@ int compile_expr(Expression *expr, Chunk *chunk, Scope *scope, int dest, int tem
             // fill in 2nd jump
             chunk->instructions[t2] = CREATE(OP_JUMP_FALSE, dest, t3 - t2 - 1, 0);
 
-            return max1 > max2 ? max1 : max2;
+            return MAX(max1, max2);
         }
 
         /* unary cases */
