@@ -186,14 +186,12 @@ Frame *make_frame(Frame *parent, Closure *closure) {
     int i;
     for (i = 0; i < numregs; i++) {
         Object *object = malloc(sizeof *object);
-        Val *value = malloc(sizeof *value);
 
-        if (!object || !value) {
+        if (!object) {
             fatal("Out of memory.");
         }
 
         object->type = -1; // uninitialized
-        object->value = *value;
         registers[i] = object;
     }
 
