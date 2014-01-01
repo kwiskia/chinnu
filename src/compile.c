@@ -19,6 +19,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "chinnu.h"
 #include "compile.h"
@@ -589,31 +590,69 @@ void compile_expr(Expression *expr, Chunk *chunk, Scope *scope, int dest) {
         /* constants */
         case TYPE_INT:
         {
-            int index = add_constant(chunk, make_constant(CONST_INT, expr->value));
+            Val *value = malloc(sizeof *value);
+
+            if (!value) {
+                fatal("Out of memory.");
+            }
+
+            value->i = expr->value->i;
+
+            int index = add_constant(chunk, make_constant(CONST_INT, value));
             add_instruction(chunk, CREATE(OP_MOVE, dest, index + 256, 0));
         } break;
 
         case TYPE_REAL:
         {
-            int index = add_constant(chunk, make_constant(CONST_REAL, expr->value));
+            Val *value = malloc(sizeof *value);
+
+            if (!value) {
+                fatal("Out of memory.");
+            }
+
+            value->d = expr->value->d;
+
+            int index = add_constant(chunk, make_constant(CONST_REAL, value));
             add_instruction(chunk, CREATE(OP_MOVE, dest, index + 256, 0));
         } break;
 
         case TYPE_BOOL:
         {
-            int index = add_constant(chunk, make_constant(CONST_BOOL, expr->value));
+            Val *value = malloc(sizeof *value);
+
+            if (!value) {
+                fatal("Out of memory.");
+            }
+
+            value->i = expr->value->i;
+
+            int index = add_constant(chunk, make_constant(CONST_BOOL, value));
             add_instruction(chunk, CREATE(OP_MOVE, dest, index + 256, 0));
         } break;
 
         case TYPE_NULL:
         {
-            int index = add_constant(chunk, make_constant(CONST_NULL, expr->value));
+            Val *value = malloc(sizeof *value);
+
+            if (!value) {
+                fatal("Out of memory.");
+            }
+
+            int index = add_constant(chunk, make_constant(CONST_NULL, value));
             add_instruction(chunk, CREATE(OP_MOVE, dest, index + 256, 0));
         } break;
 
         case TYPE_STRING:
         {
-            int index = add_constant(chunk, make_constant(CONST_STRING, expr->value));
+            Val *value = malloc(sizeof *value);
+
+            if (!value) {
+                fatal("Out of memory.");
+            }
+
+            value->s = strdup(expr->value->s);
+
+            int index = add_constant(chunk, make_constant(CONST_STRING, value));
             add_instruction(chunk, CREATE(OP_MOVE, dest, index + 256, 0));
         } break;
 
