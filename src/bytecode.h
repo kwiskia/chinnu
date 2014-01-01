@@ -34,10 +34,10 @@
 #define MAX_B ((1 << SIZE_B) - 1)
 #define MAX_C ((1 << SIZE_C) - 1)
 
-#define GET_O(i) ((i >> POS_O) & MAX_O)
-#define GET_A(i) ((i >> POS_A) & MAX_A)
-#define GET_B(i) ((i >> POS_B) & MAX_B)
-#define GET_C(i) ((i >> POS_C) & MAX_C)
+#define GET_O(i) (((i) >> POS_O) & MAX_O)
+#define GET_A(i) (((i) >> POS_A) & MAX_A)
+#define GET_B(i) (((i) >> POS_B) & MAX_B)
+#define GET_C(i) (((i) >> POS_C) & MAX_C)
 
 #define CREATE(op, a, b, c) ((op << POS_O) | ((a) << POS_A) | ((b) << POS_B) | ((c) << POS_C))
 
