@@ -20,7 +20,7 @@
 #pragma once
 
 #include <stdio.h>
-#include "symbol.h"
+#include "semant.h"
 
 #define CHINNU_VERSION "0.0.1"
 

@@ -19,6 +19,6 @@
 
 #pragma once
 
-#include "compile.h"
+#include "codegen.h"
 
 void execute(Chunk *chunk);

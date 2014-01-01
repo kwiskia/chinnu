@@ -21,7 +21,7 @@
 #include <string.h>
 
 #include "chinnu.h"
-#include "compile.h"
+#include "codegen.h"
 #include "bytecode.h"
 
 Constant *make_constant(int type, Val *value) {
