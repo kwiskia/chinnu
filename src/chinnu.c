@@ -203,8 +203,8 @@ void vmessage(SourcePos pos, const char *fmt, va_list args) {
 void show_usage(char *program) {
     printf("Usage: %s [switches] ... [files] ...\n", program);
     printf("  -w<type>      display warnings\n");
+    printf("  -c            compile only\n");
     printf("  -o            optimize before running\n");
-    printf("  -b            ignore bytecode cache\n");
     printf("  -h --help     display usage and exit\n");
     printf("  -v --version  display version and exit\n");
 }
@@ -215,15 +215,15 @@ void show_version(char *program) {
 
 static int help_flag = 0;
 static int version_flag = 0;
+static int compile_flag = 0;
 static int optimize_flag = 0;
-static int cache_flag = 1;
 
 static struct option options[] = {
     {"help",    no_argument,       &help_flag,    1},
     {"version", no_argument,       &version_flag, 1},
     {"w",       required_argument, 0,             'w'},
+    {"c",       no_argument,       0,             'c'},
     {"o",       no_argument,       0,             'o'},
-    {"b",       no_argument,       0,             'b'},
     {"h",       no_argument,       0,             'h'},
     {"v",       no_argument,       0,             'v'},
     {0,         0,                 0,             0}
@@ -379,6 +379,20 @@ Chunk *doload(FILE *fp) {
     return chunk;
 }
 
+int valid_cache(char *filename) {
+    FILE *fp = fopen(filename, "rb");
+
+    if (!fp) {
+        fatal("Could not open bytecode cache file.");
+    }
+
+    int n;
+    fread(&n, sizeof(int), 1, fp);
+    fclose(fp);
+
+    return n == MAGIC_BYTE ? 1 : 0;
+}
+
 Chunk *load(char *filename) {
     FILE *fp = fopen(filename, "rb");
 
@@ -430,7 +444,7 @@ int main(int argc, char **argv) {
     int c;
     int i = 0;
 
-    while ((c = getopt_long(argc, argv, "w:obhv", options, &i)) != -1) {
+    while ((c = getopt_long(argc, argv, "w:cohv", options, &i)) != -1) {
         switch (c) {
             case 'w':
             {
@@ -450,12 +464,12 @@ int main(int argc, char **argv) {
                 }
             } break;
 
-            case 'o':
-                optimize_flag = 1;
+            case 'c':
+                compile_flag = 1;
                 break;
 
-            case 'b':
-                cache_flag = 0;
+            case 'o':
+                optimize_flag = 1;
                 break;
 
             case 'h':
@@ -492,26 +506,29 @@ int main(int argc, char **argv) {
     }
 
     for ( ; optind < argc; optind++) {
-        Chunk *chunk;
+        if (compile_flag == 1) {
+            Chunk *chunk = make(argv[optind]);
+            char *output = get_cache_name(argv[optind]);
 
-        char *cache = get_cache_name(argv[optind]);
+            save(chunk, output);
 
-        if (cache_flag == 1 && access(cache, F_OK) != -1) {
-            // TODO - check for modifications of source file
-            // TODO - add magic constant and version to check for
-            // interpreter compatibility issues.
-
-            chunk = load(cache);
+            free(output);
+            free_chunk(chunk);
         } else {
-            chunk = make(argv[optind]);
+            Chunk *chunk;
 
-            if (cache_flag == 1) {
-                save(chunk, cache);
+            if (valid_cache(argv[optind])) {
+                // TODO - check for modifications of source file
+                // TODO - add version to check for interpreter compatibility issues
+
+                chunk = load(argv[optind]);
+            } else {
+                chunk = make(argv[optind]);
             }
-        }
 
-        execute(chunk);
-        free_chunk(chunk);
+            execute(chunk);
+            free_chunk(chunk);
+        }
     }
 
     return EXIT_SUCCESS;
