@@ -198,8 +198,6 @@ Expression *make_uop(SourcePos pos, int type, Expression *left) {
 Expression *make_declaration(SourcePos pos, char *name, Expression *value, int immutable) {
     Expression *expr = allocexpr();
 
-    // TODO - intern?
-
     expr->type = TYPE_DECLARATION;
     expr->pos = pos;
     expr->rexpr = value;
@@ -222,8 +220,6 @@ Expression *make_assignment(SourcePos pos, Expression *left, Expression *right) 
 
 Expression *make_varref(SourcePos pos, char *name) {
     Expression *expr = allocexpr();
-
-    // TODO - intern?
 
     expr->type = TYPE_VARREF;
     expr->pos = pos;
