@@ -95,69 +95,6 @@ double cast_to_double(Object *object) {
     return object->d;
 }
 
-void copy_object(Object *a, Object *b) {
-    // TODO - clear old string?
-
-    switch (b->type) {
-        case OBJECT_INT:
-            a->type = OBJECT_INT;
-            a->i = b->i;
-            break;
-
-        case OBJECT_BOOL:
-            a->type = OBJECT_BOOL;
-            a->i = b->i;
-            break;
-
-        case OBJECT_REAL:
-            a->type = OBJECT_REAL;
-            a->d = b->d;
-            break;
-
-        case OBJECT_NULL:
-            a->type = OBJECT_NULL;
-            break;
-
-        case OBJECT_STRING:
-            a->type = OBJECT_STRING;
-            a->s = b->s;
-            break;
-
-        case OBJECT_CLOSURE:
-            a->type = OBJECT_CLOSURE;
-            a->c = b->c;
-            break;
-    }
-}
-
-void print(Object *o) {
-    switch (o->type) {
-        case OBJECT_INT:
-            printf("<INT %d>\n", o->i);
-            break;
-
-        case OBJECT_REAL:
-            printf("<REAL %.2f>\n", o->d);
-            break;
-
-        case OBJECT_BOOL:
-            printf("<%s>\n", o->i == 1 ? "true" : "false");
-            break;
-
-        case OBJECT_NULL:
-            printf("<NULL>\n");
-            break;
-
-        case OBJECT_STRING:
-            printf("<STRING %s>\n", o->s);
-            break;
-
-        case OBJECT_CLOSURE:
-            printf("<CLOSURE>\n");
-            break;
-    }
-}
-
 Upval *make_upval(State *state, int slot) {
     Upval *upval = malloc(sizeof *upval);
     UpvalNode *node = malloc(sizeof *node);
@@ -252,6 +189,117 @@ State *make_state(Frame *root) {
     return state;
 }
 
+void copy_object(Object *o1, Object *o2) {
+    // TODO - share string instances as a heap object,
+    // garbage collect at this point (instead of free)
+
+    if (o1->type == OBJECT_STRING) {
+        free(o1->s);
+    } else if (o1->type == OBJECT_CLOSURE) {
+        // TODO - also store closures on the heap for GC
+        // can't clean them yet, because they may exist in
+        // multiple registers
+    }
+
+    switch (o2->type) {
+        case OBJECT_INT:
+            o1->type = OBJECT_INT;
+            o1->i = o2->i;
+            break;
+
+        case OBJECT_BOOL:
+            o1->type = OBJECT_BOOL;
+            o1->i = o2->i;
+            break;
+
+        case OBJECT_REAL:
+            o1->type = OBJECT_REAL;
+            o1->d = o2->d;
+            break;
+
+        case OBJECT_NULL:
+            o1->type = OBJECT_NULL;
+            break;
+
+        case OBJECT_STRING:
+            o1->type = OBJECT_STRING;
+            o1->s = strdup(o2->s);
+            break;
+
+        case OBJECT_CLOSURE:
+            o1->type = OBJECT_CLOSURE;
+            o1->c = o2->c;
+            break;
+    }
+}
+
+void copy_constant(Object *o, Constant *c) {
+    // TODO - share string instances as a heap object,
+    // garbage collect at this point (instead of free)
+
+    if (o->type == OBJECT_STRING) {
+        free(o->s);
+    } else if (o->type == OBJECT_CLOSURE) {
+        // TODO - also store closures on the heap for GC
+        // can't clean them yet, because they may exist in
+        // multiple registers
+    }
+
+    switch (c->type) {
+        case CONST_INT:
+            o->type = OBJECT_INT;
+            o->i = c->i;
+            break;
+
+        case CONST_REAL:
+            o->type = OBJECT_REAL;
+            o->d = c->d;
+            break;
+
+        case CONST_BOOL:
+            o->type = OBJECT_BOOL;
+            o->i = c->i;
+            break;
+
+        case CONST_NULL:
+            o->type = OBJECT_NULL;
+            break;
+
+        case CONST_STRING:
+            o->type = OBJECT_STRING;
+            o->s = strdup(c->s);
+            break;
+    }
+}
+
+void print(Object *o) {
+    switch (o->type) {
+        case OBJECT_INT:
+            printf("<INT %d>\n", o->i);
+            break;
+
+        case OBJECT_REAL:
+            printf("<REAL %.2f>\n", o->d);
+            break;
+
+        case OBJECT_BOOL:
+            printf("<%s>\n", o->i == 1 ? "true" : "false");
+            break;
+
+        case OBJECT_NULL:
+            printf("<NULL>\n");
+            break;
+
+        case OBJECT_STRING:
+            printf("<STRING %s>\n", o->s);
+            break;
+
+        case OBJECT_CLOSURE:
+            printf("<CLOSURE>\n");
+            break;
+    }
+}
+
 void execute_function(State *state) {
 restart: {
     Frame *frame = state->current;
@@ -269,40 +317,13 @@ restart: {
 
         switch (o) {
             case OP_MOVE:
+            {
                 if (b < 256) {
                     copy_object(registers[a], registers[b]);
                 } else {
-                    // TODO - clear old string?
-
-                    Constant *constant = chunk->constants[b - 256];
-
-                    switch (constant->type) {
-                        case CONST_INT:
-                            registers[a]->type = OBJECT_INT;
-                            registers[a]->i = constant->i;
-                            break;
-
-                        case CONST_BOOL:
-                            registers[a]->type = OBJECT_BOOL;
-                            registers[a]->i = constant->i;
-                            break;
-
-                        case CONST_REAL:
-                            registers[a]->type = OBJECT_REAL;
-                            registers[a]->d = constant->d;
-                            break;
-
-                        case CONST_NULL:
-                            registers[a]->type = OBJECT_NULL;
-                            break;
-
-                        case CONST_STRING:
-                            registers[a]->type = OBJECT_STRING;
-                            registers[a]->s = constant->s;
-                            break;
-                    }
+                    copy_constant(registers[a], chunk->constants[b - 256]);
                 }
-                break;
+            } break;
 
             case OP_GETUPVAR:
             {
@@ -548,38 +569,13 @@ restart: {
 
             case OP_RETURN:
             {
+                // TODO - no need to put into register 0
+                // TODO - does this mean that register 0 is unnecessary as special-use?
+
                 if (b < 256) {
                     copy_object(registers[0], registers[b]);
                 } else {
-                    // TODO - clear old string?
-
-                    Constant *constant = chunk->constants[b - 256];
-
-                    switch (constant->type) {
-                        case CONST_INT:
-                            registers[0]->type = OBJECT_INT;
-                            registers[0]->i = constant->i;
-                            break;
-
-                        case CONST_BOOL:
-                            registers[0]->type = OBJECT_BOOL;
-                            registers[0]->i = constant->i;
-                            break;
-
-                        case CONST_REAL:
-                            registers[0]->type = OBJECT_REAL;
-                            registers[0]->d = constant->d;
-                            break;
-
-                        case CONST_NULL:
-                            registers[0]->type = OBJECT_NULL;
-                            break;
-
-                        case CONST_STRING:
-                            registers[0]->type = OBJECT_STRING;
-                            registers[0]->s = constant->s;
-                            break;
-                    }
+                    copy_constant(registers[0], chunk->constants[b - 256]);
                 }
 
                 UpvalNode *head;
@@ -669,5 +665,9 @@ restart: {
 }
 
 void execute(Chunk *chunk) {
-    execute_function(make_state(make_frame(NULL, make_closure(chunk))));
+    Closure *closure = make_closure(chunk);
+    Frame *frame = make_frame(NULL, closure);
+    State *state = make_state(frame);
+
+    execute_function(state);
 }
