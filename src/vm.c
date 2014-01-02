@@ -427,6 +427,7 @@ restart: {
 
             case OP_EQ:
                 if (registers[b]->type != registers[c]->type) {
+                    // TODO - not true for numeric values [!!]
                     registers[a]->value.i = 0;
                 } else {
                     switch (registers[b]->type) {
