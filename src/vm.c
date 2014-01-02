@@ -28,7 +28,8 @@ typedef struct Upval Upval;
 typedef struct Closure Closure;
 typedef struct Frame Frame;
 typedef struct State State;
-typedef struct Object Object;
+typedef struct HeapObject HeapObject;
+typedef struct StackObject StackObject;
 
 struct Upval {
     int refcount;
@@ -38,7 +39,7 @@ struct Upval {
             int slot;
             Frame *frame;
         } ref;
-        Object *o;
+        StackObject *o;
     };
 };
 
@@ -51,7 +52,7 @@ struct Frame {
     Frame *parent;
 
     Closure *closure;
-    Object **registers;
+    StackObject **registers;
     int pc;
 };
 
@@ -69,25 +70,38 @@ struct State {
 };
 
 typedef enum {
-    OBJECT_INT,
-    OBJECT_REAL,
-    OBJECT_BOOL,
-    OBJECT_NULL,
     OBJECT_STRING,
     OBJECT_CLOSURE
-} ObjectType;
+} HeapObjectType;
 
-struct Object {
-    ObjectType type;
+struct HeapObject {
+    HeapObjectType type;
+
     union {
-        int i;
-        double d;
         char *s;
         Closure *c;
     };
 };
 
-double cast_to_double(Object *object) {
+typedef enum {
+    OBJECT_INT,
+    OBJECT_REAL,
+    OBJECT_BOOL,
+    OBJECT_NULL,
+    OBJECT_REFERENCE
+} StackObjectType;
+
+struct StackObject {
+    StackObjectType type;
+
+    union {
+        int i;
+        double d;
+        HeapObject *o;
+    };
+};
+
+double cast_to_double(StackObject *object) {
     if (object->type == OBJECT_INT) {
         return (double) object->i;
     }
@@ -152,7 +166,7 @@ Frame *make_frame(Frame *parent, Closure *closure) {
     int numregs = closure->chunk->numlocals + closure->chunk->numtemps + 1;
 
     Frame *frame = malloc(sizeof *frame);
-    Object **registers = malloc(numregs * sizeof **registers);
+    StackObject **registers = malloc(numregs * sizeof **registers);
 
     if (!frame || !registers) {
         fatal("Out of memory.");
@@ -160,7 +174,7 @@ Frame *make_frame(Frame *parent, Closure *closure) {
 
     int i;
     for (i = 0; i < numregs; i++) {
-        Object *object = malloc(sizeof *object);
+        StackObject *object = malloc(sizeof *object);
 
         if (!object) {
             fatal("Out of memory.");
@@ -189,17 +203,35 @@ State *make_state(Frame *root) {
     return state;
 }
 
-void copy_object(Object *o1, Object *o2) {
+HeapObject *make_string_ref(char *s) {
+    HeapObject *obj = malloc(sizeof *obj);
+
+    if (!obj) {
+        fatal("Out of memory.");
+    }
+
+    obj->type = OBJECT_STRING;
+    obj->s = s;
+
+    return obj;
+}
+
+HeapObject *make_closure_ref(Closure *c) {
+    HeapObject *obj = malloc(sizeof *obj);
+
+    if (!obj) {
+        fatal("Out of memory.");
+    }
+
+    obj->type = OBJECT_CLOSURE;
+    obj->c = c;
+
+    return obj;
+}
+
+void copy_object(StackObject *o1, StackObject *o2) {
     // TODO - share string instances as a heap object,
     // garbage collect at this point (instead of free)
-
-    if (o1->type == OBJECT_STRING) {
-        free(o1->s);
-    } else if (o1->type == OBJECT_CLOSURE) {
-        // TODO - also store closures on the heap for GC
-        // can't clean them yet, because they may exist in
-        // multiple registers
-    }
 
     switch (o2->type) {
         case OBJECT_INT:
@@ -221,29 +253,16 @@ void copy_object(Object *o1, Object *o2) {
             o1->type = OBJECT_NULL;
             break;
 
-        case OBJECT_STRING:
-            o1->type = OBJECT_STRING;
-            o1->s = strdup(o2->s);
-            break;
-
-        case OBJECT_CLOSURE:
-            o1->type = OBJECT_CLOSURE;
-            o1->c = o2->c;
+        case OBJECT_REFERENCE:
+            o1->type = OBJECT_REFERENCE;
+            o1->o = o2->o;
             break;
     }
 }
 
-void copy_constant(Object *o, Constant *c) {
+void copy_constant(StackObject *o, Constant *c) {
     // TODO - share string instances as a heap object,
     // garbage collect at this point (instead of free)
-
-    if (o->type == OBJECT_STRING) {
-        free(o->s);
-    } else if (o->type == OBJECT_CLOSURE) {
-        // TODO - also store closures on the heap for GC
-        // can't clean them yet, because they may exist in
-        // multiple registers
-    }
 
     switch (c->type) {
         case CONST_INT:
@@ -266,13 +285,30 @@ void copy_constant(Object *o, Constant *c) {
             break;
 
         case CONST_STRING:
-            o->type = OBJECT_STRING;
-            o->s = strdup(c->s);
+            // TODO - how to deal with strings created by the program?
+            // Right now we have no concat operator, so there's no worry,
+            // but how do we know when to free a string (user-supplied) or when
+            // to leave it alone in the pool (interned)?
+
+            o->type = OBJECT_REFERENCE;
+            o->o = make_string_ref(c->s);
             break;
     }
 }
 
-void print(Object *o) {
+void print_heap(HeapObject *o) {
+    switch (o->type) {
+        case OBJECT_STRING:
+            printf("<STRING %s>\n", o->s);
+            break;
+
+        case OBJECT_CLOSURE:
+            printf("<CLOSURE>\n");
+            break;
+    }
+}
+
+void print(StackObject *o) {
     switch (o->type) {
         case OBJECT_INT:
             printf("<INT %d>\n", o->i);
@@ -290,13 +326,8 @@ void print(Object *o) {
             printf("<NULL>\n");
             break;
 
-        case OBJECT_STRING:
-            printf("<STRING %s>\n", o->s);
-            break;
-
-        case OBJECT_CLOSURE:
-            printf("<CLOSURE>\n");
-            break;
+        case OBJECT_REFERENCE:
+            print_heap(o->o);
     }
 }
 
@@ -305,7 +336,7 @@ restart: {
     Frame *frame = state->current;
     Closure *closure = frame->closure;
     Chunk *chunk = closure->chunk;
-    Object **registers = frame->registers;
+    StackObject **registers = frame->registers;
 
     while (frame->pc < chunk->numinstructions) {
         int instruction = chunk->instructions[frame->pc];
@@ -469,13 +500,8 @@ restart: {
                             registers[a]->d = registers[b]->d == registers[c]->d;
                             break;
 
-                        case OBJECT_STRING:
-                            registers[a]->i = strcmp(registers[b]->s, registers[c]->s) == 0;
-                            break;
-
-                        case OBJECT_CLOSURE:
-                            fatal("Tried to compare closures.");
-                            break;
+                        case OBJECT_REFERENCE:
+                            fatal("Comparison of reference types not yet supported.");
                     }
                 }
 
@@ -543,19 +569,19 @@ restart: {
                     }
                 }
 
-                registers[a]->type = OBJECT_CLOSURE;
-                registers[a]->c = child;
+                registers[a]->type = OBJECT_REFERENCE;
+                registers[a]->o = make_closure_ref(child);
             } break;
 
             case OP_CALL:
             {
-                if (registers[b]->type != OBJECT_CLOSURE) {
-                    fatal("Tried to call non-closure of type %d (value %d).", registers[b]->type, registers[b]->i);
+                if (registers[b]->type != OBJECT_REFERENCE || registers[b]->o->type != OBJECT_CLOSURE) {
+                    fatal("Tried to call non-closure.");
                 }
 
                 // TODO - safety issue (see compile.c for notes)
 
-                Closure *child = registers[b]->c;
+                Closure *child = registers[b]->o->c;
                 Frame *subframe = make_frame(frame, child);
 
                 int i;
@@ -600,7 +626,7 @@ restart: {
 
                 if (state->current->parent != NULL) {
                     Frame *p = state->current->parent;
-                    Object *target = p->registers[GET_A(p->closure->chunk->instructions[p->pc++])];
+                    StackObject *target = p->registers[GET_A(p->closure->chunk->instructions[p->pc++])];
 
                     if (b < 256) {
                         print(registers[b]);
