@@ -22,8 +22,13 @@
 #include <stdio.h>
 #include "semant.h"
 
+#define QUOTE(s) #s
+#define TOSTR(s) QUOTE(s)
+
 #define MAGIC_BYTE 0x43484E55
-#define CHINNU_VERSION "0.0.1"
+#define MAJOR_VERSION 0
+#define MINOR_VERSION 0
+#define CHINNU_VERSION TOSTR(MAJOR_VERSION) "." TOSTR(MINOR_VERSION)
 
 Expression *program;
 char *filename;

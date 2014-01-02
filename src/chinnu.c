@@ -212,7 +212,7 @@ void show_usage(char *program) {
 }
 
 void show_version(char *program) {
-    printf("%s version %s.\n", program, CHINNU_VERSION);
+    printf("%s v%s\n", program, CHINNU_VERSION);
 }
 
 static int help_flag = 0;
@@ -299,8 +299,13 @@ void save(Chunk *chunk, char *filename) {
         fatal("Could not open bytecode cache file.");
     }
 
-    int n = MAGIC_BYTE;
-    fwrite(&n, sizeof(int), 1, fp);
+    int mag = MAGIC_BYTE;
+    int maj = MAJOR_VERSION;
+    int min = MINOR_VERSION;
+
+    fwrite(&mag, sizeof(int), 1, fp);
+    fwrite(&maj, sizeof(int), 1, fp);
+    fwrite(&min, sizeof(int), 1, fp);
 
     dosave(chunk, fp);
     fclose(fp);
@@ -496,11 +501,17 @@ int valid_cache(char *filename) {
         fatal("Could not open bytecode cache file.");
     }
 
-    int n;
-    fread(&n, sizeof(int), 1, fp);
+    int mag, maj, min;
+    fread(&mag, sizeof(int), 1, fp);
+    fread(&maj, sizeof(int), 1, fp);
+    fread(&min, sizeof(int), 1, fp);
     fclose(fp);
 
-    return n == MAGIC_BYTE ? 1 : 0;
+    if (mag == MAGIC_BYTE) {
+        return (maj == MAJOR_VERSION && min == MINOR_VERSION) ? 1 : 2;
+    }
+
+    return 0;
 }
 
 Chunk *load(char *filename) {
@@ -510,12 +521,10 @@ Chunk *load(char *filename) {
         fatal("Could not open bytecode cache file.");
     }
 
-    int n;
-    fread(&n, sizeof(int), 1, fp);
-
-    if (n != MAGIC_BYTE) {
-        fatal("Corrupt cache file.");
-    }
+    int mag, maj, min;
+    fread(&mag, sizeof(int), 1, fp);
+    fread(&maj, sizeof(int), 1, fp);
+    fread(&min, sizeof(int), 1, fp);
 
     Chunk *c = doload(fp);
     fclose(fp);
@@ -631,10 +640,13 @@ int main(int argc, char **argv) {
         } else {
             Chunk *chunk;
 
-            if (valid_cache(argv[optind])) {
-                // TODO - check for modifications of source file
-                // TODO - add version to check for interpreter compatibility issues
+            int ret = valid_cache(argv[optind]);
 
+            if (ret == 2) {
+                fatal("Bytecode cache compiled with a different version.");
+            }
+
+            if (ret == 1) {
                 chunk = load(argv[optind]);
             } else {
                 chunk = make(argv[optind]);
