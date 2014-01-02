@@ -34,7 +34,11 @@ typedef enum {
 
 struct Constant {
     ConstantType type;
-    Val *value;
+    union {
+        int i;
+        double d;
+        char *s;
+    };
 };
 
 struct Chunk {

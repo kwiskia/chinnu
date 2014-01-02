@@ -26,18 +26,6 @@
 
 #define MAX(a, b) ((a > b) ? a : b)
 
-Constant *make_constant(int type, Val *value) {
-    Constant *constant = malloc(sizeof *constant);
-
-    if (!constant) {
-        fatal("Out of memory.");
-    }
-
-    constant->type = type;
-    constant->value = value;
-    return constant;
-}
-
 #define CONSTANT_CHUNK_SIZE 4
 #define INSTRUCTION_CHUNK_SIZE 32
 #define CHUNK_CHUNK_SIZE 2
@@ -68,10 +56,9 @@ void free_chunk(Chunk *chunk) {
     int i;
     for (i = 0; i < chunk->numconstants; i++) {
         if (chunk->constants[i]->type == CONST_STRING) {
-            free(chunk->constants[i]->value->s);
+            free(chunk->constants[i]->s);
         }
 
-        free(chunk->constants[i]->value);
         free(chunk->constants[i]);
     }
 
@@ -86,8 +73,6 @@ void free_chunk(Chunk *chunk) {
 }
 
 int add_constant(Chunk *chunk, Constant *constant) {
-    // TODO - return index of duplicate constant
-
     if (chunk->numconstants % CONSTANT_CHUNK_SIZE == 0) {
         Constant **resize = realloc(chunk->constants, (chunk->numconstants + CONSTANT_CHUNK_SIZE) * sizeof **resize);
 
@@ -100,6 +85,94 @@ int add_constant(Chunk *chunk, Constant *constant) {
 
     chunk->constants[chunk->numconstants] = constant;
     return chunk->numconstants++;
+}
+
+Constant *make_const() {
+    Constant *c = malloc(sizeof *c);
+
+    if (!c) {
+        fatal("Out of memory.");
+    }
+
+    return c;
+}
+
+int add_int(Chunk *chunk, int value) {
+    int i;
+    for (i = 0; i < chunk->numconstants; i++) {
+        if (chunk->constants[i]->type == CONST_INT && chunk->constants[i]->i == value) {
+            return i;
+        }
+    }
+
+    Constant *c = make_const();
+
+    c->type = CONST_INT;
+    c->i = value;
+
+    return add_constant(chunk, c);
+}
+
+int add_real(Chunk *chunk, double value) {
+    int i;
+    for (i = 0; i < chunk->numconstants; i++) {
+        if (chunk->constants[i]->type == CONST_REAL && chunk->constants[i]->d == value) {
+            return i;
+        }
+    }
+
+    Constant *c = make_const();
+
+    c->type = CONST_REAL;
+    c->d = value;
+
+    return add_constant(chunk, c);
+}
+
+int add_bool(Chunk *chunk, int value) {
+    int i;
+    for (i = 0; i < chunk->numconstants; i++) {
+        if (chunk->constants[i]->type == CONST_BOOL && chunk->constants[i]->i == value) {
+            return i;
+        }
+    }
+
+    Constant *c = make_const();
+
+    c->type = CONST_BOOL;
+    c->i = value;
+
+    return add_constant(chunk, c);
+}
+
+int add_null(Chunk *chunk) {
+    int i;
+    for (i = 0; i < chunk->numconstants; i++) {
+        if (chunk->constants[i]->type == CONST_NULL) {
+            return i;
+        }
+    }
+    Constant *c = make_const();
+
+    c->type = CONST_NULL;
+
+    return add_constant(chunk, c);
+}
+
+int add_string(Chunk *chunk, char *value) {
+    int i;
+    for (i = 0; i < chunk->numconstants; i++) {
+        if (chunk->constants[i]->type == CONST_STRING && strcmp(chunk->constants[i]->s, value) == 0) {
+            return i;
+        }
+    }
+
+    Constant *c = make_const();
+
+    c->type = CONST_STRING;
+    c->s = strdup(value);
+
+    return add_constant(chunk, c);
 }
 
 int add_func_child(Chunk *chunk, Chunk *child) {
@@ -291,7 +364,7 @@ int compile_expr(Expression *expr, Chunk *chunk, Scope *scope, int dest, int tem
             if (expr->rexpr) {
                 max3 = compile_expr(expr->rexpr, chunk, scope, dest, temp);
             } else {
-                int index = add_constant(chunk, make_constant(CONST_NULL, expr->value));
+                int index = add_null(chunk);
                 add_instruction(chunk, CREATE(OP_MOVE, dest, index + 256, 0));
             }
 
@@ -327,7 +400,7 @@ int compile_expr(Expression *expr, Chunk *chunk, Scope *scope, int dest, int tem
             int t2 = add_instruction(chunk, 0);
 
             // return null
-            int index = add_constant(chunk, make_constant(CONST_NULL, expr->value));
+            int index = add_null(chunk);
             int t3 = add_instruction(chunk, CREATE(OP_MOVE, dest, index + 256, 0));
 
             // fill in 1st jump
@@ -496,20 +569,8 @@ int compile_expr(Expression *expr, Chunk *chunk, Scope *scope, int dest, int tem
 
         case TYPE_AND:
         {
-            // TODO - constant management
-
-            Val *tvalue = malloc(sizeof *tvalue);
-            Val *fvalue = malloc(sizeof *fvalue);
-
-            if (!tvalue || !fvalue) {
-                fatal("Out of memory.");
-            }
-
-            tvalue->i = 1;
-            fvalue->i = 0;
-
-            int tindex = add_constant(chunk, make_constant(CONST_BOOL, tvalue));
-            int findex = add_constant(chunk, make_constant(CONST_BOOL, fvalue));
+            int tindex = add_bool(chunk, 1);
+            int findex = add_bool(chunk, 0);
 
             //      lexpr
             // [t1] if false [t3 - t1]
@@ -547,20 +608,8 @@ int compile_expr(Expression *expr, Chunk *chunk, Scope *scope, int dest, int tem
 
         case TYPE_OR:
         {
-            // TODO - constant management
-
-            Val *tvalue = malloc(sizeof *tvalue);
-            Val *fvalue = malloc(sizeof *fvalue);
-
-            if (!tvalue || !fvalue) {
-                fatal("Out of memory.");
-            }
-
-            tvalue->i = 1;
-            fvalue->i = 0;
-
-            int tindex = add_constant(chunk, make_constant(CONST_BOOL, tvalue));
-            int findex = add_constant(chunk, make_constant(CONST_BOOL, fvalue));
+            int tindex = add_bool(chunk, 1);
+            int findex = add_bool(chunk, 0);
 
             //      lexpr
             // [t1] if true [t3 - t1]
@@ -614,73 +663,35 @@ int compile_expr(Expression *expr, Chunk *chunk, Scope *scope, int dest, int tem
         /* constants */
         case TYPE_INT:
         {
-            Val *value = malloc(sizeof *value);
-
-            if (!value) {
-                fatal("Out of memory.");
-            }
-
-            value->i = expr->value->i;
-
-            int index = add_constant(chunk, make_constant(CONST_INT, value));
+            int index = add_int(chunk, expr->value->i);
             add_instruction(chunk, CREATE(OP_MOVE, dest, index + 256, 0));
             return temp;
         }
 
         case TYPE_REAL:
         {
-            Val *value = malloc(sizeof *value);
-
-            if (!value) {
-                fatal("Out of memory.");
-            }
-
-            value->d = expr->value->d;
-
-            int index = add_constant(chunk, make_constant(CONST_REAL, value));
+            int index = add_real(chunk, expr->value->d);
             add_instruction(chunk, CREATE(OP_MOVE, dest, index + 256, 0));
             return temp;
         }
 
         case TYPE_BOOL:
         {
-            Val *value = malloc(sizeof *value);
-
-            if (!value) {
-                fatal("Out of memory.");
-            }
-
-            value->i = expr->value->i;
-
-            int index = add_constant(chunk, make_constant(CONST_BOOL, value));
+            int index = add_bool(chunk, expr->value->i);
             add_instruction(chunk, CREATE(OP_MOVE, dest, index + 256, 0));
             return temp;
         }
 
         case TYPE_NULL:
         {
-            Val *value = malloc(sizeof *value);
-
-            if (!value) {
-                fatal("Out of memory.");
-            }
-
-            int index = add_constant(chunk, make_constant(CONST_NULL, value));
+            int index = add_null(chunk);
             add_instruction(chunk, CREATE(OP_MOVE, dest, index + 256, 0));
             return temp;
         }
 
         case TYPE_STRING:
         {
-            Val *value = malloc(sizeof *value);
-
-            if (!value) {
-                fatal("Out of memory.");
-            }
-
-            value->s = strdup(expr->value->s);
-
-            int index = add_constant(chunk, make_constant(CONST_STRING, value));
+            int index = add_string(chunk, expr->value->s);
             add_instruction(chunk, CREATE(OP_MOVE, dest, index + 256, 0));
             return temp;
         }

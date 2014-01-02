@@ -268,11 +268,11 @@ void dosave(Chunk *chunk, FILE *fp) {
         switch (chunk->constants[i]->type) {
             case CONST_INT:
             case CONST_BOOL:
-                fwrite(&(chunk->constants[i]->value->i), sizeof(int), 1, fp);
+                fwrite(&(chunk->constants[i]->i), sizeof(int), 1, fp);
                 break;
 
             case CONST_REAL:
-                fwrite(&(chunk->constants[i]->value->d), sizeof(double), 1, fp);
+                fwrite(&(chunk->constants[i]->d), sizeof(double), 1, fp);
                 break;
 
             case CONST_NULL:
@@ -280,9 +280,9 @@ void dosave(Chunk *chunk, FILE *fp) {
 
             case CONST_STRING:
             {
-                int n = strlen(chunk->constants[i]->value->s);
+                int n = strlen(chunk->constants[i]->s);
                 fwrite(&n, sizeof(int), 1, fp);
-                fwrite(&(chunk->constants[i]->value->s), sizeof(char), n, fp);
+                fwrite(chunk->constants[i]->s, sizeof(char), n, fp);
             } break;
         }
     }
@@ -343,23 +343,21 @@ Chunk *doload(FILE *fp) {
         fread(&type, sizeof(int), 1, fp);
 
         Constant *c = malloc(sizeof *c);
-        Val *v = malloc(sizeof *v);
 
-        if (!c || !v) {
+        if (!c) {
             fatal("Out of memory.");
         }
 
         c->type = type;
-        c->value = v;
 
         switch (type) {
             case CONST_INT:
             case CONST_BOOL:
-                fread(&(v->i), sizeof(int), 1, fp);
+                fread(&(c->i), sizeof(int), 1, fp);
                 break;
 
             case CONST_REAL:
-                fread(&(v->d), sizeof(double), 1, fp);
+                fread(&(c->d), sizeof(double), 1, fp);
                 break;
 
             case CONST_NULL:
@@ -369,7 +367,16 @@ Chunk *doload(FILE *fp) {
             {
                 int n;
                 fread(&n, sizeof(int), 1, fp);
-                fread(&(v->s), sizeof(char), n, fp);
+
+                char *s = malloc(n * sizeof *s);
+
+                if (!s) {
+                    fatal("Out of memory.");
+                }
+
+                int d = fread(s, sizeof(char), n, fp);
+
+                c->s = s;
             } break;
         }
 
@@ -386,15 +393,15 @@ Chunk *doload(FILE *fp) {
 void print_const(Constant *c) {
     switch (c->type) {
         case CONST_INT:
-            printf("%d", c->value->i);
+            printf("%d", c->i);
             break;
 
         case CONST_REAL:
-            printf("%.2f", c->value->d);
+            printf("%.2f", c->d);
             break;
 
         case CONST_BOOL:
-            printf("%s", c->value->i == 1 ? "true" : "false");
+            printf("%s", c->i == 1 ? "true" : "false");
             break;
 
         case CONST_NULL:
@@ -402,7 +409,7 @@ void print_const(Constant *c) {
             break;
 
         case CONST_STRING:
-            printf("\"%s\"", c->value->s);
+            printf("\"%s\"", c->s);
             break;
     }
 }

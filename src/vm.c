@@ -275,17 +275,17 @@ restart: {
                     switch (constant->type) {
                         case CONST_INT:
                             registers[a]->type = OBJECT_INT;
-                            registers[a]->value.i = constant->value->i;
+                            registers[a]->value.i = constant->i;
                             break;
 
                         case CONST_BOOL:
                             registers[a]->type = OBJECT_BOOL;
-                            registers[a]->value.i = constant->value->i;
+                            registers[a]->value.i = constant->i;
                             break;
 
                         case CONST_REAL:
                             registers[a]->type = OBJECT_REAL;
-                            registers[a]->value.d = constant->value->d;
+                            registers[a]->value.d = constant->d;
                             break;
 
                         case CONST_NULL:
@@ -294,7 +294,7 @@ restart: {
 
                         case CONST_STRING:
                             registers[a]->type = OBJECT_STRING;
-                            registers[a]->value.s = constant->value->s;
+                            registers[a]->value.s = constant->s;
                             break;
                     }
                 }
@@ -550,17 +550,17 @@ restart: {
                     switch (constant->type) {
                         case CONST_INT:
                             registers[0]->type = OBJECT_INT;
-                            registers[0]->value.i = constant->value->i;
+                            registers[0]->value.i = constant->i;
                             break;
 
                         case CONST_BOOL:
                             registers[0]->type = OBJECT_BOOL;
-                            registers[0]->value.i = constant->value->i;
+                            registers[0]->value.i = constant->i;
                             break;
 
                         case CONST_REAL:
                             registers[0]->type = OBJECT_REAL;
-                            registers[0]->value.d = constant->value->d;
+                            registers[0]->value.d = constant->d;
                             break;
 
                         case CONST_NULL:
@@ -569,7 +569,7 @@ restart: {
 
                         case CONST_STRING:
                             registers[0]->type = OBJECT_STRING;
-                            registers[0]->value.s = constant->value->s;
+                            registers[0]->value.s = constant->s;
                             break;
                     }
                 }
