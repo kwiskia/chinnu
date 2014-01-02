@@ -1,8 +1,7 @@
 ast.o: ast.c ast.h common.h chinnu.h semant.h
 bytecode.o: bytecode.c bytecode.h
-chinnu.o: chinnu.c chinnu.h semant.h ast.h common.h vm.h codegen.h
-chinnu.lex.o: chinnu.lex.c chinnu.h semant.h ast.h common.h chinnu.tab.h
-chinnu.tab.o: chinnu.tab.c chinnu.h semant.h ast.h common.h
+chinnu.o: chinnu.c chinnu.h semant.h ast.h common.h vm.h codegen.h \
+  bytecode.h
 codegen.o: codegen.c chinnu.h semant.h ast.h common.h codegen.h \
   bytecode.h
 semant.o: semant.c chinnu.h semant.h ast.h common.h
