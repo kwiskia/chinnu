@@ -130,6 +130,30 @@ void copy_object(Object *a, Object *b) {
     }
 }
 
+void print(Object *o) {
+    switch (o->type) {
+        case OBJECT_INT:
+            printf("<INT %d>\n", o->value.i);
+            break;
+
+        case OBJECT_REAL:
+            printf("<REAL %.2f>\n", o->value.d);
+            break;
+
+        case OBJECT_BOOL:
+            printf("<%s>\n", o->value.i == 1 ? "true" : "false");
+            break;
+
+        case OBJECT_NULL:
+            printf("<NULL>\n");
+            break;
+
+        case OBJECT_STRING:
+            printf("<STRING %s>\n", o->value.s);
+            break;
+    }
+}
+
 Upval *make_upval(State *state, int slot) {
     Upval *upval = malloc(sizeof *upval);
     UpvalNode *node = malloc(sizeof *node);
@@ -578,11 +602,11 @@ restart: {
 
                 // TODO - free registers
 
+                print(registers[0]);
+
                 if (state->current->parent != NULL) {
                     Frame *p = state->current->parent;
                     copy_object(p->registers[GET_A(p->closure->chunk->instructions[p->pc++])], registers[0]);
-
-                    printf("Returning %d\n", registers[0]->value.i);
 
                     state->current = p;
                     goto restart;
