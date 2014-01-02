@@ -24,6 +24,7 @@
 
 #include "chinnu.h"
 #include "vm.h"
+#include "bytecode.h"
 
 extern FILE *yyin;
 extern int yyparse();
@@ -203,6 +204,7 @@ void vmessage(SourcePos pos, const char *fmt, va_list args) {
 void show_usage(char *program) {
     printf("Usage: %s [switches] ... [files] ...\n", program);
     printf("  -w<type>      display warnings\n");
+    printf("  -d            disassemble\n");
     printf("  -c            compile only\n");
     printf("  -o            optimize before running\n");
     printf("  -h --help     display usage and exit\n");
@@ -215,6 +217,7 @@ void show_version(char *program) {
 
 static int help_flag = 0;
 static int version_flag = 0;
+static int disassemble_flag = 0;
 static int compile_flag = 0;
 static int optimize_flag = 0;
 
@@ -222,6 +225,7 @@ static struct option options[] = {
     {"help",    no_argument,       &help_flag,    1},
     {"version", no_argument,       &version_flag, 1},
     {"w",       required_argument, 0,             'w'},
+    {"d",       no_argument,       0,             'd'},
     {"c",       no_argument,       0,             'c'},
     {"o",       no_argument,       0,             'o'},
     {"h",       no_argument,       0,             'h'},
@@ -379,6 +383,105 @@ Chunk *doload(FILE *fp) {
     return chunk;
 }
 
+void print_const(Constant *c) {
+    switch (c->type) {
+        case CONST_INT:
+            printf("%d", c->value->i);
+            break;
+
+        case CONST_REAL:
+            printf("%.2f", c->value->d);
+            break;
+
+        case CONST_BOOL:
+            printf("%s", c->value->i == 1 ? "true" : "false");
+            break;
+
+        case CONST_NULL:
+            printf("null");
+            break;
+
+        case CONST_STRING:
+            printf("\"%s\"", c->value->s);
+            break;
+    }
+}
+
+void dis(Chunk *chunk) {
+    int i;
+    for (i = 0; i < chunk->numinstructions; i++) {
+        int instruction = chunk->instructions[i];
+
+        int o = GET_O(instruction);
+        int a = GET_A(instruction);
+        int b = GET_B(instruction);
+        int c = GET_C(instruction);
+
+        switch (o) {
+                case OP_RETURN:
+                    printf("%d\t%-15s%d", i + 1, opcode_names[o], b);
+                    break;
+
+                case OP_MOVE:
+                case OP_NEG:
+                case OP_NOT:
+                {
+                    printf("%d\t%-15s%d %d", i + 1, opcode_names[o], a, b);
+
+                    if (b > 255) {
+                        printf("\t; b=");
+                        print_const(chunk->constants[b - 256]);
+                    }
+                } break;
+
+                case OP_GETUPVAR:
+                case OP_SETUPVAR:
+                case OP_CLOSURE:
+                    printf("%d\t%-15s%d %d", i + 1, opcode_names[o], a, b);
+                    break;
+
+                case OP_JUMP:
+                case OP_JUMP_TRUE:
+                case OP_JUMP_FALSE:
+                {
+                    int offset = c == 1 ? -b : b;
+                    printf("%d\t%-15s%d %d\t; j=%d", i + 1, opcode_names[o], a, b, i + offset + 2);
+                } break;
+
+                case OP_ADD:
+                case OP_SUB:
+                case OP_MUL:
+                case OP_DIV:
+                case OP_EQ:
+                case OP_LT:
+                case OP_LE:
+                {
+                    printf("%d\t%-15s%d %d %d", i + 1, opcode_names[o], a, b, c);
+
+                    if (a > 255) {
+                        printf("\t; a=");
+                        print_const(chunk->constants[a - 256]);
+                    }
+
+                    if (b > 255) {
+                        printf("\t; b=");
+                        print_const(chunk->constants[b - 256]);
+                    }
+                } break;
+
+                case OP_CALL:
+                    printf("%d\t%-15s%d %d %d", i + 1, opcode_names[o], a, b, c);
+                    break;
+        }
+
+        printf("\n");
+    }
+
+    for (i = 0; i < chunk->numchildren; i++) {
+        dis(chunk->children[i]);
+    }
+}
+
 int valid_cache(char *filename) {
     FILE *fp = fopen(filename, "rb");
 
@@ -444,7 +547,7 @@ int main(int argc, char **argv) {
     int c;
     int i = 0;
 
-    while ((c = getopt_long(argc, argv, "w:cohv", options, &i)) != -1) {
+    while ((c = getopt_long(argc, argv, "w:dcohv", options, &i)) != -1) {
         switch (c) {
             case 'w':
             {
@@ -463,6 +566,10 @@ int main(int argc, char **argv) {
                     warning_flags[WARNING_UNREACHABLE] = 1;
                 }
             } break;
+
+            case 'd':
+                disassemble_flag = 1;
+                break;
 
             case 'c':
                 compile_flag = 1;
@@ -526,7 +633,12 @@ int main(int argc, char **argv) {
                 chunk = make(argv[optind]);
             }
 
-            execute(chunk);
+            if (disassemble_flag) {
+                dis(chunk);
+            } else {
+                execute(chunk);
+            }
+
             free_chunk(chunk);
         }
     }
