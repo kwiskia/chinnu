@@ -1,14 +1,16 @@
-function count()
-    var c = 0;
+var gcd = function (a, b)
+    var c = a;
+    var d = b;
 
-    function ()
-        c = c + 1
-    end
+    while c != d do
+        if c > d then
+            c = c - d
+        else
+            d = d - c
+        end
+    end;
+
+    c
 end;
 
-var c = count();
-c(); # 1
-c(); # 2
-c(); # 3
-c(); # 4
-c()  # 5
+gcd(17 * 2, 17 * 3)

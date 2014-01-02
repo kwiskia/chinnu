@@ -110,13 +110,11 @@ struct State {
     int maxobjects;
 };
 
-double cast_to_double(StackObject object) {
-    if (object.type == OBJECT_INT) {
-        return (double) object.value.i;
-    }
+#define IS_INT(reg) ((reg < 256) ? registers[reg].type == OBJECT_INT : chunk->constants[b - 256]->type == CONST_INT)
+#define AS_INT(reg) ((reg < 256) ? registers[reg].value.i : chunk->constants[b - 256]->value.i)
 
-    return object.value.d;
-}
+#define IS_REAL(reg) ((reg < 256) ? registers[reg].type == OBJECT_REAL : chunk->constants[b - 256]->type == CONST_REAL)
+#define AS_REAL(reg) ((reg < 256) ? registers[reg].value.d : chunk->constants[b - 256]->value.d)
 
 Upval *make_upval(State *state, int slot) {
     Upval *upval = malloc(sizeof *upval);
@@ -494,95 +492,100 @@ restart: {
 
             case OP_ADD:
             {
-                if (registers[b].type != OBJECT_INT && registers[b].type != OBJECT_REAL) {
+                if (!(IS_INT(b) || IS_REAL(b)) || !(IS_INT(c) || IS_REAL(c))) {
                     fatal("Tried to add non-numbers.");
                 }
 
-                if (registers[c].type != OBJECT_INT && registers[c].type != OBJECT_REAL) {
-                    fatal("Tried to add non-numbers.");
-                }
+                if (IS_INT(b) && IS_INT(c)) {
+                    double arg1 = AS_INT(b);
+                    double arg2 = AS_INT(c);
 
-                // TODO - do with constants as well
-                if (registers[b].type == OBJECT_INT && registers[c].type == OBJECT_INT) {
                     registers[a].type = OBJECT_INT;
-                    registers[a].value.i = registers[b].value.i + registers[c].value.i;
+                    registers[a].value.i = arg1 + arg2;
                 } else {
+                    double arg1 = IS_INT(b) ? (double) AS_INT(b) : AS_REAL(b);
+                    double arg2 = IS_INT(c) ? (double) AS_INT(c) : AS_REAL(c);
+
                     registers[a].type = OBJECT_REAL;
-                    registers[a].value.d = cast_to_double(registers[b]) + cast_to_double(registers[c]);
+                    registers[a].value.d = arg1 + arg2;
                 }
             } break;
 
             case OP_SUB:
             {
-                if (registers[b].type != OBJECT_INT && registers[b].type != OBJECT_REAL) {
+                if (!(IS_INT(b) || IS_REAL(b)) || !(IS_INT(c) || IS_REAL(c))) {
                     fatal("Tried to sub non-numbers.");
                 }
 
-                if (registers[c].type != OBJECT_INT && registers[c].type != OBJECT_REAL) {
-                    fatal("Tried to sub non-numbers.");
-                }
+                if (IS_INT(b) && IS_INT(c)) {
+                    double arg1 = AS_INT(b);
+                    double arg2 = AS_INT(c);
 
-                // TODO - do with constants as well
-                if (registers[b].type == OBJECT_INT && registers[c].type == OBJECT_INT) {
                     registers[a].type = OBJECT_INT;
-                    registers[a].value.i = registers[b].value.i - registers[c].value.i;
+                    registers[a].value.i = arg1 - arg2;
                 } else {
+                    double arg1 = IS_INT(b) ? (double) AS_INT(b) : AS_REAL(b);
+                    double arg2 = IS_INT(c) ? (double) AS_INT(c) : AS_REAL(c);
+
                     registers[a].type = OBJECT_REAL;
-                    registers[a].value.d = cast_to_double(registers[b]) - cast_to_double(registers[c]);
+                    registers[a].value.d = arg1 - arg2;
                 }
             } break;
 
             case OP_MUL:
             {
-                if (registers[b].type != OBJECT_INT && registers[b].type != OBJECT_REAL) {
+                if (!(IS_INT(b) || IS_REAL(b)) || !(IS_INT(c) || IS_REAL(c))) {
                     fatal("Tried to mul non-numbers.");
                 }
 
-                if (registers[c].type != OBJECT_INT && registers[c].type != OBJECT_REAL) {
-                    fatal("Tried to mul non-numbers.");
-                }
+                if (IS_INT(b) && IS_INT(c)) {
+                    double arg1 = AS_INT(b);
+                    double arg2 = AS_INT(c);
 
-                // TODO - do with constants as well
-                if (registers[b].type == OBJECT_INT && registers[c].type == OBJECT_INT) {
                     registers[a].type = OBJECT_INT;
-                    registers[a].value.i = registers[b].value.i * registers[c].value.i;
+                    registers[a].value.i = arg1 * arg2;
                 } else {
+                    double arg1 = IS_INT(b) ? (double) AS_INT(b) : AS_REAL(b);
+                    double arg2 = IS_INT(c) ? (double) AS_INT(c) : AS_REAL(c);
+
                     registers[a].type = OBJECT_REAL;
-                    registers[a].value.d = cast_to_double(registers[b]) * cast_to_double(registers[c]);
+                    registers[a].value.d = arg1 * arg2;
                 }
             } break;
 
             case OP_DIV:
             {
-                if (registers[b].type != OBJECT_INT && registers[b].type != OBJECT_REAL) {
+                if (!(IS_INT(b) || IS_REAL(b)) || !(IS_INT(c) || IS_REAL(c))) {
                     fatal("Tried to div non-numbers.");
                 }
 
-                if (registers[c].type != OBJECT_INT && registers[c].type != OBJECT_REAL) {
-                    fatal("Tried to div non-numbers.");
+                if ((IS_INT(c) && AS_INT(c) == 0) || (IS_REAL(c) && AS_REAL(c) == 0)) {
+                    fatal("Div by 0.");
                 }
 
-                if (cast_to_double(registers[c]) == 0) {
-                    fatal("Div by zero.");
-                }
+                if (IS_INT(b) && IS_INT(c)) {
+                    double arg1 = AS_INT(b);
+                    double arg2 = AS_INT(c);
 
-                // TODO - do with constants as well
-                if (registers[b].type == OBJECT_INT && registers[c].type == OBJECT_INT) {
                     registers[a].type = OBJECT_INT;
-                    registers[a].value.i = registers[b].value.i / registers[c].value.i;
+                    registers[a].value.i = arg1 / arg2;
                 } else {
+                    double arg1 = IS_INT(b) ? (double) AS_INT(b) : AS_REAL(b);
+                    double arg2 = IS_INT(c) ? (double) AS_INT(c) : AS_REAL(c);
+
                     registers[a].type = OBJECT_REAL;
-                    registers[a].value.d = cast_to_double(registers[b]) / cast_to_double(registers[c]);
+                    registers[a].value.d = arg1 / arg2;
                 }
             } break;
 
             case OP_NEG:
             {
-                // TODO - do for constants as well
-                if (registers[a].type == OBJECT_INT) {
-                    registers[a].value.i = -registers[a].value.i;
-                } else if (registers[a].type == OBJECT_REAL) {
-                    registers[a].value.d = -registers[a].value.d;
+                if (IS_INT(b)) {
+                    registers[a].type = OBJECT_INT;
+                    registers[a].value.i = -AS_INT(b);
+                } else if (IS_REAL(b)) {
+                    registers[a].type = OBJECT_INT;
+                    registers[a].value.i = -AS_REAL(b);
                 } else {
                     fatal("Tried to negate non-numeric type.");
                 }
@@ -599,70 +602,41 @@ restart: {
 
             case OP_EQ:
             {
-                if (registers[b].type != registers[c].type) {
-                    // TODO - not true for numeric values [!!]
-                    registers[a].value.i = 0;
+                if ((IS_INT(b) || IS_REAL(b)) && (IS_INT(c) || IS_REAL(c))) {
+                    double arg1 = IS_INT(b) ? (double) AS_INT(b) : AS_REAL(b);
+                    double arg2 = IS_INT(c) ? (double) AS_INT(c) : AS_REAL(c);
+
+                    registers[a].type = OBJECT_BOOL;
+                    registers[a].value.i = arg1 == arg2;
                 } else {
-                    switch (registers[b].type) {
-                        case OBJECT_INT:
-                        case OBJECT_BOOL:
-                            registers[a].value.i = registers[b].value.i == registers[c].value.i;
-                            break;
-
-                        case OBJECT_NULL:
-                            registers[a].value.i = 1;
-                            break;
-
-                        case OBJECT_REAL:
-                            registers[a].value.d = registers[b].value.d == registers[c].value.d;
-                            break;
-
-                        case OBJECT_REFERENCE:
-                            fatal("Comparison of reference types not yet supported.");
-                    }
+                    fatal("Comparison of reference types not yet supported.");
                 }
-
-                registers[a].type = OBJECT_BOOL;
             } break;
 
             case OP_LT:
             {
-                if (registers[b].type != OBJECT_INT && registers[b].type != OBJECT_REAL) {
+                if (!(IS_INT(b) || IS_REAL(b)) || !(IS_INT(c) || IS_REAL(c))) {
                     fatal("Tried to compare non-numbers.");
                 }
 
-                if (registers[c].type != OBJECT_INT && registers[c].type != OBJECT_REAL) {
-                    fatal("Tried to compare non-numbers.");
-                }
+                double arg1 = IS_INT(b) ? (double) AS_INT(b) : AS_REAL(b);
+                double arg2 = IS_INT(c) ? (double) AS_INT(c) : AS_REAL(c);
 
-                // TODO - do with constants as well
-                if (registers[b].type == OBJECT_INT && registers[c].type == OBJECT_INT) {
-                    registers[a].type = OBJECT_BOOL;
-                    registers[a].value.i = registers[b].value.i < registers[c].value.i;
-                } else {
-                    registers[a].type = OBJECT_BOOL;
-                    registers[a].value.d = cast_to_double(registers[b]) < cast_to_double(registers[c]);
-                }
+                registers[a].type = OBJECT_BOOL;
+                registers[a].value.i = arg1 < arg2;
             } break;
 
             case OP_LE:
             {
-                if (registers[b].type != OBJECT_INT && registers[b].type != OBJECT_REAL) {
+                if (!(IS_INT(b) || IS_REAL(b)) || !(IS_INT(c) || IS_REAL(c))) {
                     fatal("Tried to compare non-numbers.");
                 }
 
-                if (registers[c].type != OBJECT_INT && registers[c].type != OBJECT_REAL) {
-                    fatal("Tried to compare non-numbers.");
-                }
+                double arg1 = IS_INT(b) ? (double) AS_INT(b) : AS_REAL(b);
+                double arg2 = IS_INT(c) ? (double) AS_INT(c) : AS_REAL(c);
 
-                // TODO - do with constants as well
-                if (registers[b].type == OBJECT_INT && registers[c].type == OBJECT_INT) {
-                    registers[a].type = OBJECT_BOOL;
-                    registers[a].value.i = registers[b].value.i <= registers[c].value.i;
-                } else {
-                    registers[a].type = OBJECT_BOOL;
-                    registers[a].value.d = cast_to_double(registers[b]) <= cast_to_double(registers[c]);
-                }
+                registers[a].type = OBJECT_BOOL;
+                registers[a].value.i = arg1 <= arg2;
             } break;
 
             case OP_CLOSURE:
