@@ -217,17 +217,14 @@ void free_obj(HeapObject *obj) {
             for (i = 0; i < obj->value.c->chunk->numupvars; i++) {
                 Upval *u = obj->value.c->upvals[i];
 
-                printf("Refcount %d\n", u->refcount);
-
                 if (--u->refcount == 0) {
-                    printf("Freeing upval (closure GC'd)\n");
                     free_upval(u);
                 }
             }
         } break;
 
         case OBJECT_STRING:
-            // TODO - ???
+            // TODO - clear if not interned?
             break;
     }
 
@@ -722,13 +719,15 @@ restart: {
                     Upval *u = head->upval;
 
                     if (u->data.ref.frame == frame) {
-                        if (u->refcount == 0) {
-                            free_upval(u);
-                            printf("Freeing upval (return)\n");
-                        } else {
-                            u->open = 0;
-                            u->data.o = &registers[u->data.ref.slot];
+                        StackObject *o = malloc(sizeof *o);
+
+                        if (!o) {
+                            fatal("Out of memory.");
                         }
+
+                        u->open = 0;
+                        copy_object(o, &registers[u->data.ref.slot]);
+                        u->data.o = o;
 
                         if (state->head == head) {
                             state->head = head->next;
