@@ -75,7 +75,7 @@ struct Object {
         double d;
         char *s;
         Closure *c;
-    } value;
+    };
 };
 
 typedef enum {
@@ -89,10 +89,10 @@ typedef enum {
 
 double cast_to_double(Object *object) {
     if (object->type == OBJECT_INT) {
-        return (double) object->value.i;
+        return (double) object->i;
     }
 
-    return object->value.d;
+    return object->d;
 }
 
 void copy_object(Object *a, Object *b) {
@@ -101,17 +101,17 @@ void copy_object(Object *a, Object *b) {
     switch (b->type) {
         case OBJECT_INT:
             a->type = OBJECT_INT;
-            a->value.i = b->value.i;
+            a->i = b->i;
             break;
 
         case OBJECT_BOOL:
             a->type = OBJECT_BOOL;
-            a->value.i = b->value.i;
+            a->i = b->i;
             break;
 
         case OBJECT_REAL:
             a->type = OBJECT_REAL;
-            a->value.d = b->value.d;
+            a->d = b->d;
             break;
 
         case OBJECT_NULL:
@@ -120,12 +120,12 @@ void copy_object(Object *a, Object *b) {
 
         case OBJECT_STRING:
             a->type = OBJECT_STRING;
-            a->value.s = b->value.s;
+            a->s = b->s;
             break;
 
         case OBJECT_CLOSURE:
             a->type = OBJECT_CLOSURE;
-            a->value.c = b->value.c;
+            a->c = b->c;
             break;
     }
 }
@@ -133,15 +133,15 @@ void copy_object(Object *a, Object *b) {
 void print(Object *o) {
     switch (o->type) {
         case OBJECT_INT:
-            printf("<INT %d>\n", o->value.i);
+            printf("<INT %d>\n", o->i);
             break;
 
         case OBJECT_REAL:
-            printf("<REAL %.2f>\n", o->value.d);
+            printf("<REAL %.2f>\n", o->d);
             break;
 
         case OBJECT_BOOL:
-            printf("<%s>\n", o->value.i == 1 ? "true" : "false");
+            printf("<%s>\n", o->i == 1 ? "true" : "false");
             break;
 
         case OBJECT_NULL:
@@ -149,7 +149,7 @@ void print(Object *o) {
             break;
 
         case OBJECT_STRING:
-            printf("<STRING %s>\n", o->value.s);
+            printf("<STRING %s>\n", o->s);
             break;
     }
 }
@@ -275,17 +275,17 @@ restart: {
                     switch (constant->type) {
                         case CONST_INT:
                             registers[a]->type = OBJECT_INT;
-                            registers[a]->value.i = constant->i;
+                            registers[a]->i = constant->i;
                             break;
 
                         case CONST_BOOL:
                             registers[a]->type = OBJECT_BOOL;
-                            registers[a]->value.i = constant->i;
+                            registers[a]->i = constant->i;
                             break;
 
                         case CONST_REAL:
                             registers[a]->type = OBJECT_REAL;
-                            registers[a]->value.d = constant->d;
+                            registers[a]->d = constant->d;
                             break;
 
                         case CONST_NULL:
@@ -294,7 +294,7 @@ restart: {
 
                         case CONST_STRING:
                             registers[a]->type = OBJECT_STRING;
-                            registers[a]->value.s = constant->s;
+                            registers[a]->s = constant->s;
                             break;
                     }
                 }
@@ -338,10 +338,10 @@ restart: {
                 // TODO - do with constants as well
                 if (registers[b]->type == OBJECT_INT && registers[c]->type == OBJECT_INT) {
                     registers[a]->type = OBJECT_INT;
-                    registers[a]->value.i = registers[b]->value.i + registers[c]->value.i;
+                    registers[a]->i = registers[b]->i + registers[c]->i;
                 } else {
                     registers[a]->type = OBJECT_REAL;
-                    registers[a]->value.d = cast_to_double(registers[b]) + cast_to_double(registers[c]);
+                    registers[a]->d = cast_to_double(registers[b]) + cast_to_double(registers[c]);
                 }
                 break;
 
@@ -357,10 +357,10 @@ restart: {
                 // TODO - do with constants as well
                 if (registers[b]->type == OBJECT_INT && registers[c]->type == OBJECT_INT) {
                     registers[a]->type = OBJECT_INT;
-                    registers[a]->value.i = registers[b]->value.i - registers[c]->value.i;
+                    registers[a]->i = registers[b]->i - registers[c]->i;
                 } else {
                     registers[a]->type = OBJECT_REAL;
-                    registers[a]->value.d = cast_to_double(registers[b]) - cast_to_double(registers[c]);
+                    registers[a]->d = cast_to_double(registers[b]) - cast_to_double(registers[c]);
                 }
                 break;
 
@@ -376,10 +376,10 @@ restart: {
                 // TODO - do with constants as well
                 if (registers[b]->type == OBJECT_INT && registers[c]->type == OBJECT_INT) {
                     registers[a]->type = OBJECT_INT;
-                    registers[a]->value.i = registers[b]->value.i * registers[c]->value.i;
+                    registers[a]->i = registers[b]->i * registers[c]->i;
                 } else {
                     registers[a]->type = OBJECT_REAL;
-                    registers[a]->value.d = cast_to_double(registers[b]) * cast_to_double(registers[c]);
+                    registers[a]->d = cast_to_double(registers[b]) * cast_to_double(registers[c]);
                 }
                 break;
 
@@ -399,19 +399,19 @@ restart: {
                 // TODO - do with constants as well
                 if (registers[b]->type == OBJECT_INT && registers[c]->type == OBJECT_INT) {
                     registers[a]->type = OBJECT_INT;
-                    registers[a]->value.i = registers[b]->value.i / registers[c]->value.i;
+                    registers[a]->i = registers[b]->i / registers[c]->i;
                 } else {
                     registers[a]->type = OBJECT_REAL;
-                    registers[a]->value.d = cast_to_double(registers[b]) / cast_to_double(registers[c]);
+                    registers[a]->d = cast_to_double(registers[b]) / cast_to_double(registers[c]);
                 }
                 break;
 
             case OP_NEG:
                 // TODO - do for constants as well
                 if (registers[a]->type == OBJECT_INT) {
-                    registers[a]->value.i = -registers[a]->value.i;
+                    registers[a]->i = -registers[a]->i;
                 } else if (registers[a]->type == OBJECT_REAL) {
-                    registers[a]->value.d = -registers[a]->value.d;
+                    registers[a]->d = -registers[a]->d;
                 } else {
                     fatal("Tried to negate non-numeric type.");
                 }
@@ -422,30 +422,30 @@ restart: {
                     fatal("Expected boolean type, not %d.", registers[a]->type);
                 }
 
-                registers[a]->value.i = registers[a]->value.i == 1 ? 0 : 1;
+                registers[a]->i = registers[a]->i == 1 ? 0 : 1;
                 break;
 
             case OP_EQ:
                 if (registers[b]->type != registers[c]->type) {
                     // TODO - not true for numeric values [!!]
-                    registers[a]->value.i = 0;
+                    registers[a]->i = 0;
                 } else {
                     switch (registers[b]->type) {
                         case OBJECT_INT:
                         case OBJECT_BOOL:
-                            registers[a]->value.i = registers[b]->value.i == registers[c]->value.i;
+                            registers[a]->i = registers[b]->i == registers[c]->i;
                             break;
 
                         case OBJECT_NULL:
-                            registers[a]->value.i = 1;
+                            registers[a]->i = 1;
                             break;
 
                         case OBJECT_REAL:
-                            registers[a]->value.d = registers[b]->value.d == registers[c]->value.d;
+                            registers[a]->d = registers[b]->d == registers[c]->d;
                             break;
 
                         case OBJECT_STRING:
-                            registers[a]->value.i = strcmp(registers[b]->value.s, registers[c]->value.s) == 0;
+                            registers[a]->i = strcmp(registers[b]->s, registers[c]->s) == 0;
                             break;
                     }
                 }
@@ -465,10 +465,10 @@ restart: {
                 // TODO - do with constants as well
                 if (registers[b]->type == OBJECT_INT && registers[c]->type == OBJECT_INT) {
                     registers[a]->type = OBJECT_BOOL;
-                    registers[a]->value.i = registers[b]->value.i < registers[c]->value.i;
+                    registers[a]->i = registers[b]->i < registers[c]->i;
                 } else {
                     registers[a]->type = OBJECT_BOOL;
-                    registers[a]->value.d = cast_to_double(registers[b]) < cast_to_double(registers[c]);
+                    registers[a]->d = cast_to_double(registers[b]) < cast_to_double(registers[c]);
                 }
                 break;
 
@@ -484,10 +484,10 @@ restart: {
                 // TODO - do with constants as well
                 if (registers[b]->type == OBJECT_INT && registers[c]->type == OBJECT_INT) {
                     registers[a]->type = OBJECT_BOOL;
-                    registers[a]->value.i = registers[b]->value.i <= registers[c]->value.i;
+                    registers[a]->i = registers[b]->i <= registers[c]->i;
                 } else {
                     registers[a]->type = OBJECT_BOOL;
-                    registers[a]->value.d = cast_to_double(registers[b]) <= cast_to_double(registers[c]);
+                    registers[a]->d = cast_to_double(registers[b]) <= cast_to_double(registers[c]);
                 }
                 break;
 
@@ -515,18 +515,18 @@ restart: {
                 }
 
                 registers[a]->type = OBJECT_CLOSURE;
-                registers[a]->value.c = child;
+                registers[a]->c = child;
             } break;
 
             case OP_CALL:
             {
                 if (registers[b]->type != OBJECT_CLOSURE) {
-                    fatal("Tried to call non-closure of type %d (value %d).", registers[b]->type, registers[b]->value.i);
+                    fatal("Tried to call non-closure of type %d (value %d).", registers[b]->type, registers[b]->i);
                 }
 
                 // TODO - safety issue (see compile.c for notes)
 
-                Closure *child = registers[b]->value.c;
+                Closure *child = registers[b]->c;
                 Frame *subframe = make_frame(frame, child);
 
                 int i;
@@ -550,17 +550,17 @@ restart: {
                     switch (constant->type) {
                         case CONST_INT:
                             registers[0]->type = OBJECT_INT;
-                            registers[0]->value.i = constant->i;
+                            registers[0]->i = constant->i;
                             break;
 
                         case CONST_BOOL:
                             registers[0]->type = OBJECT_BOOL;
-                            registers[0]->value.i = constant->i;
+                            registers[0]->i = constant->i;
                             break;
 
                         case CONST_REAL:
                             registers[0]->type = OBJECT_REAL;
-                            registers[0]->value.d = constant->d;
+                            registers[0]->d = constant->d;
                             break;
 
                         case CONST_NULL:
@@ -569,7 +569,7 @@ restart: {
 
                         case CONST_STRING:
                             registers[0]->type = OBJECT_STRING;
-                            registers[0]->value.s = constant->s;
+                            registers[0]->s = constant->s;
                             break;
                     }
                 }
@@ -629,7 +629,7 @@ restart: {
                     fatal("Expected boolean type, not %d.", registers[a]->type);
                 }
 
-                if (registers[a]->value.i == 1) {
+                if (registers[a]->i == 1) {
                     if (c) {
                         frame->pc -= b;
                     } else {
@@ -643,7 +643,7 @@ restart: {
                     fatal("Expected boolean type, not %d.", registers[a]->type);
                 }
 
-                if (registers[a]->value.i == 0) {
+                if (registers[a]->i == 0) {
                     if (c) {
                         frame->pc -= b;
                     } else {
