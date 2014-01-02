@@ -248,7 +248,6 @@ int compile_expr(Expression *expr, Chunk *chunk, Scope *scope, int dest, int tem
         {
             if (expr->rexpr) {
                 int max = compile_expr(expr->rexpr, chunk, scope, dest, temp);
-                // TODO - peephole optimize
                 add_instruction(chunk, CREATE(OP_MOVE, get_local_index(scope, expr->symbol), dest, 0));
 
                 return max;
@@ -420,7 +419,6 @@ int compile_expr(Expression *expr, Chunk *chunk, Scope *scope, int dest, int tem
             int index = get_local_index(scope, expr->lexpr->symbol);
 
             if (index != -1) {
-                // TODO - peephole optimize
                 add_instruction(chunk, CREATE(OP_MOVE, index, dest, 0));
             } else {
                 index = get_upvar_index(scope, expr->lexpr->symbol);
@@ -437,7 +435,6 @@ int compile_expr(Expression *expr, Chunk *chunk, Scope *scope, int dest, int tem
             int t = get_temp_index(scope, temp);
             int max2 = compile_expr(expr->rexpr, chunk, scope, t, temp + 1);
 
-            // TODO - binops with constants without load
             add_instruction(chunk, CREATE(OP_ADD, dest, dest, t));
 
             return MAX(max1, max2);
@@ -450,7 +447,6 @@ int compile_expr(Expression *expr, Chunk *chunk, Scope *scope, int dest, int tem
             int t = get_temp_index(scope, temp);
             int max2 = compile_expr(expr->rexpr, chunk, scope, t, temp + 1);
 
-            // TODO - binops with constants without load
             add_instruction(chunk, CREATE(OP_SUB, dest, dest, t));
 
             return MAX(max1, max2);
@@ -463,7 +459,6 @@ int compile_expr(Expression *expr, Chunk *chunk, Scope *scope, int dest, int tem
             int t = get_temp_index(scope, temp);
             int max2 = compile_expr(expr->rexpr, chunk, scope, t, temp + 1);
 
-            // TODO - binops with constants without load
             add_instruction(chunk, CREATE(OP_MUL, dest, dest, t));
 
             return MAX(max1, max2);
@@ -476,7 +471,6 @@ int compile_expr(Expression *expr, Chunk *chunk, Scope *scope, int dest, int tem
             int t = get_temp_index(scope, temp);
             int max2 = compile_expr(expr->rexpr, chunk, scope, t, temp + 1);
 
-            // TODO - binops with constants without load
             add_instruction(chunk, CREATE(OP_DIV, dest, dest, t));
 
             return MAX(max1, max2);
@@ -495,7 +489,6 @@ int compile_expr(Expression *expr, Chunk *chunk, Scope *scope, int dest, int tem
             int t = get_temp_index(scope, temp);
             int max2 = compile_expr(expr->rexpr, chunk, scope, t, temp + 1);
 
-            // TODO - binops with constants without load
             add_instruction(chunk, CREATE(OP_EQ, dest, dest, t));
 
             return MAX(max1, max2);
@@ -508,7 +501,6 @@ int compile_expr(Expression *expr, Chunk *chunk, Scope *scope, int dest, int tem
             int t = get_temp_index(scope, temp);
             int max2 = compile_expr(expr->rexpr, chunk, scope, t, temp + 1);
 
-            // TODO - binops with constants without load
             add_instruction(chunk, CREATE(OP_EQ, dest, dest, t));
             add_instruction(chunk, CREATE(OP_NOT, dest, dest, 0));
 
@@ -522,7 +514,6 @@ int compile_expr(Expression *expr, Chunk *chunk, Scope *scope, int dest, int tem
             int t = get_temp_index(scope, temp);
             int max2 = compile_expr(expr->rexpr, chunk, scope, t, temp + 1);
 
-            // TODO - binops with constants without load
             add_instruction(chunk, CREATE(OP_LT, dest, dest, t));
 
             return MAX(max1, max2);
@@ -535,7 +526,6 @@ int compile_expr(Expression *expr, Chunk *chunk, Scope *scope, int dest, int tem
             int t = get_temp_index(scope, temp);
             int max2 = compile_expr(expr->rexpr, chunk, scope, t, temp + 1);
 
-            // TODO - binops with constants without load
             add_instruction(chunk, CREATE(OP_LE, dest, dest, t));
 
             return MAX(max1, max2);
@@ -548,7 +538,6 @@ int compile_expr(Expression *expr, Chunk *chunk, Scope *scope, int dest, int tem
             int t = get_temp_index(scope, temp);
             int max2 = compile_expr(expr->rexpr, chunk, scope, t, temp + 1);
 
-            // TODO - binops with constants without load
             add_instruction(chunk, CREATE(OP_LT, dest, t, dest));
 
             return MAX(max1, max2);
@@ -561,7 +550,6 @@ int compile_expr(Expression *expr, Chunk *chunk, Scope *scope, int dest, int tem
             int t = get_temp_index(scope, temp);
             int max2 = compile_expr(expr->rexpr, chunk, scope, t, temp + 1);
 
-            // TODO - binops with constants without load
             add_instruction(chunk, CREATE(OP_LE, dest, t, dest));
 
             return MAX(max1, max2);
