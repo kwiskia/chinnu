@@ -53,10 +53,10 @@ typedef enum {
     TYPE_FUNC, // llist, rexpr
     TYPE_DECLARATION, // rexpr, value (s),
     TYPE_BLOCK, // llist
-    TYPE_MODULE, // lexpr
-
-    NUM_EXPRESSION_TYPES
+    TYPE_MODULE  // lexpr
 } ExpressionType;
+
+#define NUM_EXPRESSION_TYPES TYPE_MODULE + 1
 
 typedef struct SourcePos SourcePos;
 
@@ -75,8 +75,8 @@ union Val {
 };
 
 struct Expression {
-    unsigned int type      : 5;
-    unsigned int immutable : 1;
+    ExpressionType type;
+    unsigned int immutable;
 
     Expression *cond;
     Expression *lexpr;

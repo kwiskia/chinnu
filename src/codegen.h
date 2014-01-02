@@ -24,11 +24,6 @@
 typedef struct Chunk Chunk;
 typedef struct Constant Constant;
 
-struct Constant {
-    int type;
-    Val *value;
-};
-
 typedef enum {
     CONST_INT,
     CONST_REAL,
@@ -36,6 +31,11 @@ typedef enum {
     CONST_NULL,
     CONST_STRING
 } ConstantType;
+
+struct Constant {
+    ConstantType type;
+    Val *value;
+};
 
 struct Chunk {
     Constant **constants;

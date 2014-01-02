@@ -63,9 +63,9 @@ typedef enum {
 
     OP_JUMP,            // PC := PC + (R(C) ? -B : B)
     OP_JUMP_TRUE,       // PC := PC + (R(C) ? -B : B) : if R(A) == true
-    OP_JUMP_FALSE,      // PC := PC + (R(C) ? -B : B) : if R(A) == false
-
-    NUM_OPCODES
+    OP_JUMP_FALSE       // PC := PC + (R(C) ? -B : B) : if R(A) == false
 } OpCode;
+
+#define NUM_OPCODES OP_JUMP_FALSE + 1
 
 const char *const opcode_names[NUM_OPCODES];
