@@ -569,15 +569,6 @@ restart: {
 
             case OP_RETURN:
             {
-                // TODO - no need to put into register 0
-                // TODO - does this mean that register 0 is unnecessary as special-use?
-
-                if (b < 256) {
-                    copy_object(registers[0], registers[b]);
-                } else {
-                    copy_constant(registers[0], chunk->constants[b - 256]);
-                }
-
                 UpvalNode *head;
                 for (head = state->head; head != NULL; ) {
                     Upval *u = head->upval;
@@ -607,11 +598,16 @@ restart: {
 
                 // TODO - free registers
 
-                print(registers[0]);
-
                 if (state->current->parent != NULL) {
                     Frame *p = state->current->parent;
-                    copy_object(p->registers[GET_A(p->closure->chunk->instructions[p->pc++])], registers[0]);
+                    Object *target = p->registers[GET_A(p->closure->chunk->instructions[p->pc++])];
+
+                    if (b < 256) {
+                        print(registers[b]);
+                        copy_object(target, registers[b]);
+                    } else {
+                        copy_constant(target, chunk->constants[b - 256]);
+                    }
 
                     state->current = p;
                     goto restart;
