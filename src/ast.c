@@ -64,22 +64,11 @@ Expression *allocexpr() {
     expr->lexpr = NULL;
     expr->rexpr = NULL;
     expr->llist = NULL;
-    expr->value = NULL;
     expr->symbol = NULL;
     expr->scope = NULL;
     expr->immutable = 0;
 
     return expr;
-}
-
-Val *allocval() {
-    Val *val = malloc(sizeof *val);
-
-    if (!val) {
-        fatal("Out of memory.");
-    }
-
-    return val;
 }
 
 void free_expr(Expression *expr) {
@@ -89,17 +78,13 @@ void free_expr(Expression *expr) {
         if (expr->rexpr) free_expr(expr->rexpr);
         if (expr->llist) free_list(expr->llist);
 
-        if (expr->type == TYPE_DECLARATION || (expr->type == TYPE_FUNC && expr->value->s != NULL)) {
+        if (expr->type == TYPE_DECLARATION || (expr->type == TYPE_FUNC && expr->value.s != NULL)) {
             free(expr->symbol->name);
             free(expr->symbol);
         }
 
-        if (expr->value) {
-            if (expr->type == TYPE_VARREF || expr->type == TYPE_DECLARATION || expr->type == TYPE_STRING || expr->type == TYPE_FUNC) {
-                free(expr->value->s);
-            }
-
-            free(expr->value);
+        if (expr->type == TYPE_VARREF || expr->type == TYPE_DECLARATION || expr->type == TYPE_STRING || expr->type == TYPE_FUNC) {
+            free(expr->value.s);
         }
 
         if (expr->scope) {
@@ -174,6 +159,7 @@ Expression *make_if(SourcePos pos, Expression *cond, Expression *body, Expressio
     expr->cond = cond;
     expr->lexpr = body;
     expr->rexpr = orelse;
+
     return expr;
 }
 
@@ -184,6 +170,7 @@ Expression *make_while(SourcePos pos, Expression *cond, Expression *body) {
     expr->pos = pos;
     expr->cond = cond;
     expr->lexpr = body;
+
     return expr;
 }
 
@@ -194,6 +181,7 @@ Expression *make_binop(SourcePos pos, int type, Expression *left, Expression *ri
     expr->pos = pos;
     expr->lexpr = left;
     expr->rexpr = right;
+
     return expr;
 }
 
@@ -203,21 +191,21 @@ Expression *make_uop(SourcePos pos, int type, Expression *left) {
     expr->type = type;
     expr->pos = pos;
     expr->lexpr = left;
+
     return expr;
 }
 
 Expression *make_declaration(SourcePos pos, char *name, Expression *value, int immutable) {
     Expression *expr = allocexpr();
-    Val *val = allocval();
 
     // TODO - intern?
 
     expr->type = TYPE_DECLARATION;
     expr->pos = pos;
     expr->rexpr = value;
-    expr->value = val;
-    val->s = name;
+    expr->value.s = name;
     expr->immutable = immutable;
+
     return expr;
 }
 
@@ -228,52 +216,48 @@ Expression *make_assignment(SourcePos pos, Expression *left, Expression *right) 
     expr->pos = pos;
     expr->lexpr = left;
     expr->rexpr = right;
+
     return expr;
 }
 
 Expression *make_varref(SourcePos pos, char *name) {
     Expression *expr = allocexpr();
-    Val *val = allocval();
 
     // TODO - intern?
 
     expr->type = TYPE_VARREF;
     expr->pos = pos;
-    expr->value = val;
-    val->s = name;
+    expr->value.s = name;
+
     return expr;
 }
 
 Expression *make_int(SourcePos pos, int i) {
     Expression *expr = allocexpr();
-    Val *val = allocval();
 
     expr->type = TYPE_INT;
     expr->pos = pos;
-    expr->value = val;
-    val->i = i;
+    expr->value.i = i;
+
     return expr;
 }
 
 Expression *make_real(SourcePos pos, double d) {
     Expression *expr = allocexpr();
-    Val *val = allocval();
 
     expr->type = TYPE_REAL;
     expr->pos = pos;
-    expr->value = val;
-    val->d = d;
+    expr->value.d = d;
+
     return expr;
 }
 
 Expression *make_bool(SourcePos pos, int i) {
     Expression *expr = allocexpr();
-    Val *val = allocval();
 
     expr->type = TYPE_BOOL;
     expr->pos = pos;
-    expr->value = val;
-    val->i = i;
+    expr->value.i = i;
 
     return expr;
 }
@@ -289,12 +273,11 @@ Expression *make_null(SourcePos pos) {
 
 Expression *make_str(SourcePos pos, char *str) {
     Expression *expr = allocexpr();
-    Val *val = allocval();
 
     expr->type = TYPE_STRING;
     expr->pos = pos;
-    expr->value = val;
-    val->s = str;
+    expr->value.s = str;
+
     return expr;
 }
 
@@ -305,19 +288,19 @@ Expression *make_call(SourcePos pos, Expression *target, ExpressionList *argumen
     expr->pos = pos;
     expr->lexpr = target;
     expr->llist = arguments;
+
     return expr;
 }
 
 Expression *make_func(SourcePos pos, char *name, ExpressionList *parameters, Expression *body) {
     Expression *expr = allocexpr();
-    Val *val = allocval();
 
     expr->type = TYPE_FUNC;
     expr->pos = pos;
     expr->llist = parameters;
     expr->rexpr = body;
-    expr->value = val;
-    val->s = name;
+    expr->value.s = name;
+
     return expr;
 }
 

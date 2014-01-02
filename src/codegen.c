@@ -663,21 +663,21 @@ int compile_expr(Expression *expr, Chunk *chunk, Scope *scope, int dest, int tem
         /* constants */
         case TYPE_INT:
         {
-            int index = add_int(chunk, expr->value->i);
+            int index = add_int(chunk, expr->value.i);
             add_instruction(chunk, CREATE(OP_MOVE, dest, index + 256, 0));
             return temp;
         }
 
         case TYPE_REAL:
         {
-            int index = add_real(chunk, expr->value->d);
+            int index = add_real(chunk, expr->value.d);
             add_instruction(chunk, CREATE(OP_MOVE, dest, index + 256, 0));
             return temp;
         }
 
         case TYPE_BOOL:
         {
-            int index = add_bool(chunk, expr->value->i);
+            int index = add_bool(chunk, expr->value.i);
             add_instruction(chunk, CREATE(OP_MOVE, dest, index + 256, 0));
             return temp;
         }
@@ -691,7 +691,7 @@ int compile_expr(Expression *expr, Chunk *chunk, Scope *scope, int dest, int tem
 
         case TYPE_STRING:
         {
-            int index = add_string(chunk, expr->value->s);
+            int index = add_string(chunk, expr->value.s);
             add_instruction(chunk, CREATE(OP_MOVE, dest, index + 256, 0));
             return temp;
         }

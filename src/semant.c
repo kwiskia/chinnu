@@ -282,15 +282,15 @@ void resolve_expr(SymbolTable *table, Expression *expr) {
 
         case TYPE_DECLARATION:
         {
-            Symbol *symbol = find_symbol(table, expr->value->s);
+            Symbol *symbol = find_symbol(table, expr->value.s);
 
             if (symbol && symbol->level == table->level) {
-                error(expr->pos, "Redefinition of '%s'.", expr->value->s);
+                error(expr->pos, "Redefinition of '%s'.", expr->value.s);
                 message(symbol->declaration->pos, "Previous definition is here.");
             }
 
             if (symbol && warning_flags[WARNING_SHADOW]) {
-                warning(expr->pos, "Shadowing declaration of '%s'.", expr->value->s);
+                warning(expr->pos, "Shadowing declaration of '%s'.", expr->value.s);
                 message(symbol->declaration->pos, "Previous definition is here.");
             }
 
@@ -298,7 +298,7 @@ void resolve_expr(SymbolTable *table, Expression *expr) {
                 resolve_expr(table, expr->rexpr);
             }
 
-            symbol = make_symbol(expr->value->s, table->level, expr);
+            symbol = make_symbol(expr->value.s, table->level, expr);
             expr->symbol = symbol;
 
             add_symbol(table, symbol);
@@ -307,20 +307,20 @@ void resolve_expr(SymbolTable *table, Expression *expr) {
 
         case TYPE_FUNC:
         {
-            if (expr->value->s) {
-                Symbol *symbol = find_symbol(table, expr->value->s);
+            if (expr->value.s) {
+                Symbol *symbol = find_symbol(table, expr->value.s);
 
                 if (symbol && symbol->level == table->level) {
-                    error(expr->pos, "Redefinition of '%s'.", expr->value->s);
+                    error(expr->pos, "Redefinition of '%s'.", expr->value.s);
                     message(symbol->declaration->pos, "Previous definition is here.");
                 }
 
                 if (symbol && warning_flags[WARNING_SHADOW]) {
-                    warning(expr->pos, "Shadowing declaration of '%s'.", expr->value->s);
+                    warning(expr->pos, "Shadowing declaration of '%s'.", expr->value.s);
                     message(symbol->declaration->pos, "Previous definition is here.");
                 }
 
-                symbol = make_symbol(expr->value->s, table->level, expr);
+                symbol = make_symbol(expr->value.s, table->level, expr);
                 expr->symbol = symbol;
 
                 add_symbol(table, symbol);
@@ -353,10 +353,10 @@ void resolve_expr(SymbolTable *table, Expression *expr) {
 
         case TYPE_VARREF:
         {
-            Symbol *symbol = find_symbol(table, expr->value->s);
+            Symbol *symbol = find_symbol(table, expr->value.s);
 
             if (!symbol) {
-                error(expr->pos, "Use of undeclared identifier '%s'.", expr->value->s);
+                error(expr->pos, "Use of undeclared identifier '%s'.", expr->value.s);
 
                 // TODO - will cause error here when traversing tree
                 // put something here to find more errors [?]

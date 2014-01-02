@@ -68,16 +68,6 @@ struct State {
     UpvalNode *head;
 };
 
-struct Object {
-    int type;
-    union {
-        int i;
-        double d;
-        char *s;
-        Closure *c;
-    };
-};
-
 typedef enum {
     OBJECT_INT,
     OBJECT_REAL,
@@ -86,6 +76,16 @@ typedef enum {
     OBJECT_STRING,
     OBJECT_CLOSURE
 } ObjectType;
+
+struct Object {
+    ObjectType type;
+    union {
+        int i;
+        double d;
+        char *s;
+        Closure *c;
+    };
+};
 
 double cast_to_double(Object *object) {
     if (object->type == OBJECT_INT) {
@@ -150,6 +150,10 @@ void print(Object *o) {
 
         case OBJECT_STRING:
             printf("<STRING %s>\n", o->s);
+            break;
+
+        case OBJECT_CLOSURE:
+            printf("<CLOSURE>\n");
             break;
     }
 }
@@ -446,6 +450,10 @@ restart: {
 
                         case OBJECT_STRING:
                             registers[a]->i = strcmp(registers[b]->s, registers[c]->s) == 0;
+                            break;
+
+                        case OBJECT_CLOSURE:
+                            fatal("Tried to compare closures.");
                             break;
                     }
                 }

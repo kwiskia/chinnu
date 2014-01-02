@@ -21,7 +21,7 @@
 
 #include "common.h"
 
-typedef union Val Val;
+typedef struct SourcePos SourcePos;
 typedef struct ExpressionNode ExpressionNode;
 typedef struct ExpressionList ExpressionList;
 
@@ -58,20 +58,12 @@ typedef enum {
 
 #define NUM_EXPRESSION_TYPES TYPE_MODULE + 1
 
-typedef struct SourcePos SourcePos;
-
 struct SourcePos {
     int first_line;
     int first_column;
     int last_line;
     int last_column;
     char *filename;
-};
-
-union Val {
-    int i;
-    double d;
-    char *s;
 };
 
 struct Expression {
@@ -83,10 +75,15 @@ struct Expression {
     Expression *rexpr;
     ExpressionList *llist;
 
-    Val *value;
     Symbol *symbol;
     Scope *scope;
     SourcePos pos;
+
+    union {
+        int i;
+        double d;
+        char *s;
+    } value;
 };
 
 struct ExpressionNode {
