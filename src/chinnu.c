@@ -268,11 +268,11 @@ void dosave(Chunk *chunk, FILE *fp) {
         switch (chunk->constants[i]->type) {
             case CONST_INT:
             case CONST_BOOL:
-                fwrite(&(chunk->constants[i]->i), sizeof(int), 1, fp);
+                fwrite(&(chunk->constants[i]->value.i), sizeof(int), 1, fp);
                 break;
 
             case CONST_REAL:
-                fwrite(&(chunk->constants[i]->d), sizeof(double), 1, fp);
+                fwrite(&(chunk->constants[i]->value.d), sizeof(double), 1, fp);
                 break;
 
             case CONST_NULL:
@@ -280,9 +280,9 @@ void dosave(Chunk *chunk, FILE *fp) {
 
             case CONST_STRING:
             {
-                int n = strlen(chunk->constants[i]->s);
+                int n = strlen(chunk->constants[i]->value.s);
                 fwrite(&n, sizeof(int), 1, fp);
-                fwrite(chunk->constants[i]->s, sizeof(char), n, fp);
+                fwrite(chunk->constants[i]->value.s, sizeof(char), n, fp);
             } break;
         }
     }
@@ -358,11 +358,11 @@ Chunk *doload(FILE *fp) {
         switch (type) {
             case CONST_INT:
             case CONST_BOOL:
-                fread(&(c->i), sizeof(int), 1, fp);
+                fread(&(c->value.i), sizeof(int), 1, fp);
                 break;
 
             case CONST_REAL:
-                fread(&(c->d), sizeof(double), 1, fp);
+                fread(&(c->value.d), sizeof(double), 1, fp);
                 break;
 
             case CONST_NULL:
@@ -381,7 +381,7 @@ Chunk *doload(FILE *fp) {
 
                 int d = fread(s, sizeof(char), n, fp);
 
-                c->s = s;
+                c->value.s = s;
             } break;
         }
 
@@ -398,15 +398,15 @@ Chunk *doload(FILE *fp) {
 void print_const(Constant *c) {
     switch (c->type) {
         case CONST_INT:
-            printf("%d", c->i);
+            printf("%d", c->value.i);
             break;
 
         case CONST_REAL:
-            printf("%.2f", c->d);
+            printf("%.2f", c->value.d);
             break;
 
         case CONST_BOOL:
-            printf("%s", c->i == 1 ? "true" : "false");
+            printf("%s", c->value.i == 1 ? "true" : "false");
             break;
 
         case CONST_NULL:
@@ -414,7 +414,7 @@ void print_const(Constant *c) {
             break;
 
         case CONST_STRING:
-            printf("\"%s\"", c->s);
+            printf("\"%s\"", c->value.s);
             break;
     }
 }

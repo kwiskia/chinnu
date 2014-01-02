@@ -18,7 +18,7 @@
 # Dependencies are stored in Makefie.dep. To rebuild this file run
 # `make dep`.
 
-STD =
+STD = -std=c99 -pedantic-errors
 WARN =
 OPT = -O2
 DEBUG = -g -ggdb

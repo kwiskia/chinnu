@@ -38,7 +38,7 @@ struct Constant {
         int i;
         double d;
         char *s;
-    };
+    } value;
 };
 
 struct Chunk {

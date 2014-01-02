@@ -56,7 +56,7 @@ void free_chunk(Chunk *chunk) {
     int i;
     for (i = 0; i < chunk->numconstants; i++) {
         if (chunk->constants[i]->type == CONST_STRING) {
-            free(chunk->constants[i]->s);
+            free(chunk->constants[i]->value.s);
         }
 
         free(chunk->constants[i]);
@@ -100,7 +100,7 @@ Constant *make_const() {
 int add_int(Chunk *chunk, int value) {
     int i;
     for (i = 0; i < chunk->numconstants; i++) {
-        if (chunk->constants[i]->type == CONST_INT && chunk->constants[i]->i == value) {
+        if (chunk->constants[i]->type == CONST_INT && chunk->constants[i]->value.i == value) {
             return i;
         }
     }
@@ -108,7 +108,7 @@ int add_int(Chunk *chunk, int value) {
     Constant *c = make_const();
 
     c->type = CONST_INT;
-    c->i = value;
+    c->value.i = value;
 
     return add_constant(chunk, c);
 }
@@ -116,7 +116,7 @@ int add_int(Chunk *chunk, int value) {
 int add_real(Chunk *chunk, double value) {
     int i;
     for (i = 0; i < chunk->numconstants; i++) {
-        if (chunk->constants[i]->type == CONST_REAL && chunk->constants[i]->d == value) {
+        if (chunk->constants[i]->type == CONST_REAL && chunk->constants[i]->value.d == value) {
             return i;
         }
     }
@@ -124,7 +124,7 @@ int add_real(Chunk *chunk, double value) {
     Constant *c = make_const();
 
     c->type = CONST_REAL;
-    c->d = value;
+    c->value.d = value;
 
     return add_constant(chunk, c);
 }
@@ -132,7 +132,7 @@ int add_real(Chunk *chunk, double value) {
 int add_bool(Chunk *chunk, int value) {
     int i;
     for (i = 0; i < chunk->numconstants; i++) {
-        if (chunk->constants[i]->type == CONST_BOOL && chunk->constants[i]->i == value) {
+        if (chunk->constants[i]->type == CONST_BOOL && chunk->constants[i]->value.i == value) {
             return i;
         }
     }
@@ -140,7 +140,7 @@ int add_bool(Chunk *chunk, int value) {
     Constant *c = make_const();
 
     c->type = CONST_BOOL;
-    c->i = value;
+    c->value.i = value;
 
     return add_constant(chunk, c);
 }
@@ -152,6 +152,7 @@ int add_null(Chunk *chunk) {
             return i;
         }
     }
+
     Constant *c = make_const();
 
     c->type = CONST_NULL;
@@ -162,7 +163,7 @@ int add_null(Chunk *chunk) {
 int add_string(Chunk *chunk, char *value) {
     int i;
     for (i = 0; i < chunk->numconstants; i++) {
-        if (chunk->constants[i]->type == CONST_STRING && strcmp(chunk->constants[i]->s, value) == 0) {
+        if (chunk->constants[i]->type == CONST_STRING && strcmp(chunk->constants[i]->value.s, value) == 0) {
             return i;
         }
     }
@@ -170,7 +171,7 @@ int add_string(Chunk *chunk, char *value) {
     Constant *c = make_const();
 
     c->type = CONST_STRING;
-    c->s = strdup(value);
+    c->value.s = strdup(value);
 
     return add_constant(chunk, c);
 }
