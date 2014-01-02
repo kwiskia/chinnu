@@ -321,7 +321,7 @@ int compile_expr(Expression *expr, Chunk *chunk, Scope *scope, int dest, int tem
                 add_instruction(chunk, CREATE(OP_CALL, dest, dest, f));
             }
 
-            return temp;
+            return max;
         }
 
         case TYPE_VARREF:
