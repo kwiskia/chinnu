@@ -328,6 +328,7 @@ void print(StackObject *o) {
 
         case OBJECT_REFERENCE:
             print_heap(o->value.o);
+            break;
     }
 }
 
@@ -383,6 +384,7 @@ restart: {
             } break;
 
             case OP_ADD:
+            {
                 if (registers[b]->type != OBJECT_INT && registers[b]->type != OBJECT_REAL) {
                     fatal("Tried to add non-numbers.");
                 }
@@ -399,9 +401,10 @@ restart: {
                     registers[a]->type = OBJECT_REAL;
                     registers[a]->value.d = cast_to_double(registers[b]) + cast_to_double(registers[c]);
                 }
-                break;
+            } break;
 
             case OP_SUB:
+            {
                 if (registers[b]->type != OBJECT_INT && registers[b]->type != OBJECT_REAL) {
                     fatal("Tried to sub non-numbers.");
                 }
@@ -418,9 +421,10 @@ restart: {
                     registers[a]->type = OBJECT_REAL;
                     registers[a]->value.d = cast_to_double(registers[b]) - cast_to_double(registers[c]);
                 }
-                break;
+            } break;
 
             case OP_MUL:
+            {
                 if (registers[b]->type != OBJECT_INT && registers[b]->type != OBJECT_REAL) {
                     fatal("Tried to mul non-numbers.");
                 }
@@ -437,9 +441,10 @@ restart: {
                     registers[a]->type = OBJECT_REAL;
                     registers[a]->value.d = cast_to_double(registers[b]) * cast_to_double(registers[c]);
                 }
-                break;
+            } break;
 
             case OP_DIV:
+            {
                 if (registers[b]->type != OBJECT_INT && registers[b]->type != OBJECT_REAL) {
                     fatal("Tried to div non-numbers.");
                 }
@@ -460,9 +465,10 @@ restart: {
                     registers[a]->type = OBJECT_REAL;
                     registers[a]->value.d = cast_to_double(registers[b]) / cast_to_double(registers[c]);
                 }
-                break;
+            } break;
 
             case OP_NEG:
+            {
                 // TODO - do for constants as well
                 if (registers[a]->type == OBJECT_INT) {
                     registers[a]->value.i = -registers[a]->value.i;
@@ -471,17 +477,19 @@ restart: {
                 } else {
                     fatal("Tried to negate non-numeric type.");
                 }
-                break;
+            } break;
 
             case OP_NOT:
+            {
                 if (registers[a]->type != OBJECT_BOOL) {
                     fatal("Expected boolean type, not %d.", registers[a]->type);
                 }
 
                 registers[a]->value.i = registers[a]->value.i == 1 ? 0 : 1;
-                break;
+            } break;
 
             case OP_EQ:
+            {
                 if (registers[b]->type != registers[c]->type) {
                     // TODO - not true for numeric values [!!]
                     registers[a]->value.i = 0;
@@ -506,9 +514,10 @@ restart: {
                 }
 
                 registers[a]->type = OBJECT_BOOL;
-                break;
+            } break;
 
             case OP_LT:
+            {
                 if (registers[b]->type != OBJECT_INT && registers[b]->type != OBJECT_REAL) {
                     fatal("Tried to compare non-numbers.");
                 }
@@ -525,9 +534,10 @@ restart: {
                     registers[a]->type = OBJECT_BOOL;
                     registers[a]->value.d = cast_to_double(registers[b]) < cast_to_double(registers[c]);
                 }
-                break;
+            } break;
 
             case OP_LE:
+            {
                 if (registers[b]->type != OBJECT_INT && registers[b]->type != OBJECT_REAL) {
                     fatal("Tried to compare non-numbers.");
                 }
@@ -544,7 +554,7 @@ restart: {
                     registers[a]->type = OBJECT_BOOL;
                     registers[a]->value.d = cast_to_double(registers[b]) <= cast_to_double(registers[c]);
                 }
-                break;
+            } break;
 
             case OP_CLOSURE:
             {
@@ -643,14 +653,16 @@ restart: {
             } break;
 
             case OP_JUMP:
+            {
                 if (c) {
                     frame->pc -= b;
                 } else {
                     frame->pc += b;
                 }
-                break;
+            } break;
 
             case OP_JUMP_TRUE:
+            {
                 if (registers[a]->type != OBJECT_BOOL) {
                     fatal("Expected boolean type, not %d.", registers[a]->type);
                 }
@@ -662,9 +674,10 @@ restart: {
                         frame->pc += b;
                     }
                 }
-                break;
+            } break;
 
             case OP_JUMP_FALSE:
+            {
                 if (registers[a]->type != OBJECT_BOOL) {
                     fatal("Expected boolean type, not %d.", registers[a]->type);
                 }
@@ -676,7 +689,7 @@ restart: {
                         frame->pc += b;
                     }
                 }
-                break;
+            } break;
         }
 
         frame->pc++;
