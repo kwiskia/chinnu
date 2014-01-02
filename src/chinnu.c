@@ -246,33 +246,47 @@ char *get_cache_name(char *name) {
     return cache;
 }
 
-void dosave(Chunk *chunk, FILE *fp) {
+void dump_int(FILE *fp, int i) {
+    fwrite(&i, sizeof(int), 1, fp);
+}
+
+void dump_real(FILE *fp, double d) {
+    fwrite(&d, sizeof(double), 1, fp);
+}
+
+void dump_string(FILE *fp, char *s) {
+    int n = strlen(s) + 1;
+    dump_int(fp, n);
+    fwrite(s, sizeof(char), n, fp);
+}
+
+void dump_chunk(Chunk *chunk, FILE *fp) {
     // TODO - may be wasteful, check size limits
-    fwrite(&chunk->numtemps, sizeof(int), 1, fp);
-    fwrite(&chunk->numconstants, sizeof(int), 1, fp);
-    fwrite(&chunk->numinstructions, sizeof(int), 1, fp);
-    fwrite(&chunk->numchildren, sizeof(int), 1, fp);
-    fwrite(&chunk->numlocals, sizeof(int), 1, fp);
-    fwrite(&chunk->numupvars, sizeof(int), 1, fp);
-    fwrite(&chunk->numparams, sizeof(int), 1, fp);
+    dump_int(fp, chunk->numtemps);
+    dump_int(fp, chunk->numconstants);
+    dump_int(fp, chunk->numinstructions);
+    dump_int(fp, chunk->numchildren);
+    dump_int(fp, chunk->numlocals);
+    dump_int(fp, chunk->numupvars);
+    dump_int(fp, chunk->numparams);
 
     int i;
     for (i = 0; i < chunk->numinstructions; i++) {
-        fwrite(&(chunk->instructions[i]), sizeof(int), 1, fp);
+        dump_int(fp, chunk->instructions[i]);
     }
 
     for (i = 0; i < chunk->numconstants; i++) {
         // TODO - wasteful, doesn't need nearly 32 bits
-        fwrite(&(chunk->constants[i]->type), sizeof(int), 1, fp);
+        dump_int(fp, chunk->constants[i]->type);
 
         switch (chunk->constants[i]->type) {
             case CONST_INT:
             case CONST_BOOL:
-                fwrite(&(chunk->constants[i]->value.i), sizeof(int), 1, fp);
+                dump_int(fp, chunk->constants[i]->value.i);
                 break;
 
             case CONST_REAL:
-                fwrite(&(chunk->constants[i]->value.d), sizeof(double), 1, fp);
+                dump_real(fp, chunk->constants[i]->value.d);
                 break;
 
             case CONST_NULL:
@@ -280,15 +294,13 @@ void dosave(Chunk *chunk, FILE *fp) {
 
             case CONST_STRING:
             {
-                int n = strlen(chunk->constants[i]->value.s);
-                fwrite(&n, sizeof(int), 1, fp);
-                fwrite(chunk->constants[i]->value.s, sizeof(char), n, fp);
+                dump_string(fp, chunk->constants[i]->value.s);
             } break;
         }
     }
 
     for (i = 0; i < chunk->numchildren; i++) {
-        dosave(chunk->children[i], fp);
+        dump_chunk(chunk->children[i], fp);
     }
 }
 
@@ -303,28 +315,57 @@ void save(Chunk *chunk, char *filename) {
     int maj = MAJOR_VERSION;
     int min = MINOR_VERSION;
 
-    fwrite(&mag, sizeof(int), 1, fp);
-    fwrite(&maj, sizeof(int), 1, fp);
-    fwrite(&min, sizeof(int), 1, fp);
+    dump_int(fp, mag);
+    dump_int(fp, maj);
+    dump_int(fp, min);
 
-    dosave(chunk, fp);
+    dump_chunk(chunk, fp);
     fclose(fp);
 }
 
-Chunk *doload(FILE *fp) {
+int read_int(FILE *fp) {
+    // TODO - will not work on different endian systems
+    // Add byte to header and then swap it here
+
+    int n;
+    fread(&n, sizeof(int), 1, fp);
+    return n;
+}
+
+double read_real(FILE *fp) {
+    int d;
+    fread(&d, sizeof(double), 1, fp);
+    return d;
+}
+
+char *read_string(FILE *fp) {
+    int n = read_int(fp);
+
+    char *s = malloc(n * sizeof *s);
+
+    if (!s) {
+        fatal("Out of memory.");
+    }
+
+    fread(s, sizeof(char), n, fp);
+
+    return s;
+}
+
+Chunk *read_chunk(FILE *fp) {
     Chunk *chunk = malloc(sizeof *chunk);
 
     if (!chunk) {
         fatal("Out of memory.");
     }
 
-    fread(&chunk->numtemps, sizeof(int), 1, fp);
-    fread(&chunk->numconstants, sizeof(int), 1, fp);
-    fread(&chunk->numinstructions, sizeof(int), 1, fp);
-    fread(&chunk->numchildren, sizeof(int), 1, fp);
-    fread(&chunk->numlocals, sizeof(int), 1, fp);
-    fread(&chunk->numupvars, sizeof(int), 1, fp);
-    fread(&chunk->numparams, sizeof(int), 1, fp);
+    chunk->numtemps = read_int(fp);
+    chunk->numconstants = read_int(fp);
+    chunk->numinstructions = read_int(fp);
+    chunk->numchildren = read_int(fp);
+    chunk->numlocals = read_int(fp);
+    chunk->numupvars = read_int(fp);
+    chunk->numparams = read_int(fp);
 
     Constant **constants = malloc(chunk->numconstants * sizeof **constants);
     int *instructions = malloc(chunk->numinstructions * sizeof *instructions);
@@ -340,12 +381,11 @@ Chunk *doload(FILE *fp) {
 
     int i;
     for (i = 0; i < chunk->numinstructions; i++) {
-        fread(&(chunk->instructions[i]), sizeof(int), 1, fp);
+        chunk->instructions[i] = read_int(fp);
     }
 
     for (i = 0; i < chunk->numconstants; i++) {
-        int type;
-        fread(&type, sizeof(int), 1, fp);
+        int type = read_int(fp);
 
         Constant *c = malloc(sizeof *c);
 
@@ -358,11 +398,11 @@ Chunk *doload(FILE *fp) {
         switch (type) {
             case CONST_INT:
             case CONST_BOOL:
-                fread(&(c->value.i), sizeof(int), 1, fp);
+                c->value.i = read_int(fp);
                 break;
 
             case CONST_REAL:
-                fread(&(c->value.d), sizeof(double), 1, fp);
+                c->value.d = read_real(fp);
                 break;
 
             case CONST_NULL:
@@ -370,18 +410,7 @@ Chunk *doload(FILE *fp) {
 
             case CONST_STRING:
             {
-                int n;
-                fread(&n, sizeof(int), 1, fp);
-
-                char *s = malloc(n * sizeof *s);
-
-                if (!s) {
-                    fatal("Out of memory.");
-                }
-
-                int d = fread(s, sizeof(char), n, fp);
-
-                c->value.s = s;
+                c->value.s = read_string(fp);
             } break;
         }
 
@@ -389,7 +418,7 @@ Chunk *doload(FILE *fp) {
     }
 
     for (i = 0; i < chunk->numchildren; i++) {
-        chunk->children[i] = doload(fp);
+        chunk->children[i] = read_chunk(fp);
     }
 
     return chunk;
@@ -501,10 +530,9 @@ int valid_cache(char *filename) {
         fatal("Could not open bytecode cache file.");
     }
 
-    int mag, maj, min;
-    fread(&mag, sizeof(int), 1, fp);
-    fread(&maj, sizeof(int), 1, fp);
-    fread(&min, sizeof(int), 1, fp);
+    int mag = read_int(fp);
+    int maj = read_int(fp);
+    int min = read_int(fp);
     fclose(fp);
 
     if (mag == MAGIC_BYTE) {
@@ -521,12 +549,11 @@ Chunk *load(char *filename) {
         fatal("Could not open bytecode cache file.");
     }
 
-    int mag, maj, min;
-    fread(&mag, sizeof(int), 1, fp);
-    fread(&maj, sizeof(int), 1, fp);
-    fread(&min, sizeof(int), 1, fp);
+    int mag = read_int(fp);
+    int maj = read_int(fp);
+    int min = read_int(fp);
 
-    Chunk *c = doload(fp);
+    Chunk *c = read_chunk(fp);
     fclose(fp);
     return c;
 }
