@@ -923,6 +923,16 @@ restart: {
 
             case OP_THROW:
             {
+                // TODO - replace unwinding of stack with an exceptions
+                // table per-chunk. It will have an instructions range,
+                // the starting instruction of a handler, and the type of
+                // exception that it may handle.
+
+                // Exception table:
+                // From    To      Target      Type
+                // 0       4       5           Class TestExc1
+                // 0       12      12          Class TestExc2
+
                 // TODO - implement a way to expect an exception
                 // of a given type instead of a generic catch-all.
 
