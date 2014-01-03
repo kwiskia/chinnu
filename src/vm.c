@@ -117,6 +117,72 @@ struct VM {
 #define IS_REAL(reg) ((reg < 256) ? registers[reg].type == OBJECT_REAL : chunk->constants[b - 256]->type == CONST_REAL)
 #define AS_REAL(reg) ((reg < 256) ? registers[reg].value.d : chunk->constants[b - 256]->value.d)
 
+#define IS_STR(reg) ((reg < 256)                                                                 \
+    ? (registers[reg].type == OBJECT_REFERENCE && registers[reg].value.o->type == OBJECT_STRING) \
+    : (chunk->constants[reg - 256]->type == CONST_STRING))
+
+#define TO_STR(reg) ((reg < 256) ? obj_to_str(&registers[reg]) : const_to_str(chunk->constants[reg - 256]))
+
+char *obj_to_str(StackObject *o) {
+    switch (o->type) {
+        case OBJECT_INT:
+        {
+            char *str = malloc(15 * sizeof *str);
+            sprintf(str, "%d", o->value.i);
+            return str;
+        }
+
+        case OBJECT_REAL:
+        {
+            char *str = malloc(15 * sizeof *str);
+            sprintf(str, "%.2f", o->value.d);
+            return str;
+        }
+
+        case OBJECT_BOOL:
+            return o->value.i == 1 ? strdup("true") : strdup("false");
+
+        case OBJECT_NULL:
+            return strdup("<null>");
+
+        case OBJECT_REFERENCE:
+            switch (o->value.o->type) {
+                case OBJECT_STRING:
+                    return strdup(o->value.o->value.s);
+
+                case OBJECT_CLOSURE:
+                    return "<closure>";
+            }
+    }
+}
+
+char *const_to_str(Constant *c) {
+    switch (c->type) {
+        case CONST_INT:
+        {
+            char *str = malloc(15 * sizeof *str);
+            sprintf(str, "%d", c->value.i);
+            return str;
+        }
+
+        case CONST_REAL:
+        {
+            char *str = malloc(15 * sizeof *str);
+            sprintf(str, "%.2f", c->value.d);
+            return str;
+        }
+
+        case CONST_NULL:
+            return strdup("<null>");
+
+        case CONST_BOOL:
+            return c->value.i == 1 ? strdup("true") : strdup("false");
+
+        case CONST_STRING:
+            return strdup(c->value.s);
+    }
+}
+
 /* forward */
 void gc(VM *vm);
 
@@ -160,7 +226,7 @@ void free_obj(HeapObject *obj) {
         } break;
 
         case OBJECT_STRING:
-            // TODO - clear if not interned?
+            free(obj->value.s);
             break;
     }
 
@@ -407,44 +473,8 @@ void copy_constant(VM *vm, StackObject *o, Constant *c) {
             // but how do we know when to free a string (user-supplied) or when
             // to leave it alone in the pool (interned)?
 
-            o->value.o = make_string_ref(vm, c->value.s);
+            o->value.o = make_string_ref(vm, strdup(c->value.s));
             o->type = OBJECT_REFERENCE; // put this after
-            break;
-    }
-}
-
-void print_heap(HeapObject *o) {
-    switch (o->type) {
-        case OBJECT_STRING:
-            printf("<STRING %s>\n", o->value.s);
-            break;
-
-        case OBJECT_CLOSURE:
-            printf("<CLOSURE>\n");
-            break;
-    }
-}
-
-void print(StackObject *o) {
-    switch (o->type) {
-        case OBJECT_INT:
-            printf("<INT %d>\n", o->value.i);
-            break;
-
-        case OBJECT_REAL:
-            printf("<REAL %.2f>\n", o->value.d);
-            break;
-
-        case OBJECT_BOOL:
-            printf("<%s>\n", o->value.i == 1 ? "true" : "false");
-            break;
-
-        case OBJECT_NULL:
-            printf("<NULL>\n");
-            break;
-
-        case OBJECT_REFERENCE:
-            print_heap(o->value.o);
             break;
     }
 }
@@ -502,22 +532,42 @@ restart: {
 
             case OP_ADD:
             {
-                if (!(IS_INT(b) || IS_REAL(b)) || !(IS_INT(c) || IS_REAL(c))) {
-                    fatal("Tried to add non-numbers.");
-                }
+                // TODO - make string coercion better
+                // TODO - make string type with special operators
 
-                if (IS_INT(b) && IS_INT(c)) {
-                    int arg1 = AS_INT(b);
-                    int arg2 = AS_INT(c);
+                if (!IS_STR(b) || IS_STR(c)) {
+                    char *arg1 = TO_STR(b);
+                    char *arg2 = TO_STR(c);
 
-                    registers[a].type = OBJECT_INT;
-                    registers[a].value.i = arg1 + arg2;
+                    int n = strlen(arg1) + strlen(arg2);
+                    char *arg3 = malloc(n + sizeof *arg3);
+
+                    strcpy(arg3, arg1);
+                    strcat(arg3, arg2);
+
+                    registers[a].value.o = make_string_ref(vm, arg3);
+                    registers[a].type = OBJECT_REFERENCE; // put this after
+
+                    free(arg1);
+                    free(arg2);
                 } else {
-                    double arg1 = IS_INT(b) ? (double) AS_INT(b) : AS_REAL(b);
-                    double arg2 = IS_INT(c) ? (double) AS_INT(c) : AS_REAL(c);
+                    if (!(IS_INT(b) || IS_REAL(b)) || !(IS_INT(c) || IS_REAL(c))) {
+                        fatal("Cannot add types.");
+                    }
 
-                    registers[a].type = OBJECT_REAL;
-                    registers[a].value.d = arg1 + arg2;
+                    if (IS_INT(b) && IS_INT(c)) {
+                        int arg1 = AS_INT(b);
+                        int arg2 = AS_INT(c);
+
+                        registers[a].type = OBJECT_INT;
+                        registers[a].value.i = arg1 + arg2;
+                    } else {
+                        double arg1 = IS_INT(b) ? (double) AS_INT(b) : AS_REAL(b);
+                        double arg2 = IS_INT(c) ? (double) AS_INT(c) : AS_REAL(c);
+
+                        registers[a].type = OBJECT_REAL;
+                        registers[a].value.d = arg1 + arg2;
+                    }
                 }
             } break;
 
@@ -779,7 +829,11 @@ restart: {
                     StackObject *target = &p->registers[GET_A(p->closure->chunk->instructions[p->pc++])];
 
                     if (b < 256) {
-                        print(&registers[b]);
+                    // debug
+                        char *d = obj_to_str(&registers[b]);
+                        printf("Return value: %s\n", d);
+                        free(d);
+
                         copy_object(target, &registers[b]);
                     } else {
                         copy_constant(vm, target, chunk->constants[b - 256]);
@@ -790,7 +844,11 @@ restart: {
                     vm->current = p;
                     goto restart;
                 } else {
-                    print(&registers[b]);
+                    // debug
+                    char *d = obj_to_str(&registers[b]);
+                    printf("Return value: %s\n", d);
+                    free(d);
+
                     free_frame(frame);
                     vm->current = NULL;
                     return;
