@@ -18,7 +18,7 @@
 # Dependencies are stored in Makefie.dep. To rebuild this file run
 # `make dep`.
 
-STD = -std=c99 -pedantic-errors
+STD = -std=gnu99 -pedantic-errors
 WARN =
 OPT = -O2
 DEBUG = -g -ggdb
@@ -31,10 +31,10 @@ INSTALL_BIN = $(PREFIX)/bin
 INSTALL = install
 
 CFLAGS = $(STD) $(WARN) $(OPT) $(DEBUG)
-LDFLAGS = $(DEBUG)
+LDFLAGS = -lm
 
 CHINNU_CC = $(QUIET_CC)$(CC) $(CFLAGS)
-CHINNU_LD = $(QUIET_LINK)$(CC) $(LDFLAGS)
+CHINNU_LD = $(QUIET_LINK)$(CC) $(DEBUG)
 CHINNU_BISON = $(QUIET_BISON)$(BISON)
 CHINNU_FLEX = $(QUIET_FLEX)$(FLEX)
 CHINNU_INSTALL = $(QUIET_INSTALL)$(INSTALL)
@@ -57,7 +57,7 @@ all: $(CHINNU_NAME)
 include Makefile.dep
 
 $(CHINNU_NAME): chinnu.tab.o chinnu.lex.o $(CHINNU_OBJECTS)
-	$(CHINNU_LD) -o $@ $^
+	$(CHINNU_LD) -o $@ $^ $(LDFLAGS)
 
 chinnu.tab.c:
 	$(CHINNU_BISON) chinnu.y
