@@ -50,6 +50,8 @@ typedef enum {
     OP_SUB,             // R(A) := RK(B) - RK(C)
     OP_MUL,             // R(A) := RK(B) * RK(C)
     OP_DIV,             // R(A) := RK(B) / RK(C)
+    OP_MOD,             // R(A) := RK(B) % RK(C)
+    OP_POW,             // R(A) := RK(B) ^ RK(C)
     OP_NEG,             // R(A) := -RK(B)
     OP_NOT,             // R(A) := ~RK(B)
 

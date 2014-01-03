@@ -32,6 +32,8 @@ typedef enum {
     TYPE_SUB,
     TYPE_MUL,
     TYPE_DIV,
+    TYPE_MOD,
+    TYPE_POW,
     TYPE_NEG, // lexpr
     TYPE_NOT,
     TYPE_ASSIGN,

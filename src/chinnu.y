@@ -77,7 +77,8 @@ void yyerror(const char *fmt, ...);
 %left AND OR
 %nonassoc EQEQ NEQ '<' LEQ '>' GEQ
 %left '+' '-'
-%left '*' '/'
+%left '*' '/' '%'
+%left POW
 %left NOT UNARY
 
 %type <expr> program expr lhs block else_block
@@ -104,6 +105,8 @@ expr : IF expr THEN block else_block END     { $$ = make_if(@$, $2, $4, $5); }
      | expr '-' expr                         { $$ = make_binop(@$, TYPE_SUB, $1, $3); }
      | expr '*' expr                         { $$ = make_binop(@$, TYPE_MUL, $1, $3); }
      | expr '/' expr                         { $$ = make_binop(@$, TYPE_DIV, $1, $3); }
+     | expr '%' expr                         { $$ = make_binop(@$, TYPE_MOD, $1, $3); }
+     | expr POW expr                         { $$ = make_binop(@$, TYPE_POW, $1, $3); }
      | '-' expr %prec UNARY                  { $$ = make_uop(@$, TYPE_NEG, $2); }
      | NOT expr                              { $$ = make_uop(@$, TYPE_NOT, $2); }
      | '(' expr ')'                          { $$ = $2; }

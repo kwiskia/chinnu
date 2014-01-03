@@ -17,6 +17,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+#include <math.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -506,8 +507,8 @@ restart: {
                 }
 
                 if (IS_INT(b) && IS_INT(c)) {
-                    double arg1 = AS_INT(b);
-                    double arg2 = AS_INT(c);
+                    int arg1 = AS_INT(b);
+                    int arg2 = AS_INT(c);
 
                     registers[a].type = OBJECT_INT;
                     registers[a].value.i = arg1 + arg2;
@@ -527,8 +528,8 @@ restart: {
                 }
 
                 if (IS_INT(b) && IS_INT(c)) {
-                    double arg1 = AS_INT(b);
-                    double arg2 = AS_INT(c);
+                    int arg1 = AS_INT(b);
+                    int arg2 = AS_INT(c);
 
                     registers[a].type = OBJECT_INT;
                     registers[a].value.i = arg1 - arg2;
@@ -548,8 +549,8 @@ restart: {
                 }
 
                 if (IS_INT(b) && IS_INT(c)) {
-                    double arg1 = AS_INT(b);
-                    double arg2 = AS_INT(c);
+                    int arg1 = AS_INT(b);
+                    int arg2 = AS_INT(c);
 
                     registers[a].type = OBJECT_INT;
                     registers[a].value.i = arg1 * arg2;
@@ -573,8 +574,8 @@ restart: {
                 }
 
                 if (IS_INT(b) && IS_INT(c)) {
-                    double arg1 = AS_INT(b);
-                    double arg2 = AS_INT(c);
+                    int arg1 = AS_INT(b);
+                    int arg2 = AS_INT(c);
 
                     registers[a].type = OBJECT_INT;
                     registers[a].value.i = arg1 / arg2;
@@ -584,6 +585,52 @@ restart: {
 
                     registers[a].type = OBJECT_REAL;
                     registers[a].value.d = arg1 / arg2;
+                }
+            } break;
+
+            case OP_MOD:
+            {
+                if (!(IS_INT(b) || IS_REAL(b)) || !(IS_INT(c) || IS_REAL(c))) {
+                    fatal("Tried to div non-numbers.");
+                }
+
+                if ((IS_INT(c) && AS_INT(c) == 0) || (IS_REAL(c) && AS_REAL(c) == 0)) {
+                    fatal("Mod by 0.");
+                }
+
+                if (IS_INT(b) && IS_INT(c)) {
+                    int arg1 = AS_INT(b);
+                    int arg2 = AS_INT(c);
+
+                    registers[a].type = OBJECT_INT;
+                    registers[a].value.i = arg1 % arg2;
+                } else {
+                    double arg1 = IS_INT(b) ? (double) AS_INT(b) : AS_REAL(b);
+                    double arg2 = IS_INT(c) ? (double) AS_INT(c) : AS_REAL(c);
+
+                    registers[a].type = OBJECT_REAL;
+                    registers[a].value.i = fmod(arg1, arg2);
+                }
+            } break;
+
+            case OP_POW:
+            {
+                if (!(IS_INT(b) || IS_REAL(b)) || !(IS_INT(c) || IS_REAL(c))) {
+                    fatal("Tried to div non-numbers.");
+                }
+
+                if (IS_INT(b) && IS_INT(c)) {
+                    int arg1 = AS_INT(b);
+                    int arg2 = AS_INT(c);
+
+                    registers[a].type = OBJECT_INT;
+                    registers[a].value.i = (int) pow(arg1, arg2);
+                } else {
+                    double arg1 = IS_INT(b) ? (double) AS_INT(b) : AS_REAL(b);
+                    double arg2 = IS_INT(c) ? (double) AS_INT(c) : AS_REAL(c);
+
+                    registers[a].type = OBJECT_REAL;
+                    registers[a].value.d = pow(arg1, arg2);
                 }
             } break;
 

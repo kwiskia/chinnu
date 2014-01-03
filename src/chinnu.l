@@ -105,6 +105,7 @@ hex_escape              ("\\"x[0-9A-Fa-f]{2})
     "!="                { YIELD(NEQ); }
     "<="                { YIELD(LEQ); }
     ">="                { YIELD(GEQ); }
+    "**"                { YIELD(POW); }
 
     /* Beginning of string literal */
     \"                  { BEGIN s1; clear_buffer(); }
@@ -237,7 +238,7 @@ static int token_for(const char *lexeme) {
 static char punctuators[] = {
     '+', '-', '*', '/',
     '(', ')', '<', '>',
-    '=', ',', ';',
+    '=', ',', '%', ';',
 };
 
 static int is_punctuator(const char c) {

@@ -29,6 +29,8 @@ const char *const expression_type_names[] = {
     "Sub",
     "Mul",
     "Div",
+    "Mod",
+    "Pow",
     "Neg",
     "Not",
     "Assign",

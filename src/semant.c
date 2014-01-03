@@ -416,6 +416,8 @@ void resolve_expr(SymbolTable *table, Expression *expr) {
         case TYPE_SUB:
         case TYPE_MUL:
         case TYPE_DIV:
+        case TYPE_MOD:
+        case TYPE_POW:
         case TYPE_EQEQ:
         case TYPE_NEQ:
         case TYPE_LT:

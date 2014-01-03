@@ -27,6 +27,8 @@ const char *const opcode_names[] = {
     "SUB",
     "MUL",
     "DIV",
+    "MOD",
+    "POW",
     "UNM",
     "NOT",
     "EQ",

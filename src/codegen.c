@@ -477,6 +477,30 @@ int compile_expr(Expression *expr, Chunk *chunk, Scope *scope, int dest, int tem
             return MAX(max1, max2);
         }
 
+        case TYPE_MOD:
+        {
+            int max1 = compile_expr(expr->lexpr, chunk, scope, dest, temp);
+
+            int t = get_temp_index(scope, temp);
+            int max2 = compile_expr(expr->rexpr, chunk, scope, t, temp + 1);
+
+            add_instruction(chunk, CREATE(OP_MOD, dest, dest, t));
+
+            return MAX(max1, max2);
+        }
+
+        case TYPE_POW:
+        {
+            int max1 = compile_expr(expr->lexpr, chunk, scope, dest, temp);
+
+            int t = get_temp_index(scope, temp);
+            int max2 = compile_expr(expr->rexpr, chunk, scope, t, temp + 1);
+
+            add_instruction(chunk, CREATE(OP_POW, dest, dest, t));
+
+            return MAX(max1, max2);
+        }
+
         /**
          * optimization - boolean-resulting commands should have a second
          * form that takes branch statements to jump to on true/false instead
