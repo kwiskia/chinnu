@@ -751,13 +751,8 @@ restart: {
             } break;
 
             case OP_JUMP:
-            {
-                if (c) {
-                    frame->pc -= b;
-                } else {
-                    frame->pc += b;
-                }
-            } break;
+                frame->pc += c ? -b : b;
+                break;
 
             case OP_JUMP_TRUE:
             {
@@ -766,11 +761,7 @@ restart: {
                 }
 
                 if (registers[a].value.i == 1) {
-                    if (c) {
-                        frame->pc -= b;
-                    } else {
-                        frame->pc += b;
-                    }
+                    frame->pc += c ? -b : b;
                 }
             } break;
 
@@ -781,11 +772,7 @@ restart: {
                 }
 
                 if (registers[a].value.i == 0) {
-                    if (c) {
-                        frame->pc -= b;
-                    } else {
-                        frame->pc += b;
-                    }
+                    frame->pc += c ? -b : b;
                 }
             } break;
         }
