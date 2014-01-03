@@ -107,6 +107,13 @@ hex_escape              ("\\"x[0-9A-Fa-f]{2})
     ">="                { YIELD(GEQ); }
     "**"                { YIELD(POW); }
 
+    "+="                { YIELD(ASN_ADD); }
+    "-="                { YIELD(ASN_SUB); }
+    "*="                { YIELD(ASN_MUL); }
+    "/="                { YIELD(ASN_DIV); }
+    "%="                { YIELD(ASN_MOD); }
+    "**="               { YIELD(ASN_POW); }
+
     /* Beginning of string literal */
     \"                  { BEGIN s1; clear_buffer(); }
     \'                  { BEGIN s2; clear_buffer(); }

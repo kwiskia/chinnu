@@ -40,6 +40,7 @@ typedef struct SourcePos YYLTYPE;
 
 %{
 #include <stdarg.h>
+#include <string.h>
 #include "chinnu.h"
 
 extern int yylineno;
@@ -72,7 +73,7 @@ void yyerror(const char *fmt, ...);
 
 %token IF THEN ELIF ELSE WHILE DO END FUN VAR VAL TRUE FALSE NIL
 
-%right '='
+%right '=' ASN_ADD ASN_SUB ASN_MUL ASN_DIV ASN_MOD ASN_POW
 %left '('
 %left AND OR
 %nonassoc EQEQ NEQ '<' LEQ '>' GEQ
@@ -81,7 +82,7 @@ void yyerror(const char *fmt, ...);
 %left POW
 %left NOT UNARY
 
-%type <expr> program expr lhs block else_block
+%type <expr> program expr block else_block
 %type <list> expr_list arg_list arg_list2 param_list param_list2
 
 %start program
@@ -112,7 +113,13 @@ expr : IF expr THEN block else_block END     { $$ = make_if(@$, $2, $4, $5); }
      | '(' expr ')'                          { $$ = $2; }
      | VAR IDENT '=' expr                    { $$ = make_declaration(@$, $2, $4, 0); }
      | VAL IDENT '=' expr                    { $$ = make_declaration(@$, $2, $4, 1); }
-     | lhs '=' expr                          { $$ = make_assignment(@$, $1, $3); }
+     | IDENT '=' expr                        { $$ = make_assignment(@$, make_varref(@1, $1), $3); }
+     | IDENT ASN_ADD expr                    { $$ = make_assignment(@$, make_varref(@1, $1), make_binop(@$, TYPE_ADD, make_varref(@1, strdup($1)), $3)); }
+     | IDENT ASN_SUB expr                    { $$ = make_assignment(@$, make_varref(@1, $1), make_binop(@$, TYPE_SUB, make_varref(@1, strdup($1)), $3)); }
+     | IDENT ASN_MUL expr                    { $$ = make_assignment(@$, make_varref(@1, $1), make_binop(@$, TYPE_MUL, make_varref(@1, strdup($1)), $3)); }
+     | IDENT ASN_DIV expr                    { $$ = make_assignment(@$, make_varref(@1, $1), make_binop(@$, TYPE_DIV, make_varref(@1, strdup($1)), $3)); }
+     | IDENT ASN_MOD expr                    { $$ = make_assignment(@$, make_varref(@1, $1), make_binop(@$, TYPE_MOD, make_varref(@1, strdup($1)), $3)); }
+     | IDENT ASN_POW expr                    { $$ = make_assignment(@$, make_varref(@1, $1), make_binop(@$, TYPE_POW, make_varref(@1, strdup($1)), $3)); }
      | expr EQEQ expr                        { $$ = make_binop(@$, TYPE_EQEQ, $1, $3); }
      | expr NEQ expr                         { $$ = make_binop(@$, TYPE_NEQ, $1, $3); }
      | expr '<' expr                         { $$ = make_binop(@$, TYPE_LT, $1, $3); }
@@ -121,7 +128,7 @@ expr : IF expr THEN block else_block END     { $$ = make_if(@$, $2, $4, $5); }
      | expr GEQ expr                         { $$ = make_binop(@$, TYPE_GEQ, $1, $3); }
      | expr AND expr                         { $$ = make_binop(@$, TYPE_AND, $1, $3); }
      | expr OR expr                          { $$ = make_binop(@$, TYPE_OR, $1, $3); }
-     | lhs                                   { $$ = $1; }
+     | IDENT                                 { $$ = make_varref(@$, $1); }
      | INTEGER_LITERAL                       { $$ = make_int(@$, $1); }
      | REAL_LITERAL                          { $$ = make_real(@$, $1); }
      | STRING_LITERAL                        { $$ = make_str(@$, $1); }
@@ -149,9 +156,6 @@ param_list : '(' param_list2 ')'             { $$ = $2; }
 param_list2 : param_list2 ',' IDENT          { $$ = expression_list_append($1, make_declaration(@3, $3, 0, 1)); }
             | IDENT                          { $$ = list1(make_declaration(@1, $1, 0, 1)); }
             ;
-
-lhs : IDENT                                  { $$ = make_varref(@$, $1); }
-    ;
 
 else_block : ELSE block                      { $$ = $2; }
            | ELIF expr THEN block else_block { $$ = make_if(@$, $2, $4, $5); }
