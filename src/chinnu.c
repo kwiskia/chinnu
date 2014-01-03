@@ -453,14 +453,19 @@ void dis(Chunk *chunk) {
     for (i = 0; i < chunk->numinstructions; i++) {
         int instruction = chunk->instructions[i];
 
-        int o = GET_O(instruction);
+        OpCode o = GET_O(instruction);
         int a = GET_A(instruction);
         int b = GET_B(instruction);
         int c = GET_C(instruction);
 
         switch (o) {
                 case OP_RETURN:
+                case OP_LEAVE_TRY:
                     printf("%d\t%-15s%d", i + 1, opcode_names[o], b);
+                    break;
+
+                case OP_THROW:
+                    printf("%d\t%-15s%d", i + 1, opcode_names[0], a);
                     break;
 
                 case OP_MOVE:
@@ -493,6 +498,8 @@ void dis(Chunk *chunk) {
                 case OP_SUB:
                 case OP_MUL:
                 case OP_DIV:
+                case OP_MOD:
+                case OP_POW:
                 case OP_EQ:
                 case OP_LT:
                 case OP_LE:
@@ -512,6 +519,10 @@ void dis(Chunk *chunk) {
 
                 case OP_CALL:
                     printf("%d\t%-15s%d %d %d", i + 1, opcode_names[o], a, b, c);
+                    break;
+
+                case OP_ENTER_TRY:
+                    printf("%d\t%-15s%d\t; j=%d", i + 1, opcode_names[o], b, i + b + 1);
                     break;
         }
 

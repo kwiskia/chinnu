@@ -39,5 +39,8 @@ const char *const opcode_names[] = {
     "RETURN",
     "JUMP",
     "JUMP_TRUE",
-    "JUMP_FALSE"
+    "JUMP_FALSE",
+    "THROW",
+    "ENTER_TRY",
+    "LEAVE_TRY"
 };

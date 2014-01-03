@@ -449,6 +449,16 @@ void resolve_expr(SymbolTable *table, Expression *expr) {
             enter_contour(table);
             resolve_list(table, expr->llist);
             leave_contour(table);
+
+            if (expr->rlist) {
+                enter_contour(table);
+                resolve_list(table, expr->rlist);
+                leave_contour(table);
+            }
+            break;
+
+        case TYPE_THROW:
+            resolve_expr(table, expr->lexpr);
             break;
     }
 }

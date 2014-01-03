@@ -711,7 +711,48 @@ int compile_expr(Expression *expr, Chunk *chunk, Scope *scope, int dest, int tem
 
         case TYPE_BLOCK:
         {
-            return compile_list(expr->llist, chunk, scope, dest, temp);
+            // [t1]     enter try [t2 - t1 - 1]
+            //          protected block
+            //          leave try
+            // [t2]     jump [nm]
+            // [t2 + 1] handler
+            // [nm]
+
+            if (expr->rlist) {
+                // dummy enter try
+                int t1 = add_instruction(chunk, 0);
+
+                // protected block
+                int max1 = compile_list(expr->llist, chunk, scope, dest, temp);
+
+                // leave try instruction
+                add_instruction(chunk, CREATE(OP_LEAVE_TRY, 0, 0, 0));
+
+                // dummy jump instruction
+                int t2 = add_instruction(chunk, 0);
+
+                // handler block
+                int max2 = compile_list(expr->rlist, chunk, scope, dest, temp);
+
+                int nm = chunk->numinstructions;
+
+                // fill in 1st target
+                chunk->instructions[t1] = CREATE(OP_ENTER_TRY, 0, t2 - t1 + 1, 0);
+
+                // fill in 2nd target
+                chunk->instructions[t2] = CREATE(OP_JUMP, 0, nm - t2 - 1, 0);
+
+                return MAX(max1, max2);
+            } else {
+                return compile_list(expr->llist, chunk, scope, dest, temp);
+            }
+        }
+
+        case TYPE_THROW:
+        {
+            int max = compile_expr(expr->lexpr, chunk, scope, dest, temp);
+            add_instruction(chunk, CREATE(OP_THROW, dest, 0, 0));
+            return max;
         }
     }
 

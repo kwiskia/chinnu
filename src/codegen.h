@@ -20,6 +20,7 @@
 #pragma once
 
 #include "ast.h"
+#include "bytecode.h"
 
 typedef struct Chunk Chunk;
 typedef struct Constant Constant;

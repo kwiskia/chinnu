@@ -28,6 +28,7 @@
 typedef struct Upval Upval;
 typedef struct Closure Closure;
 typedef struct Frame Frame;
+typedef struct CatchFrame CatchFrame;
 typedef struct VM VM;
 typedef struct HeapObject HeapObject;
 typedef struct StackObject StackObject;
@@ -47,6 +48,13 @@ struct Upval {
 struct Closure {
     Chunk *chunk;
     Upval **upvals;
+};
+
+struct CatchFrame {
+    CatchFrame *parent;
+    Frame *frame;
+
+    int target;
 };
 
 struct Frame {
@@ -105,6 +113,8 @@ struct StackObject {
 struct VM {
     Frame *current;
     UpvalNode *open;
+
+    CatchFrame *catchframe;
 
     HeapObject *heap;
     int numobjects;
@@ -331,6 +341,24 @@ void free_frame(Frame *frame) {
     free(frame);
 }
 
+CatchFrame *make_catch_frame(Frame *frame, CatchFrame *parent, int target) {
+    CatchFrame *catchframe = malloc(sizeof *catchframe);
+
+    if (!catchframe) {
+        fatal("Out of memory.");
+    }
+
+    catchframe->parent = parent;
+    catchframe->frame = frame;
+    catchframe->target = target;
+
+    return catchframe;
+}
+
+void free_catch_frame(CatchFrame *catchframe) {
+    free(catchframe);
+}
+
 VM *make_vm(Frame *root, int maxobjects) {
     VM *vm = malloc(sizeof *vm);
 
@@ -341,6 +369,7 @@ VM *make_vm(Frame *root, int maxobjects) {
     vm->current = root;
     vm->open = NULL;
     vm->heap = NULL;
+    vm->catchframe = NULL;
     vm->numobjects = 0;
     vm->maxobjects = maxobjects;
 
@@ -489,7 +518,7 @@ restart: {
     while (frame->pc < chunk->numinstructions) {
         int instruction = chunk->instructions[frame->pc];
 
-        int o = GET_O(instruction);
+        OpCode o = GET_O(instruction);
         int a = GET_A(instruction);
         int b = GET_B(instruction);
         int c = GET_C(instruction);
@@ -752,7 +781,7 @@ restart: {
                 for (i = 0; i < chunk->children[b]->numupvars; i++) {
                     int inst = chunk->instructions[++frame->pc];
 
-                    int oc = GET_O(inst);
+                    OpCode oc = GET_O(inst);
                     int ac = GET_A(inst);
                     int bc = GET_B(inst);
                     int cc = GET_C(inst);
@@ -828,7 +857,7 @@ restart: {
                     StackObject *target = &p->registers[GET_A(p->closure->chunk->instructions[p->pc++])];
 
                     if (b < 256) {
-                    // debug
+                        // debug
                         char *d = obj_to_str(&registers[b]);
                         printf("Return value: %s\n", d);
                         free(d);
@@ -878,6 +907,50 @@ restart: {
                 if (registers[a].value.i == 0) {
                     frame->pc += c ? -b : b;
                 }
+            } break;
+
+            case OP_ENTER_TRY:
+            {
+                vm->catchframe = make_catch_frame(frame, vm->catchframe, frame->pc + b);
+            } break;
+
+            case OP_LEAVE_TRY:
+            {
+                CatchFrame *temp = vm->catchframe;
+                vm->catchframe = vm->catchframe->parent;
+                free_catch_frame(temp);
+            } break;
+
+            case OP_THROW:
+            {
+                // TODO - implement a way to expect an exception
+                // of a given type instead of a generic catch-all.
+
+                char *s = obj_to_str(&registers[a]);
+                printf("Exception value: %s!\n", s);
+                free(s);
+
+                // TODO - this is probably wrong. Not sure how complicated
+                // it will be to handle upvalues and frame destruction here,
+                // so we're just doing it a shitty way for now :D [GO LAZE].
+
+                if (!vm->catchframe) {
+                    // TODO - print a stack trace [ requires debug symbols :( ]
+                    fatal("Exception thrown outside of handler.");
+                }
+
+                while (vm->current != vm->catchframe->frame) {
+                    // TODO - destruct frame
+                    vm->current = vm->current->parent;
+                }
+
+                vm->current->pc = vm->catchframe->target;
+
+                CatchFrame *temp = vm->catchframe;
+                vm->catchframe = vm->catchframe->parent;
+                free_catch_frame(temp);
+
+                goto restart;
             } break;
         }
 

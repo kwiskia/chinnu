@@ -52,7 +52,8 @@ const char *const expression_type_names[] = {
     "Func",
     "Declaration",
     "Block",
-    "Module"
+    "Module",
+    "Throw"
 };
 
 Expression *allocexpr() {
@@ -66,6 +67,7 @@ Expression *allocexpr() {
     expr->lexpr = NULL;
     expr->rexpr = NULL;
     expr->llist = NULL;
+    expr->rlist = NULL;
     expr->symbol = NULL;
     expr->scope = NULL;
     expr->immutable = 0;
@@ -302,12 +304,13 @@ Expression *make_func(SourcePos pos, char *name, ExpressionList *parameters, Exp
     return expr;
 }
 
-Expression *make_block(SourcePos pos, ExpressionList *block) {
+Expression *make_block(SourcePos pos, ExpressionList *block, ExpressionList *handler) {
     Expression *expr = allocexpr();
 
     expr->type = TYPE_BLOCK;
     expr->pos = pos;
     expr->llist = block;
+    expr->rlist = handler;
 
     return expr;
 }
@@ -318,6 +321,16 @@ Expression *make_module(SourcePos pos, Expression *block) {
     expr->type = TYPE_MODULE;
     expr->pos = pos;
     expr->lexpr = block;
+
+    return expr;
+}
+
+Expression *make_throw(SourcePos pos, Expression *object) {
+    Expression *expr = allocexpr();
+
+    expr->type = TYPE_THROW;
+    expr->pos = pos;
+    expr->lexpr = object;
 
     return expr;
 }

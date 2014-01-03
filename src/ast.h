@@ -54,11 +54,12 @@ typedef enum {
     TYPE_CALL, // lexpr, llist
     TYPE_FUNC, // llist, rexpr
     TYPE_DECLARATION, // rexpr, value (s),
-    TYPE_BLOCK, // llist
-    TYPE_MODULE  // lexpr
+    TYPE_BLOCK, // llist, rlist
+    TYPE_MODULE, // lexpr
+    TYPE_THROW // lexpr
 } ExpressionType;
 
-#define NUM_EXPRESSION_TYPES TYPE_MODULE + 1
+#define NUM_EXPRESSION_TYPES TYPE_THROW + 1
 
 struct SourcePos {
     int first_line;
@@ -76,6 +77,7 @@ struct Expression {
     Expression *lexpr;
     Expression *rexpr;
     ExpressionList *llist;
+    ExpressionList *rlist;
 
     Symbol *symbol;
     Scope *scope;
@@ -122,5 +124,6 @@ Expression *make_null(SourcePos pos);
 Expression *make_str(SourcePos pos, char *str);
 Expression *make_call(SourcePos pos, Expression *target, ExpressionList *arguments);
 Expression *make_func(SourcePos pos, char *name, ExpressionList *parameters, Expression *body);
-Expression *make_block(SourcePos pos, ExpressionList *block);
+Expression *make_block(SourcePos pos, ExpressionList *block, ExpressionList *handler);
 Expression *make_module(SourcePos pos, Expression *block);
+Expression *make_throw(SourcePos pos, Expression *object);

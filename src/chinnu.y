@@ -71,7 +71,7 @@ void yyerror(const char *fmt, ...);
 %token <d> REAL_LITERAL
 %token <s> STRING_LITERAL
 
-%token IF THEN ELIF ELSE WHILE DO END FUN VAR VAL TRUE FALSE NIL
+%token IF THEN ELIF ELSE WHILE DO END FUN VAR VAL TRUE FALSE NIL THROW CATCH
 
 %right '=' ASN_ADD ASN_SUB ASN_MUL ASN_DIV ASN_MOD ASN_POW
 %left '('
@@ -92,7 +92,8 @@ void yyerror(const char *fmt, ...);
 program : block                              { program = make_module(@$, $1); }
         ;
 
-block : expr_list                            { $$ = make_block(@$, $1); }
+block : expr_list                            { $$ = make_block(@$, $1, NULL); }
+      | expr_list CATCH expr_list END        { $$ = make_block(@$, $1, $3); }
       ;
 
 expr_list : expr_list ';' expr               { $$ = expression_list_append($1, $3); }
@@ -139,6 +140,7 @@ expr : IF expr THEN block else_block END     { $$ = make_if(@$, $2, $4, $5); }
      | FUN param_list block END              { $$ = make_func(@$, NULL, $2, $3); }
      | FUN IDENT param_list block END        { $$ = make_func(@$, $2, $3, $4); }
      | DO block END                          { $$ = $2; }
+     | THROW STRING_LITERAL                  { $$ = make_throw(@$, make_str(@2, $2)); }
      ;
 
 arg_list : '(' arg_list2 ')'                 { $$ = $2; }

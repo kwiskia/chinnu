@@ -24,15 +24,15 @@
 #define SIZE_B 9
 #define SIZE_C 9
 
-#define POS_O (0)
-#define POS_A (SIZE_O)
-#define POS_B (SIZE_O + SIZE_A)
-#define POS_C (SIZE_O + SIZE_A + SIZE_B)
-
 #define MAX_O ((1 << SIZE_O) - 1)
 #define MAX_A ((1 << SIZE_A) - 1)
 #define MAX_B ((1 << SIZE_B) - 1)
 #define MAX_C ((1 << SIZE_C) - 1)
+
+#define POS_O (0)
+#define POS_A (SIZE_O)
+#define POS_B (SIZE_O + SIZE_A)
+#define POS_C (SIZE_O + SIZE_A + SIZE_B)
 
 #define GET_O(i) (((i) >> POS_O) & MAX_O)
 #define GET_A(i) (((i) >> POS_A) & MAX_A)
@@ -65,9 +65,13 @@ typedef enum {
 
     OP_JUMP,            // PC := PC + (R(C) ? -B : B)
     OP_JUMP_TRUE,       // PC := PC + (R(C) ? -B : B) : if R(A) == true
-    OP_JUMP_FALSE       // PC := PC + (R(C) ? -B : B) : if R(A) == false
+    OP_JUMP_FALSE,      // PC := PC + (R(C) ? -B : B) : if R(A) == false,
+
+    OP_THROW,           // Throw R(A)
+    OP_ENTER_TRY,       // Handlers := add(Handlers, Instruction[B])
+    OP_LEAVE_TRY        // Handlers := pop(Handlers)
 } OpCode;
 
-#define NUM_OPCODES OP_JUMP_FALSE + 1
+#define NUM_OPCODES OP_LEAVE_TRY + 1
 
 const char *const opcode_names[NUM_OPCODES];
