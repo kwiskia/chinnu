@@ -539,8 +539,7 @@ restart: {
                     char *arg1 = TO_STR(b);
                     char *arg2 = TO_STR(c);
 
-                    int n = strlen(arg1) + strlen(arg2);
-                    char *arg3 = malloc(n + sizeof *arg3);
+                    char *arg3 = malloc((strlen(arg1) + strlen(arg2) + 1) + sizeof *arg3);
 
                     strcpy(arg3, arg1);
                     strcat(arg3, arg2);
