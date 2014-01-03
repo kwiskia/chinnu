@@ -27,7 +27,7 @@
 typedef struct Upval Upval;
 typedef struct Closure Closure;
 typedef struct Frame Frame;
-typedef struct State State;
+typedef struct VM VM;
 typedef struct HeapObject HeapObject;
 typedef struct StackObject StackObject;
 
@@ -101,11 +101,11 @@ struct StackObject {
 
 // TODO - rename
 
-struct State {
+struct VM {
     Frame *current;
-    UpvalNode *head;
+    UpvalNode *open;
 
-    HeapObject *first;
+    HeapObject *heap;
     int numobjects;
     int maxobjects;
 };
@@ -117,11 +117,11 @@ struct State {
 #define AS_REAL(reg) ((reg < 256) ? registers[reg].value.d : chunk->constants[b - 256]->value.d)
 
 /* forward */
-void gc(State *state);
+void gc(VM *vm);
 
-HeapObject *make_object(State *state) {
-    if (state->numobjects >= state->maxobjects) {
-        gc(state);
+HeapObject *make_object(VM *vm) {
+    if (vm->numobjects >= vm->maxobjects) {
+        gc(vm);
     }
 
     HeapObject *obj = malloc(sizeof *obj);
@@ -132,9 +132,9 @@ HeapObject *make_object(State *state) {
 
     obj->marked = 0;
 
-    obj->next = state->first;
-    state->first = obj;
-    state->numobjects++;
+    obj->next = vm->heap;
+    vm->heap = obj;
+    vm->numobjects++;
 
     return obj;
 }
@@ -166,8 +166,8 @@ void free_obj(HeapObject *obj) {
     free(obj);
 }
 
-HeapObject *make_string_ref(State *state, char *s) {
-    HeapObject *obj = make_object(state);
+HeapObject *make_string_ref(VM *vm, char *s) {
+    HeapObject *obj = make_object(vm);
 
     obj->type = OBJECT_STRING;
     obj->value.s = s;
@@ -175,8 +175,8 @@ HeapObject *make_string_ref(State *state, char *s) {
     return obj;
 }
 
-HeapObject *make_closure_ref(State *state, Closure *c) {
-    HeapObject *obj = make_object(state);
+HeapObject *make_closure_ref(VM *vm, Closure *c) {
+    HeapObject *obj = make_object(vm);
 
     obj->type = OBJECT_CLOSURE;
     obj->value.c = c;
@@ -184,7 +184,7 @@ HeapObject *make_closure_ref(State *state, Closure *c) {
     return obj;
 }
 
-Upval *make_upval(State *state, int slot) {
+Upval *make_upval(VM *vm, int slot) {
     Upval *upval = malloc(sizeof *upval);
     UpvalNode *node = malloc(sizeof *node);
 
@@ -192,20 +192,20 @@ Upval *make_upval(State *state, int slot) {
         fatal("Out of memory.");
     }
 
-    upval->data.ref.frame = state->current;
+    upval->data.ref.frame = vm->current;
     upval->data.ref.slot = slot;
     upval->refcount = 1;
     upval->open = 1;
 
     node->upval = upval;
 
-    if (state->head) {
-        state->head->prev = node;
+    if (vm->open) {
+        vm->open->prev = node;
     }
 
     node->prev = NULL;
-    node->next = state->head;
-    state->head = node;
+    node->next = vm->open;
+    vm->open = node;
 
     return upval;
 }
@@ -264,20 +264,20 @@ void free_frame(Frame *frame) {
     free(frame);
 }
 
-State *make_state(Frame *root, int maxobjects) {
-    State *state = malloc(sizeof *state);
+VM *make_vm(Frame *root, int maxobjects) {
+    VM *vm = malloc(sizeof *vm);
 
-    if (!state) {
+    if (!vm) {
         fatal("Out of memory.");
     }
 
-    state->current = root;
-    state->head = NULL;
-    state->first = NULL;
-    state->numobjects = 0;
-    state->maxobjects = maxobjects;
+    vm->current = root;
+    vm->open = NULL;
+    vm->heap = NULL;
+    vm->numobjects = 0;
+    vm->maxobjects = maxobjects;
 
-    return state;
+    return vm;
 }
 
 void mark(HeapObject *obj) {
@@ -307,8 +307,8 @@ void mark(HeapObject *obj) {
     }
 }
 
-void mark_all(State *state) {
-    Frame *frame = state->current;
+void mark_all(VM *vm) {
+    Frame *frame = vm->current;
 
     while (frame) {
         int numregs = frame->closure->chunk->numlocals + frame->closure->chunk->numtemps + 1;
@@ -324,15 +324,15 @@ void mark_all(State *state) {
     }
 }
 
-void sweep(State *state) {
-    HeapObject **obj = &state->first;
+void sweep(VM *vm) {
+    HeapObject **obj = &vm->heap;
 
     while (*obj) {
         if (!(*obj)->marked) {
             HeapObject *temp = *obj;
             *obj = temp->next;
             free_obj(temp);
-            state->numobjects--;
+            vm->numobjects--;
         } else {
             (*obj)->marked = 0;
             obj = &(*obj)->next;
@@ -340,9 +340,9 @@ void sweep(State *state) {
     }
 }
 
-void gc(State *state) {
-    mark_all(state);
-    sweep(state);
+void gc(VM *vm) {
+    mark_all(vm);
+    sweep(vm);
 }
 
 void copy_object(StackObject *o1, StackObject *o2) {
@@ -376,7 +376,7 @@ void copy_object(StackObject *o1, StackObject *o2) {
     }
 }
 
-void copy_constant(State *state, StackObject *o, Constant *c) {
+void copy_constant(VM *vm, StackObject *o, Constant *c) {
     // TODO - share string instances as a heap object,
     // garbage collect at this point (instead of free)
 
@@ -406,7 +406,7 @@ void copy_constant(State *state, StackObject *o, Constant *c) {
             // but how do we know when to free a string (user-supplied) or when
             // to leave it alone in the pool (interned)?
 
-            o->value.o = make_string_ref(state, c->value.s);
+            o->value.o = make_string_ref(vm, c->value.s);
             o->type = OBJECT_REFERENCE; // put this after
             break;
     }
@@ -448,9 +448,9 @@ void print(StackObject *o) {
     }
 }
 
-void execute_function(State *state) {
+void execute_function(VM *vm) {
 restart: {
-    Frame *frame = state->current;
+    Frame *frame = vm->current;
     Closure *closure = frame->closure;
     Chunk *chunk = closure->chunk;
     StackObject *registers = frame->registers;
@@ -469,7 +469,7 @@ restart: {
                 if (b < 256) {
                     copy_object(&registers[a], &registers[b]);
                 } else {
-                    copy_constant(state, &registers[a], chunk->constants[b - 256]);
+                    copy_constant(vm, &registers[a], chunk->constants[b - 256]);
                 }
             } break;
 
@@ -663,7 +663,7 @@ restart: {
 
                     if (oc == OP_MOVE) {
                         // first upval for this variable
-                        child->upvals[ac] = make_upval(state, bc);
+                        child->upvals[ac] = make_upval(vm, bc);
                     } else {
                         // share upval
                         child->upvals[ac] = closure->upvals[bc];
@@ -671,7 +671,7 @@ restart: {
                     }
                 }
 
-                registers[a].value.o = make_closure_ref(state, child);
+                registers[a].value.o = make_closure_ref(vm, child);
                 registers[a].type = OBJECT_REFERENCE; // put this after
             } break;
 
@@ -691,14 +691,14 @@ restart: {
                     copy_object(&subframe->registers[i + 1], &registers[c + i]);
                 }
 
-                state->current = subframe;
+                vm->current = subframe;
                 goto restart;
             } break;
 
             case OP_RETURN:
             {
                 UpvalNode *head;
-                for (head = state->head; head != NULL; ) {
+                for (head = vm->open; head != NULL; ) {
                     Upval *u = head->upval;
 
                     if (u->data.ref.frame == frame) {
@@ -712,8 +712,8 @@ restart: {
                         copy_object(o, &registers[u->data.ref.slot]);
                         u->data.o = o;
 
-                        if (state->head == head) {
-                            state->head = head->next;
+                        if (vm->open == head) {
+                            vm->open = head->next;
                         } else {
                             head->next->prev = head->prev;
                             head->prev->next = head->next;
@@ -727,25 +727,25 @@ restart: {
                     }
                 }
 
-                if (state->current->parent != NULL) {
-                    Frame *p = state->current->parent;
+                if (vm->current->parent != NULL) {
+                    Frame *p = vm->current->parent;
                     StackObject *target = &p->registers[GET_A(p->closure->chunk->instructions[p->pc++])];
 
                     if (b < 256) {
                         print(&registers[b]);
                         copy_object(target, &registers[b]);
                     } else {
-                        copy_constant(state, target, chunk->constants[b - 256]);
+                        copy_constant(vm, target, chunk->constants[b - 256]);
                     }
 
                     free_frame(frame);
 
-                    state->current = p;
+                    vm->current = p;
                     goto restart;
                 } else {
                     print(&registers[b]);
                     free_frame(frame);
-                    state->current = NULL;
+                    vm->current = NULL;
                     return;
                 }
             } break;
@@ -800,12 +800,12 @@ restart: {
 void execute(Chunk *chunk) {
     Closure *closure = make_closure(chunk);
     Frame *frame = make_frame(NULL, closure);
-    State *state = make_state(frame, 0);
+    VM *vm = make_vm(frame, 0);
 
-    execute_function(state);
+    execute_function(vm);
 
-    gc(state);
-    free(state);
+    gc(vm);
+    free(vm);
 
     // TODO - free last closure [?]
     // Other closrues should be already taken care of
