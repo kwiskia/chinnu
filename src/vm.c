@@ -564,7 +564,7 @@ restart: {
                 // TODO - make string coercion better
                 // TODO - make string type with special operators
 
-                if (!IS_STR(b) || IS_STR(c)) {
+                if (IS_STR(b) || IS_STR(c)) {
                     char *arg1 = TO_STR(b);
                     char *arg2 = TO_STR(c);
 
