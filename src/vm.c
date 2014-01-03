@@ -116,6 +116,74 @@ struct State {
 #define IS_REAL(reg) ((reg < 256) ? registers[reg].type == OBJECT_REAL : chunk->constants[b - 256]->type == CONST_REAL)
 #define AS_REAL(reg) ((reg < 256) ? registers[reg].value.d : chunk->constants[b - 256]->value.d)
 
+/* forward */
+void gc(State *state);
+
+HeapObject *make_object(State *state) {
+    if (state->numobjects >= state->maxobjects) {
+        gc(state);
+    }
+
+    HeapObject *obj = malloc(sizeof *obj);
+
+    if (!obj) {
+        fatal("Out of memory.");
+    }
+
+    obj->marked = 0;
+
+    obj->next = state->first;
+    state->first = obj;
+    state->numobjects++;
+
+    return obj;
+}
+
+/* forward */
+void free_upval(Upval *upval);
+
+void free_obj(HeapObject *obj) {
+    switch (obj->type) {
+        case OBJECT_CLOSURE:
+        {
+            int i;
+            for (i = 0; i < obj->value.c->chunk->numupvars; i++) {
+                Upval *u = obj->value.c->upvals[i];
+
+                if (--u->refcount == 0) {
+                    free_upval(u);
+                }
+            }
+
+            free(obj->value.c);
+        } break;
+
+        case OBJECT_STRING:
+            // TODO - clear if not interned?
+            break;
+    }
+
+    free(obj);
+}
+
+HeapObject *make_string_ref(State *state, char *s) {
+    HeapObject *obj = make_object(state);
+
+    obj->type = OBJECT_STRING;
+    obj->value.s = s;
+
+    return obj;
+}
+
+HeapObject *make_closure_ref(State *state, Closure *c) {
+    HeapObject *obj = make_object(state);
+
+    obj->type = OBJECT_CLOSURE;
+    obj->value.c = c;
+
+    return obj;
+}
+
 Upval *make_upval(State *state, int slot) {
     Upval *upval = malloc(sizeof *upval);
     UpvalNode *node = malloc(sizeof *node);
@@ -191,6 +259,11 @@ Frame *make_frame(Frame *parent, Closure *closure) {
     return frame;
 }
 
+void free_frame(Frame *frame) {
+    free(frame->registers);
+    free(frame);
+}
+
 State *make_state(Frame *root, int maxobjects) {
     State *state = malloc(sizeof *state);
 
@@ -205,28 +278,6 @@ State *make_state(Frame *root, int maxobjects) {
     state->maxobjects = maxobjects;
 
     return state;
-}
-
-void free_obj(HeapObject *obj) {
-    switch (obj->type) {
-        case OBJECT_CLOSURE:
-        {
-            int i;
-            for (i = 0; i < obj->value.c->chunk->numupvars; i++) {
-                Upval *u = obj->value.c->upvals[i];
-
-                if (--u->refcount == 0) {
-                    free_upval(u);
-                }
-            }
-        } break;
-
-        case OBJECT_STRING:
-            // TODO - clear if not interned?
-            break;
-    }
-
-    free(obj);
 }
 
 void mark(HeapObject *obj) {
@@ -290,50 +341,8 @@ void sweep(State *state) {
 }
 
 void gc(State *state) {
-    int objs = state->numobjects;
-
     mark_all(state);
     sweep(state);
-
-    printf("Cleared %d objects, %d remain.\n", objs - state->numobjects, state->numobjects);
-}
-
-HeapObject *make_object(State *state) {
-    if (state->numobjects >= state->maxobjects) {
-        gc(state);
-    }
-
-    HeapObject *obj = malloc(sizeof *obj);
-
-    if (!obj) {
-        fatal("Out of memory.");
-    }
-
-    obj->marked = 0;
-
-    obj->next = state->first;
-    state->first = obj;
-    state->numobjects++;
-
-    return obj;
-}
-
-HeapObject *make_string_ref(State *state, char *s) {
-    HeapObject *obj = make_object(state);
-
-    obj->type = OBJECT_STRING;
-    obj->value.s = s;
-
-    return obj;
-}
-
-HeapObject *make_closure_ref(State *state, Closure *c) {
-    HeapObject *obj = make_object(state);
-
-    obj->type = OBJECT_CLOSURE;
-    obj->value.c = c;
-
-    return obj;
 }
 
 void copy_object(StackObject *o1, StackObject *o2) {
@@ -718,8 +727,6 @@ restart: {
                     }
                 }
 
-                // TODO - free registers
-
                 if (state->current->parent != NULL) {
                     Frame *p = state->current->parent;
                     StackObject *target = &p->registers[GET_A(p->closure->chunk->instructions[p->pc++])];
@@ -731,10 +738,14 @@ restart: {
                         copy_constant(state, target, chunk->constants[b - 256]);
                     }
 
+                    free_frame(frame);
+
                     state->current = p;
                     goto restart;
                 } else {
                     print(&registers[b]);
+                    free_frame(frame);
+                    state->current = NULL;
                     return;
                 }
             } break;
@@ -792,4 +803,12 @@ void execute(Chunk *chunk) {
     State *state = make_state(frame, 0);
 
     execute_function(state);
+
+    gc(state);
+    free(state);
+
+    // TODO - free last closure [?]
+    // Other closrues should be already taken care of
+    // by the last gc sweep, but this one existed outside
+    // of the heap.
 }
